@@ -1,0 +1,63 @@
+import { BaseRepository } from '#core/repository/base.repository.js';
+
+/**
+ * Tenant-scoped repository base for the Payment Engine (organization +
+ * restaurant + branch). The trusted tenant fields are whitelisted in
+ * `paginateScoped` so buildFilter (which drops any field not in
+ * allowedFilterFields) can never strip the scope — financial listings are never
+ * exposed across tenants.
+ *
+ * @template T
+ */
+export class PaymentScopedRepository extends BaseRepository {
+  scoped(scope, filter = {}) {
+    const base = { ...filter, organizationId: scope.organizationId, restaurantId: scope.restaurantId };
+    if (scope.branchId) base.branchId = scope.branchId;
+    return base;
+  }
+
+  createScoped(scope, data, options = {}) {
+    const stamped = { ...data, organizationId: scope.organizationId, restaurantId: scope.restaurantId };
+    if (scope.branchId) stamped.branchId = scope.branchId;
+    return this.create(stamped, options);
+  }
+
+  findScoped(scope, filter = {}, options = {}) {
+    return this.find(this.scoped(scope, filter), options);
+  }
+
+  findByIdScoped(scope, id, options = {}) {
+    return this.findOne(this.scoped(scope, { _id: id }), options);
+  }
+
+  countScoped(scope, filter = {}, options = {}) {
+    return this.count(this.scoped(scope, filter), options);
+  }
+
+  existsScoped(scope, filter = {}, options = {}) {
+    return this.exists(this.scoped(scope, filter), options);
+  }
+
+  paginateScoped(scope, params = {}, options = {}) {
+    const allowedFilterFields = params.allowedFilterFields
+      ? [...new Set([...params.allowedFilterFields, 'organizationId', 'restaurantId', 'branchId'])]
+      : params.allowedFilterFields;
+    return this.paginate({ ...params, filter: this.scoped(scope, params.filter ?? {}), allowedFilterFields }, options);
+  }
+
+  /**
+   * Optimistically-versioned update: applies `patch` only if the stored version
+   * matches, bumping it atomically. Returns the updated doc, or null on conflict.
+   */
+  async updateWithVersion(id, expectedVersion, patch, extra = {}) {
+    const update = { $set: patch, $inc: { version: 1, ...(extra.inc ?? {}) } };
+    if (extra.push) update.$push = extra.push;
+    const doc = await this.model.findOneAndUpdate({ _id: id, version: expectedVersion }, update, {
+      new: true,
+      runValidators: true,
+    });
+    return this.toDomain(doc);
+  }
+}
+
+export default PaymentScopedRepository;
