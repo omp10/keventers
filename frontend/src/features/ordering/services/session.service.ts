@@ -26,7 +26,7 @@ const BASE = '/public/session';
 
 class SessionService {
   /** Open (or reuse) a guest ordering session for a branch. */
-  async open(branchSlug: string, opts?: { tableCode?: string; channel?: string }): Promise<OrderingSession> {
+  async open(branchSlug: string, opts: { tableNumber: string }): Promise<OrderingSession> {
     const session = await api.post<OrderingSession>(`${BASE}/open`, { branchSlug, ...opts }, { skipAuth: true });
     tokenStore.setGuest(session.token);
     setActiveBranchSlug(session.branchSlug);

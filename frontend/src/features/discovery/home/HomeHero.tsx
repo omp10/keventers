@@ -131,7 +131,7 @@ export function HomeHero(props: HomeHeroProps) {
     <section
       ref={ref}
       aria-label="Welcome"
-      className="relative -mx-4 -mt-5 overflow-hidden px-4 pb-6 pt-7 sm:px-6 lg:pb-9 lg:pt-8 lg:rounded-b-3xl"
+      className="relative -mx-4 -mt-5 overflow-hidden px-4 pb-6 pt-7 sm:-mx-6 sm:px-6 lg:mx-0 lg:mt-0 lg:min-h-[31rem] lg:rounded-[2rem] lg:border lg:border-border/60 lg:px-10 lg:py-12 lg:shadow-xl xl:px-14 xl:py-14"
       style={{ backgroundImage: gradients.surface }}
     >
       {/* Ambient decorative blooms (parallax layers, purely decorative) */}
@@ -146,7 +146,7 @@ export function HomeHero(props: HomeHeroProps) {
 
       <motion.div
         style={reduced ? undefined : { opacity: contentFade }}
-        className="relative mx-auto flex w-full max-w-2xl flex-col gap-6 lg:max-w-none lg:flex-row lg:items-center lg:gap-12"
+        className="relative mx-auto flex w-full max-w-2xl flex-col gap-6 lg:max-w-none lg:flex-row lg:items-center lg:gap-16 xl:gap-24"
       >
         {/* Copy + search */}
         <div className="min-w-0 flex-1 space-y-5">
@@ -155,10 +155,10 @@ export function HomeHero(props: HomeHeroProps) {
               {greeting}
               {brand.tagline ? <span className="text-foreground-subtle"> · {brand.tagline}</span> : null}
             </p>
-            <h1 className="font-display text-4xl font-extrabold leading-[1.05] tracking-tight text-foreground sm:text-5xl">
+            <h1 className="max-w-3xl font-display text-4xl font-extrabold leading-[1.05] tracking-tight text-foreground sm:text-5xl lg:text-6xl xl:text-7xl">
               Ready for a <span className={gradientText}>{brand.appName}</span> treat?
             </h1>
-            <p className="max-w-md text-[0.9375rem] text-foreground-muted">
+            <p className="max-w-xl text-[0.9375rem] text-foreground-muted lg:text-lg">
               Scan a table code, or discover great food around you.
             </p>
           </div>
@@ -180,7 +180,7 @@ export function HomeHero(props: HomeHeroProps) {
         </div>
 
         {/* Primary action panel */}
-        <div className="w-full space-y-3 lg:max-w-sm">
+        <div className="w-full space-y-3 lg:max-w-md">
           {scannerFirst ? (
             <>
               <ScanCta onClick={() => navigate('/qr')} />

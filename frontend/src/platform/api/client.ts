@@ -67,8 +67,14 @@ export class ApiClient {
 
   /** GET that returns the `{ items, meta }` pagination shape. */
   async paginate<T>(path: string, config: RequestConfig = {}): Promise<Paginated<T>> {
-    const { data, meta } = await this.requestEnvelope<T[]>(path, { ...config, method: 'GET' });
-    return { items: data, meta: meta ?? { page: 1, limit: data.length, total: data.length, totalPages: 1 } };
+    type NestedPage = { items: T[]; pagination?: Paginated<T>['meta']; meta?: Paginated<T>['meta'] };
+    const { data, meta } = await this.requestEnvelope<T[] | NestedPage>(path, { ...config, method: 'GET' });
+    const items = Array.isArray(data) ? data : data.items;
+    const pageMeta = Array.isArray(data) ? meta : data.pagination ?? data.meta ?? meta;
+    return {
+      items,
+      meta: pageMeta ?? { page: 1, limit: items.length, total: items.length, totalPages: 1 },
+    };
   }
 
   /** Core request → unwraps the ApiResponse envelope, returns `data`. */

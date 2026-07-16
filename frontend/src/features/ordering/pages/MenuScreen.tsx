@@ -1,12 +1,26 @@
 import { useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
-import { Spinner, ErrorState, toast } from '@/design-system';
+import {
+  Button,
+  Dialog,
+  DialogBody,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  ErrorState,
+  Input,
+  Spinner,
+  toast,
+} from '@/design-system';
 import { useBranchDetail } from '@/features/discovery';
 import { ProductDetailDrawer } from '../components';
 import { MenuBoard, MenuHero, MenuSearch, ProductRail } from '../menu';
 import { FloatingCart } from '../cart';
 import { useCart, useMenu, useProduct, usePrefetchProduct } from '../hooks';
+import { sessionService } from '../services';
 import type { CartItemSelection, Product } from '../types';
 
 /**
@@ -20,11 +34,14 @@ export function MenuScreen() {
   const navigate = useNavigate();
   const branch = useBranchDetail(branchSlug);
   const menu = useMenu(branchSlug);
-  const cart = useCart(branchSlug);
+  const cart = useCart();
   const prefetch = usePrefetchProduct(branchSlug);
 
   const [openSlug, setOpenSlug] = useState<string | undefined>();
   const [searchOpen, setSearchOpen] = useState(false);
+  const [tableNumber, setTableNumber] = useState('');
+  const [pendingSelection, setPendingSelection] = useState<CartItemSelection | null>(null);
+  const [openingSession, setOpeningSession] = useState(false);
   const productQ = useProduct(branchSlug, openSlug);
 
   const cartQuantities = useMemo(() => {
@@ -35,14 +52,22 @@ export function MenuScreen() {
 
   const needsConfig = (p: Product) => p.customizable || (p.variants?.length ?? 0) > 0 || (p.modifierGroups?.length ?? 0) > 0;
 
+  const addSelection = async (selection: CartItemSelection) => {
+    if (!cart.hasSession) {
+      setPendingSelection(selection);
+      return false;
+    }
+    await cart.add(selection);
+    return true;
+  };
+
   const onAdd = async (p: Product) => {
     if (needsConfig(p)) {
       setOpenSlug(p.slug);
       return;
     }
     try {
-      await cart.add({ productId: p.id, quantity: 1 });
-      toast.success(`${p.name} added`);
+      if (await addSelection({ productId: p.id, quantity: 1 })) toast.success(`${p.name} added`);
     } catch (e) {
       toast.error('Could not add item', { description: (e as Error).message });
     }
@@ -51,8 +76,24 @@ export function MenuScreen() {
   const onOpen = (p: Product) => setOpenSlug(p.slug);
 
   const addFromDetail = async (selection: CartItemSelection) => {
-    await cart.add(selection);
-    toast.success('Added to cart');
+    if (await addSelection(selection)) toast.success('Added to cart');
+  };
+
+  const openTableSession = async () => {
+    const normalized = tableNumber.trim();
+    if (!branchSlug || !pendingSelection || !normalized) return;
+    setOpeningSession(true);
+    try {
+      await sessionService.open(branchSlug, { tableNumber: normalized });
+      await cart.add(pendingSelection);
+      setPendingSelection(null);
+      setTableNumber('');
+      toast.success('Table confirmed', { description: 'Your item was added to the cart.' });
+    } catch (error) {
+      toast.error('Could not start ordering', { description: (error as Error).message });
+    } finally {
+      setOpeningSession(false);
+    }
   };
 
   if (menu.isLoading) {
@@ -102,6 +143,40 @@ export function MenuScreen() {
       {searchOpen && branchSlug && (
         <MenuSearch branchSlug={branchSlug} onAdd={onAdd} onOpen={(p) => { setSearchOpen(false); onOpen(p); }} onClose={() => setSearchOpen(false)} />
       )}
+
+      <Dialog open={Boolean(pendingSelection)} onOpenChange={(open) => !open && !openingSession && setPendingSelection(null)}>
+        <DialogContent size="sm">
+          <DialogHeader>
+            <DialogTitle>Which table are you at?</DialogTitle>
+            <DialogDescription>Enter the table number shown at your seat so the kitchen can route your order correctly.</DialogDescription>
+          </DialogHeader>
+          <DialogBody>
+            <form
+              id="table-session-form"
+              onSubmit={(event) => {
+                event.preventDefault();
+                void openTableSession();
+              }}
+            >
+              <label className="space-y-2 text-sm font-medium text-foreground">
+                Table number
+                <Input
+                  autoFocus
+                  value={tableNumber}
+                  onChange={(event) => setTableNumber(event.target.value)}
+                  placeholder="For example, 12"
+                  autoComplete="off"
+                  maxLength={20}
+                />
+              </label>
+            </form>
+          </DialogBody>
+          <DialogFooter>
+            <Button variant="ghost" disabled={openingSession} onClick={() => setPendingSelection(null)}>Cancel</Button>
+            <Button type="submit" form="table-session-form" loading={openingSession} disabled={!tableNumber.trim()}>Start ordering</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

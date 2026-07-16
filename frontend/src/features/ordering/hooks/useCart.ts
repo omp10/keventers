@@ -11,7 +11,7 @@ const cartKey = qk('ordering', 'cart');
  * auto-open a session; mutations carry the version (optimistic concurrency) and are
  * offline-queueable (replayed by the Offline Platform).
  */
-export function useCart(branchSlug?: string) {
+export function useCart() {
   const query = useQueryResource<Cart>(cartKey, () => cartService.get(), {
     enabled: sessionService.has(),
     staleTime: 5_000,
@@ -21,10 +21,7 @@ export function useCart(branchSlug?: string) {
   const version = () => queryClient.getQueryData<Cart>(cartKey)?.version;
 
   const add = useMutationResource<Cart, CartItemSelection>(
-    async (sel) => {
-      if (!sessionService.has() && branchSlug) await sessionService.open(branchSlug);
-      return cartService.addItem(sel);
-    },
+    (sel) => cartService.addItem(sel),
     { onSuccess: setCart },
   );
   const update = useMutationResource<Cart, { itemId: string; patch: Partial<CartItemSelection> }>(

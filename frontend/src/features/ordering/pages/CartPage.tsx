@@ -14,7 +14,6 @@ export function CartPage() {
     <div>
       <OrderingHeader title="Your cart" />
       <CartView
-        branchSlug={branchSlug}
         onCheckout={() => navigate('/checkout')}
         onBrowse={() => navigate(menuHref)}
         onEditItem={() => navigate(menuHref)}

@@ -12,14 +12,14 @@ export function useSession() {
   const [opening, setOpening] = useState(false);
   const [ready, setReady] = useState(sessionService.has());
 
-  const open = useCallback(async (branchSlug: string, opts?: { tableCode?: string; channel?: string }) => {
+  const open = useCallback(async (branchSlug: string, tableNumber: string) => {
     if (sessionService.has()) {
       setReady(true);
       return true;
     }
     setOpening(true);
     try {
-      await sessionService.open(branchSlug, opts);
+      await sessionService.open(branchSlug, { tableNumber });
       setReady(true);
       return true;
     } finally {
@@ -27,7 +27,11 @@ export function useSession() {
     }
   }, []);
 
-  const ensure = useCallback((branchSlug: string) => (sessionService.has() ? Promise.resolve(true) : open(branchSlug)), [open]);
+  const ensure = useCallback(
+    (branchSlug: string, tableNumber: string) =>
+      sessionService.has() ? Promise.resolve(true) : open(branchSlug, tableNumber),
+    [open],
+  );
 
   const end = useCallback(() => {
     sessionService.end();

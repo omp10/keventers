@@ -36,8 +36,13 @@ class AuthServiceImpl extends BaseService {
   verifyOtp(phone: string, code: string) {
     return this.api.post<OtpSession>('/identity/auth/otp/verify', { phone, code }, { skipAuth: true, retries: 0 });
   }
-  refresh(refreshToken: string) {
-    return this.api.post<AuthTokens>('/identity/auth/refresh', { refreshToken }, { skipAuth: true, retries: 0 });
+  async refresh(refreshToken: string) {
+    const session = await this.api.post<{ tokens: AuthTokens }>(
+      '/identity/auth/refresh',
+      { refreshToken },
+      { skipAuth: true, retries: 0 },
+    );
+    return session.tokens;
   }
   me() {
     return this.api.get<AuthUser>('/identity/auth/me');

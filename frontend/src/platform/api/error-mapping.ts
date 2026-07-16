@@ -29,13 +29,24 @@ export function toApiError(error: unknown, context?: { offline?: boolean }): Api
 /** Build an ApiError from a non-2xx Response + parsed body. */
 export function errorFromResponse(status: number, body: unknown): ApiError {
   const kind = kindForStatus(status);
-  const b = body as { message?: string; error?: string; code?: string; details?: unknown } | null;
+  const b = body as {
+    message?: string;
+    error?: string | { message?: string; code?: string; details?: unknown };
+    code?: string;
+    details?: unknown;
+  } | null;
+  const nested = b?.error && typeof b.error === 'object' ? b.error : undefined;
+  const message =
+    (typeof b?.message === 'string' && b.message) ||
+    (typeof b?.error === 'string' && b.error) ||
+    (typeof nested?.message === 'string' && nested.message) ||
+    defaultMessage(kind, status);
   return new ApiError({
-    message: b?.message ?? b?.error ?? defaultMessage(kind, status),
+    message,
     kind,
     status,
-    code: b?.code,
-    details: b?.details ?? body,
+    code: b?.code ?? nested?.code,
+    details: b?.details ?? nested?.details ?? body,
   });
 }
 

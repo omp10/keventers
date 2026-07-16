@@ -50,7 +50,7 @@ export function HomeScreen() {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 lg:space-y-12 xl:space-y-14">
       {/* Act 1 — the opening moment */}
       <HomeHero
         scannerFirst={scannerFirst}
@@ -79,7 +79,7 @@ export function HomeScreen() {
       <ContinueOrderingCard />
 
       {/* Act 3 — discovery rails (each reveals as it enters the viewport) */}
-      <div className="space-y-8">
+      <div className="space-y-8 lg:space-y-12">
         <NearbyRail point={origin.point} />
         <PopularRail point={origin.point} />
         <FeaturedRail point={origin.point} />

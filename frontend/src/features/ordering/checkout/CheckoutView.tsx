@@ -18,8 +18,8 @@ const PROVIDERS: { id: PaymentProvider; label: string; hint: string; icon: 'paym
  * the cart and creates an immutable order via the backend; then the page proceeds
  * to payment. All amounts are read-only from the Pricing Engine.
  */
-export function CheckoutView({ branchSlug, onPlaced }: { branchSlug: string; onPlaced: (order: Order, provider: PaymentProvider) => void }) {
-  const cart = useCart(branchSlug);
+export function CheckoutView({ onPlaced }: { onPlaced: (order: Order, provider: PaymentProvider) => void }) {
+  const cart = useCart();
   const { checkout, isPending } = useCheckout();
   const [provider, setProvider] = useState<PaymentProvider>('razorpay');
   const [notes, setNotes] = useState('');

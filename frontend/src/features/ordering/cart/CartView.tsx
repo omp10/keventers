@@ -12,17 +12,15 @@ import { PriceBreakdown } from './PriceBreakdown';
  * checkout CTA. No price math happens here.
  */
 export function CartView({
-  branchSlug,
   onCheckout,
   onBrowse,
   onEditItem,
 }: {
-  branchSlug: string;
   onCheckout: () => void;
   onBrowse: () => void;
   onEditItem?: (productId: string) => void;
 }) {
-  const cart = useCart(branchSlug);
+  const cart = useCart();
 
   if (cart.isLoading) {
     return (

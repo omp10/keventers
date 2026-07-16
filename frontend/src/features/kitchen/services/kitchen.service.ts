@@ -42,16 +42,22 @@ function toParams(f?: KitchenFilterState) {
 
 class KitchenService {
   /** The live queue (bounded — no pagination; realtime-driven). */
-  queue(filters?: KitchenFilterState) {
-    return api.get<KitchenEntry[]>(`${BASE}/queue`, { query: toParams(filters) });
+  async queue(filters?: KitchenFilterState) {
+    const page = await api.paginate<KitchenEntry>(`${BASE}/queue`, {
+      query: { ...toParams(filters), page: 1, limit: 100 },
+    });
+    return page.items;
   }
 
   get(orderId: string) {
     return api.get<KitchenEntry>(`${BASE}/orders/${orderId}`);
   }
 
-  stations() {
-    return api.get<KitchenStation[]>(`${BASE}/stations`);
+  async stations() {
+    const page = await api.paginate<KitchenStation>(`${BASE}/stations`, {
+      query: { page: 1, limit: 100 },
+    });
+    return page.items;
   }
 
   chefs() {
