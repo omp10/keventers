@@ -89,7 +89,7 @@ export class RebuildService extends BaseService {
       throw err;
     }
     this.audit.success('analytics.rebuild.enqueued', { actorId, targetId: entityId(run) });
-    return toRebuildRunDTO(await this.runs.findById(entityId(run)));
+    return toRebuildRunDTO(run);
   }
 
   /**
@@ -123,12 +123,12 @@ export class RebuildService extends BaseService {
       }
 
       const durationMs = Date.now() - started;
-      await this.runs.updateById(runId, { status: REBUILD_STATUS.COMPLETED, processed, completedAt: new Date(), durationMs });
+      await this.runs.updateById(runId, { status: REBUILD_STATUS.COMPLETED, processed, completedAt: new Date(), durationMs }).catch(() => null);
       await this.events.publish(new AnalyticsRebuildCompletedEvent({ runId: String(runId), restaurantId: scope.restaurantId, processed, durationMs }));
       this.audit.success('analytics.rebuild', { actorId, targetId: String(runId), metadata: { processed } });
       return { processed };
     } catch (err) {
-      await this.runs.updateById(runId, { status: REBUILD_STATUS.FAILED, error: err.message, completedAt: new Date() });
+      await this.runs.updateById(runId, { status: REBUILD_STATUS.FAILED, error: err.message, completedAt: new Date() }).catch(() => null);
       this.audit.failure('analytics.rebuild.failed', { actorId, targetId: String(runId), metadata: { error: err.message } });
       throw err;
     }

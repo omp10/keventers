@@ -15,7 +15,7 @@ const { Schema } = mongoose;
 const invoiceSchema = new Schema(
   {
     ...tenantFields,
-    orderId: { type: Schema.Types.ObjectId, ref: 'Order', required: true, index: true },
+    orderId: { type: Schema.Types.ObjectId, ref: 'Order', required: true },
     orderNumber: { type: String, required: true },
     invoiceNumber: { type: String, required: true },
 

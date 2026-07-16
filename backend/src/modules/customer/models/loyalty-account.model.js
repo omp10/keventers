@@ -39,7 +39,6 @@ const loyaltyAccountSchema = new Schema(
   baseSchemaOptions,
 );
 
-loyaltyAccountSchema.index({ customerId: 1 }, { unique: true });
 loyaltyAccountSchema.index({ restaurantId: 1, tier: 1 });
 loyaltyAccountSchema.index({ restaurantId: 1, balance: -1 });
 

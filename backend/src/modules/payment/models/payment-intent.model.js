@@ -42,7 +42,6 @@ const paymentIntentSchema = new Schema(
 
 paymentIntentSchema.index({ restaurantId: 1, status: 1, createdAt: -1 });
 paymentIntentSchema.index({ orderId: 1, status: 1 });
-paymentIntentSchema.index({ providerIntentRef: 1 });
 paymentIntentSchema.index(
   { orderId: 1, idempotencyKey: 1 },
   { unique: true, partialFilterExpression: { idempotencyKey: { $type: 'string' } } },

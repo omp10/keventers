@@ -61,7 +61,6 @@ const paymentSchema = new Schema(
 paymentSchema.index({ restaurantId: 1, status: 1, createdAt: -1 });
 paymentSchema.index({ branchId: 1, status: 1, createdAt: -1 });
 paymentSchema.index({ orderId: 1, status: 1 });
-paymentSchema.index({ providerPaymentRef: 1 });
 paymentSchema.index({ customerUserId: 1, createdAt: -1 });
 paymentSchema.index({ sessionId: 1, createdAt: -1 });
 

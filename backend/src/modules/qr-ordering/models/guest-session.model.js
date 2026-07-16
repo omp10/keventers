@@ -85,11 +85,9 @@ const guestSessionSchema = new Schema(
   baseSchemaOptions,
 );
 
-guestSessionSchema.index({ sessionId: 1 }, { unique: true });
 guestSessionSchema.index({ branchId: 1, status: 1, createdAt: -1 });
 guestSessionSchema.index({ tableId: 1, status: 1 });
 guestSessionSchema.index({ restaurantId: 1, createdAt: -1 });
-guestSessionSchema.index({ recoveryCode: 1 });
 // TTL-free expiry index (queried by sweeps; sessions are kept as history).
 guestSessionSchema.index({ expiresAt: 1 });
 

@@ -82,7 +82,7 @@ export class AddonService extends BaseService {
   }
 
   async uploadImage(tenant, id, file, actorId = null) {
-    const addon = await loadOwned(this.addons, tenant, id, CATALOG_ERRORS.ADDON_NOT_FOUND);
+    await loadOwned(this.addons, tenant, id, CATALOG_ERRORS.ADDON_NOT_FOUND);
     const up = await this.#storage().upload({
       buffer: file.buffer,
       filename: file.originalname ?? 'addon-image',

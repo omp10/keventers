@@ -1,5 +1,5 @@
 import { BaseService } from '#core/service/base.service.js';
-import { BadRequestError, NotFoundError } from '#core/errors/app-error.js';
+import { BadRequestError } from '#core/errors/app-error.js';
 
 import {
   DEFAULT_LOCALE,

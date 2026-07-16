@@ -89,8 +89,12 @@ export class ProjectionService extends BaseService {
 
   /** Flush an accumulator to the projection collections via two bulkWrites. */
   async flush(acc) {
-    await this.buckets.bulkIncrement([...acc.buckets.values()]);
-    await this.entities.bulkIncrement([...acc.entities.values()]);
+    const buckets = [...acc.buckets.values()];
+    const entities = [...acc.entities.values()];
+    if (typeof this.buckets.bulkIncrement === 'function') await this.buckets.bulkIncrement(buckets);
+    else await Promise.all(buckets.map((x) => this.buckets.increment(x.scope, x.domain, x.period, x.periodKey, x.inc, x.hist)));
+    if (typeof this.entities.bulkIncrement === 'function') await this.entities.bulkIncrement(entities);
+    else await Promise.all(entities.map((x) => this.entities.increment(x.scope, x.domain, x.entityType, x.entityId, x.inc, x.name)));
   }
 }
 

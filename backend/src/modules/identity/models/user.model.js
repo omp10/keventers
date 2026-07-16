@@ -29,7 +29,6 @@ const userSchema = new Schema(
       unique: true,
       trim: true,
       lowercase: true,
-      index: true,
     },
     phone: { type: String, trim: true, default: null },
     passwordHash: { type: String, required: true, select: false },
@@ -74,7 +73,6 @@ userSchema.virtual('fullName').get(function fullName() {
 });
 
 // Indexes (including compound).
-userSchema.index({ email: 1 }, { unique: true });
 userSchema.index({ phone: 1 }, { unique: true, sparse: true });
 userSchema.index({ status: 1, type: 1 });
 userSchema.index({ roles: 1 });

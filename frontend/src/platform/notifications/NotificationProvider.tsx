@@ -1,0 +1,88 @@
+import { createContext, useCallback, useContext, useEffect, useMemo, type ReactNode } from 'react';
+
+import { toast } from '@/design-system';
+import { notificationService } from '@/services';
+import { useAuth } from '@/platform/auth';
+import { useSocketEvent } from '@/platform/socket';
+import { useNotificationStore, type AppNotification } from './store';
+
+type NotificationContextValue = {
+  refresh: () => Promise<void>;
+  markRead: (id: string) => Promise<void>;
+  markAllRead: () => Promise<void>;
+};
+
+const NotificationContext = createContext<NotificationContextValue | null>(null);
+
+const toAppNotification = (raw: Partial<AppNotification> & { id: string; title: string }): AppNotification => ({
+  level: 'info',
+  read: false,
+  createdAt: raw.createdAt ?? new Date(0).toISOString(),
+  ...raw,
+});
+
+/**
+ * NOTIFICATION PLATFORM — subscribes ONCE to the socket `notification:new` event
+ * (through the Socket Platform, never a raw socket) and to the REST inbox, feeding
+ * the single notification store. Also raises a toast for live notifications.
+ * Business code never subscribes to notification events directly.
+ */
+export function NotificationProvider({ children }: { children: ReactNode }) {
+  const { isAuthenticated, isGuest } = useAuth();
+  const store = useNotificationStore;
+
+  const refresh = useCallback(async () => {
+    if (!isAuthenticated && !isGuest) return;
+    try {
+      const page = await notificationService.inbox<AppNotification>();
+      store.getState().hydrate((page.items ?? []).map(toAppNotification));
+    } catch {
+      /* inbox is best-effort; live socket still populates */
+    }
+  }, [isAuthenticated, isGuest, store]);
+
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
+
+  // Live notifications — one subscription for the whole app.
+  useSocketEvent<Partial<AppNotification> & { id: string; title: string }>('notification:new', (raw) => {
+    const n = toAppNotification({ ...raw, createdAt: raw.createdAt ?? new Date().toISOString() });
+    store.getState().add(n);
+    toast[n.level === 'error' ? 'error' : n.level === 'success' ? 'success' : n.level === 'warning' ? 'warning' : 'info']?.(
+      n.title,
+      { description: n.body },
+    );
+  });
+
+  const markRead = useCallback(
+    async (id: string) => {
+      store.getState().markRead(id);
+      try {
+        await notificationService.markRead(id);
+      } catch {
+        /* optimistic; server reconciles on next refresh */
+      }
+    },
+    [store],
+  );
+
+  const markAllRead = useCallback(async () => {
+    store.getState().markAllRead();
+    try {
+      await notificationService.markAllRead();
+    } catch {
+      /* optimistic */
+    }
+  }, [store]);
+
+  const value = useMemo<NotificationContextValue>(() => ({ refresh, markRead, markAllRead }), [refresh, markRead, markAllRead]);
+
+  return <NotificationContext.Provider value={value}>{children}</NotificationContext.Provider>;
+}
+
+export function useNotificationActions(): NotificationContextValue {
+  const ctx = useContext(NotificationContext);
+  if (!ctx) throw new Error('useNotificationActions must be used within <NotificationProvider>');
+  return ctx;
+}

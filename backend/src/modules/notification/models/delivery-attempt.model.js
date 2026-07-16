@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 
 import { CHANNEL, DELIVERY_STATUS } from '../constants/notification.constants.js';
-import { baseSchemaOptions, tenantFields } from '../utils/schema.util.js';
+import { tenantFields } from '../utils/schema.util.js';
 
 const { Schema } = mongoose;
 

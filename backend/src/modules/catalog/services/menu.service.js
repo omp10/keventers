@@ -90,7 +90,7 @@ export class MenuService extends BaseService {
       }
     }
 
-    const updated = await this.menus.updateById(id, patch);
+    await this.menus.updateById(id, patch);
     if (data.isDefault === true) await this.#makeDefault(scope, id);
 
     await this.events.publish(

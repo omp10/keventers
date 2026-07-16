@@ -1,0 +1,282 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   Keventers Design System — global stylesheet
+   Tailwind v4. Every utility resolves to a `--kv-*` runtime variable (injected
+   by the ThemeProvider), so `bg-primary` / `rounded-lg` / `shadow-md` rebrand
+   and switch scheme with ZERO recompilation. Nothing here hardcodes a themed
+   value — it only WIRES Tailwind utilities to the token variables.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+@import 'tailwindcss';
+
+/* Dark mode is class-driven (`.dark` on <html>), toggled by the theme engine —
+   not the OS media query — so the app can override the system preference. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ─────────────────────────────  THEME MAPPING  ─────────────────────────────
+   `@theme inline` binds Tailwind's design-token namespaces to our runtime vars.
+   The VALUE lives in `--kv-*` (swapped at runtime); the utility just references
+   it. This is what makes the whole system themeable + rebrandable. */
+@theme inline {
+  /* Colors → generate bg-/text-/border-/ring-/fill-/from- utilities */
+  --color-background: var(--kv-color-background);
+  --color-surface: var(--kv-color-surface);
+  --color-surface-raised: var(--kv-color-surface-raised);
+  --color-surface-sunken: var(--kv-color-surface-sunken);
+  --color-overlay: var(--kv-color-overlay);
+
+  --color-foreground: var(--kv-color-foreground);
+  --color-foreground-muted: var(--kv-color-foreground-muted);
+  --color-foreground-subtle: var(--kv-color-foreground-subtle);
+
+  --color-border: var(--kv-color-border);
+  --color-border-strong: var(--kv-color-border-strong);
+  --color-input: var(--kv-color-input);
+  --color-ring: var(--kv-color-ring);
+  --color-ring-soft: var(--kv-color-ring-soft);
+
+  --color-primary: var(--kv-color-primary);
+  --color-primary-foreground: var(--kv-color-primary-foreground);
+  --color-primary-hover: var(--kv-color-primary-hover);
+  --color-primary-active: var(--kv-color-primary-active);
+  --color-primary-soft: var(--kv-color-primary-soft);
+
+  --color-secondary: var(--kv-color-secondary);
+  --color-secondary-foreground: var(--kv-color-secondary-foreground);
+
+  --color-accent: var(--kv-color-accent);
+  --color-accent-foreground: var(--kv-color-accent-foreground);
+  --color-accent-soft: var(--kv-color-accent-soft);
+
+  --color-muted: var(--kv-color-muted);
+  --color-muted-foreground: var(--kv-color-muted-foreground);
+
+  --color-success: var(--kv-color-success);
+  --color-success-foreground: var(--kv-color-success-foreground);
+  --color-success-soft: var(--kv-color-success-soft);
+  --color-warning: var(--kv-color-warning);
+  --color-warning-foreground: var(--kv-color-warning-foreground);
+  --color-warning-soft: var(--kv-color-warning-soft);
+  --color-danger: var(--kv-color-danger);
+  --color-danger-foreground: var(--kv-color-danger-foreground);
+  --color-danger-soft: var(--kv-color-danger-soft);
+  --color-info: var(--kv-color-info);
+  --color-info-foreground: var(--kv-color-info-foreground);
+  --color-info-soft: var(--kv-color-info-soft);
+
+  /* Radius → rounded-* utilities */
+  --radius-none: var(--kv-radius-none);
+  --radius-xs: var(--kv-radius-xs);
+  --radius-sm: var(--kv-radius-sm);
+  --radius-md: var(--kv-radius-md);
+  --radius-lg: var(--kv-radius-lg);
+  --radius-xl: var(--kv-radius-xl);
+  --radius-2xl: var(--kv-radius-2xl);
+  --radius-3xl: var(--kv-radius-3xl);
+  --radius-pill: var(--kv-radius-pill);
+  --radius-full: var(--kv-radius-full);
+
+  /* Shadows → shadow-* utilities */
+  --shadow-xs: var(--kv-shadow-xs);
+  --shadow-sm: var(--kv-shadow-sm);
+  --shadow-md: var(--kv-shadow-md);
+  --shadow-lg: var(--kv-shadow-lg);
+  --shadow-xl: var(--kv-shadow-xl);
+  --shadow-2xl: var(--kv-shadow-2xl);
+  --shadow-inner: var(--kv-shadow-inner);
+
+  /* Fonts → font-* utilities */
+  --font-sans: var(--kv-font-sans);
+  --font-display: var(--kv-font-display);
+  --font-mono: var(--kv-font-mono);
+
+  /* Extra breakpoints (xs + ultra-wide for KDS); others use Tailwind defaults */
+  --breakpoint-xs: 23.75rem;
+  --breakpoint-3xl: 120rem;
+
+  /* Easings → ease-* utilities (static; motion signature uses Framer springs) */
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-emphasized: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-exit: cubic-bezier(0.4, 0, 1, 1);
+
+  /* Named CSS animations → animate-* utilities */
+  --animate-shimmer: kv-shimmer 1.6s linear infinite;
+  --animate-pulse-soft: kv-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  --animate-spin-fast: kv-spin 0.7s linear infinite;
+}
+
+/* ───────────────────────────  DERIVED VARIABLES  ───────────────────────────
+   Computed from the base role vars (so they rebrand automatically). Kept OUT of
+   @theme so they recompute from the live values, not a build-time snapshot. */
+:root {
+  --kv-color-ring-soft: color-mix(in oklab, var(--kv-color-ring) 35%, transparent);
+  --kv-color-primary-soft: color-mix(in oklab, var(--kv-color-primary) 12%, transparent);
+  --kv-color-accent-soft: color-mix(in oklab, var(--kv-color-accent) 12%, transparent);
+  --kv-color-success-soft: color-mix(in oklab, var(--kv-color-success) 14%, transparent);
+  --kv-color-warning-soft: color-mix(in oklab, var(--kv-color-warning) 16%, transparent);
+  --kv-color-danger-soft: color-mix(in oklab, var(--kv-color-danger) 14%, transparent);
+  --kv-color-info-soft: color-mix(in oklab, var(--kv-color-info) 14%, transparent);
+  /* Neutral hover/active washes derived from the foreground ink. */
+  --kv-hover: color-mix(in oklab, var(--kv-color-foreground) 5%, transparent);
+  --kv-active: color-mix(in oklab, var(--kv-color-foreground) 9%, transparent);
+  /* Frosted-glass material. */
+  --kv-glass-bg: color-mix(in oklab, var(--kv-color-surface) 72%, transparent);
+  --kv-glass-border: color-mix(in oklab, var(--kv-color-foreground) 8%, transparent);
+}
+
+/* ─────────────────────────────────  BASE  ────────────────────────────────── */
+@layer base {
+  * {
+    border-color: var(--kv-color-border);
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: var(--kv-color-background);
+    color: var(--kv-color-foreground);
+    font-family: var(--kv-font-sans);
+    font-feature-settings: 'cv11', 'ss01';
+    font-variation-settings: normal;
+    line-height: 1.5;
+    min-height: 100dvh;
+  }
+
+  /* Accessible, brand-tinted focus ring for keyboard users only. */
+  :focus-visible {
+    outline: 2px solid var(--kv-color-ring);
+    outline-offset: 2px;
+  }
+  :focus:not(:focus-visible) {
+    outline: none;
+  }
+
+  ::selection {
+    background-color: color-mix(in oklab, var(--kv-color-primary) 28%, transparent);
+    color: var(--kv-color-foreground);
+  }
+
+  /* Refined, theme-aware scrollbars. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--kv-color-border-strong) transparent;
+  }
+  *::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  *::-webkit-scrollbar-thumb {
+    background-color: var(--kv-color-border-strong);
+    border-radius: 9999px;
+    border: 3px solid transparent;
+    background-clip: content-box;
+  }
+  *::-webkit-scrollbar-thumb:hover {
+    background-color: var(--kv-color-foreground-subtle);
+  }
+
+  /* Respect reduced-motion globally as a safety net (components also gate). */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+/* ───────────────────────────────  KEYFRAMES  ─────────────────────────────── */
+@keyframes kv-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+@keyframes kv-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+@keyframes kv-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes kv-progress-indeterminate {
+  0% {
+    transform: translateX(-100%) scaleX(0.4);
+  }
+  50% {
+    transform: translateX(0%) scaleX(0.6);
+  }
+  100% {
+    transform: translateX(100%) scaleX(0.4);
+  }
+}
+@keyframes kv-caret {
+  50% {
+    opacity: 0;
+  }
+}
+@keyframes kv-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes kv-content-show {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+@keyframes kv-pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(-2px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+@keyframes kv-accordion-down {
+  from {
+    height: 0;
+    opacity: 0;
+  }
+  to {
+    height: var(--radix-accordion-content-height);
+    opacity: 1;
+  }
+}
+@keyframes kv-accordion-up {
+  from {
+    height: var(--radix-accordion-content-height);
+    opacity: 1;
+  }
+  to {
+    height: 0;
+    opacity: 0;
+  }
+}

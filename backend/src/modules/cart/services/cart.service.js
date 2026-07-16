@@ -150,7 +150,7 @@ export class CartService extends BaseService {
    * optimistic version guard, refreshes the cache and publishes events.
    */
   async #mutate(scope, { version, idempotencyKey, requireContext = true } = {}, work) {
-    const active = await this.carts.findActiveBySession(scope);
+    const active = await this.carts.findForCheckout(scope);
     if (!active) throw new NotFoundError(CART_ERRORS.CART_NOT_FOUND);
     const cartId = this.#cartId(active);
 
@@ -210,8 +210,10 @@ export class CartService extends BaseService {
   }
 
   async addItem(scope, input, opts = {}) {
-    await this.getOrCreateCart(scope); // ensure an active cart exists
-    return this.#mutate(scope, opts, async (cart, { restaurant }) => {
+    const existing = await this.carts.findForCheckout(scope);
+    if (!existing) await this.getOrCreateCart(scope);
+    const mutationOpts = { ...opts, version: opts.version ?? input.version };
+    return this.#mutate(scope, mutationOpts, async (cart) => {
       if ((cart.items?.length ?? 0) >= this.cartConfig.maxItems) {
         throw new BadRequestError(CART_ERRORS.MAX_ITEMS);
       }
@@ -289,6 +291,13 @@ export class CartService extends BaseService {
         coupon: { couponId: null, code: null, snapshot: null },
         events: [new CouponRemovedEvent({ cartId: this.#cartId(cart) })],
       };
+    });
+  }
+
+  async updateCart(scope, input, opts = {}) {
+    return this.#mutate(scope, { ...opts, requireContext: false }, async (cart) => {
+      this.audit.success('cart.updated', { targetId: this.#cartId(cart) });
+      return { notes: input.notes, events: [] };
     });
   }
 

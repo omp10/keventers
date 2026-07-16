@@ -56,7 +56,6 @@ const qrCodeSchema = new Schema(
 );
 
 // The token is the hot scan lookup — unique + indexed. One active QR per table.
-qrCodeSchema.index({ token: 1 }, { unique: true });
 qrCodeSchema.index({ tableId: 1, status: 1 });
 qrCodeSchema.index({ branchId: 1, status: 1 });
 qrCodeSchema.index({ expiresAt: 1 });

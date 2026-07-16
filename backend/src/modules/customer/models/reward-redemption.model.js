@@ -47,7 +47,6 @@ const redemptionSchema = new Schema(
   baseSchemaOptions,
 );
 
-redemptionSchema.index({ code: 1 }, { unique: true });
 redemptionSchema.index({ customerId: 1, status: 1, createdAt: -1 });
 redemptionSchema.index({ restaurantId: 1, status: 1, createdAt: -1 });
 

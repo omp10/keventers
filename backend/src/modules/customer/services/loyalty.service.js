@@ -1,5 +1,5 @@
 import { BaseService } from '#core/service/base.service.js';
-import { BadRequestError, ConflictError, NotFoundError } from '#core/errors/app-error.js';
+import { BadRequestError, ConflictError } from '#core/errors/app-error.js';
 import { distributedLock } from '#core/cache/distributed-lock.js';
 import { config } from '#config';
 

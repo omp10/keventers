@@ -5,7 +5,7 @@ import {
   TRANSACTION_STATUS,
   TRANSACTION_TYPE,
 } from '../constants/payment.constants.js';
-import { baseSchemaOptions, moneyField, tenantFields } from '../utils/schema.util.js';
+import { moneyField, tenantFields } from '../utils/schema.util.js';
 
 const { Schema } = mongoose;
 
@@ -45,7 +45,6 @@ const transactionSchema = new Schema(
   { timestamps: { createdAt: true, updatedAt: false }, versionKey: false, toJSON: { virtuals: true }, toObject: { virtuals: true } },
 );
 
-transactionSchema.index({ internalTxnId: 1 }, { unique: true });
 transactionSchema.index({ restaurantId: 1, type: 1, createdAt: -1 });
 transactionSchema.index({ branchId: 1, createdAt: -1 });
 transactionSchema.index({ paymentId: 1, createdAt: -1 });

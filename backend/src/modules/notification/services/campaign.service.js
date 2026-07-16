@@ -1,5 +1,4 @@
 import { BaseService } from '#core/service/base.service.js';
-import { NotFoundError } from '#core/errors/app-error.js';
 
 import {
   CAMPAIGN_STATUS,

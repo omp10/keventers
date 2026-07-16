@@ -64,7 +64,7 @@ export class FakeQueueRepo {
   async transitionWithVersion(id, expectedVersion, { set = {}, timelineEntry, inc }) {
     const doc = this.docs.get(String(id));
     if (!doc || doc.version !== expectedVersion) return null;
-    let next = applySet(doc, set);
+    const next = applySet(doc, set);
     next.version = doc.version + 1;
     next.timeline = [...(doc.timeline ?? [])];
     if (timelineEntry) next.timeline.push(timelineEntry);

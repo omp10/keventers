@@ -59,7 +59,7 @@ export class TableGroupService extends BaseService {
   }
 
   async updateGroup(tenant, id, data, actorId = null) {
-    const group = await loadOwned(this.groups, tenant, id, QR_ERRORS.TABLE_GROUP_NOT_FOUND);
+    await loadOwned(this.groups, tenant, id, QR_ERRORS.TABLE_GROUP_NOT_FOUND);
     const patch = {};
     for (const key of ['name', 'type', 'floor', 'description', 'displayOrder', 'isActive']) {
       if (data[key] !== undefined) patch[key] = data[key];

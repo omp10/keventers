@@ -67,14 +67,6 @@ export class KitchenService extends BaseService {
     this.lock = lock;
   }
 
-  #scopeOf(entry) {
-    return {
-      organizationId: String(entry.organizationId),
-      restaurantId: String(entry.restaurantId),
-      branchId: String(entry.branchId),
-    };
-  }
-
   // ==================== ENQUEUE (from Order events) ====================
 
   /**

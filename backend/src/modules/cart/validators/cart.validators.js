@@ -39,4 +39,9 @@ export const applyCouponSchema = z.object({
   version,
 });
 
+export const updateCartSchema = z.object({
+  notes: z.string().trim().max(CART_ITEM_LIMITS.MAX_NOTES),
+  version,
+});
+
 export const createCartSchema = z.object({}).optional();

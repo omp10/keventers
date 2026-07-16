@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 
-import { ALL_CATEGORIES, CHANNEL } from '../constants/notification.constants.js';
+import { ALL_CATEGORIES } from '../constants/notification.constants.js';
 import { baseSchemaOptions } from '../utils/schema.util.js';
 
 const { Schema } = mongoose;

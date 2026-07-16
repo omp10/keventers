@@ -89,7 +89,7 @@ const cartSchema = new Schema(
     branchId: { type: Schema.Types.ObjectId, ref: 'Branch', required: true, index: true },
 
     /** The owning guest session (NOT a customer). */
-    sessionId: { type: String, required: true, index: true },
+    sessionId: { type: String, required: true },
     guestId: { type: String, default: null },
     /** Set if the guest links a registered account (history preserved). */
     customerUserId: { type: Schema.Types.ObjectId, ref: 'User', default: null, index: true },

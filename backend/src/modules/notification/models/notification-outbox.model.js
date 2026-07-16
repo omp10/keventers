@@ -52,7 +52,6 @@ const outboxSchema = new Schema(
   baseSchemaOptions,
 );
 
-outboxSchema.index({ dedupeKey: 1 }, { unique: true });
 // Relay scan: pending/retry rows due now, oldest first.
 outboxSchema.index({ status: 1, nextAttemptAt: 1, createdAt: 1 });
 outboxSchema.index({ restaurantId: 1, status: 1, createdAt: -1 });

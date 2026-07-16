@@ -30,6 +30,16 @@ export const CartController = {
     ApiResponse.success(res, { data });
   }),
 
+  update: asyncHandler(async (req, res) => {
+    const data = await cartService.updateCart(scopeOf(req), req.body, opts(req));
+    ApiResponse.success(res, { data });
+  }),
+
+  abandon: asyncHandler(async (req, res) => {
+    const data = await cartService.abandonCart(scopeOf(req));
+    ApiResponse.success(res, { data });
+  }),
+
   addItem: asyncHandler(async (req, res) => {
     const data = await cartService.addItem(scopeOf(req), req.body, opts(req));
     ApiResponse.success(res, { data, statusCode: 201 });

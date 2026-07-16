@@ -23,6 +23,11 @@ export function buildQueueConnection() {
 
 const queues = new Map();
 
+/** BullMQ reserves colons for its Redis key format. */
+export function toBullQueueName(name) {
+  return name.replaceAll(':', '-');
+}
+
 /**
  * Get (or lazily create) a queue by name.
  * @param {string} name
@@ -36,7 +41,7 @@ export function getQueue(name) {
     // silently falling back to the global default. Per-job options at enqueue
     // time still override these.
     const registered = jobRegistry.get(name)?.jobOptions ?? {};
-    const queue = new Queue(name, {
+    const queue = new Queue(toBullQueueName(name), {
       connection: buildQueueConnection(),
       prefix: config.jobs.prefix,
       defaultJobOptions: { ...config.jobs.defaultJobOptions, ...registered },

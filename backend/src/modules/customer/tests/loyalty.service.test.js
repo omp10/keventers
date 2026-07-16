@@ -116,7 +116,7 @@ describe('LoyaltyService — manual adjustment', () => {
   it('applies a signed correction and audits it, never going negative', async () => {
     const ctx = build();
     await ctx.service.adjust({ scope: SCOPE, customerId: CUSTOMER_ID, userId: USER_ID, points: 250, reason: 'goodwill' });
-    let acc = await ctx.accounts.findByCustomer(CUSTOMER_ID);
+    const acc = await ctx.accounts.findByCustomer(CUSTOMER_ID);
     expect(acc.balance).toBe(250);
     await expect(ctx.service.adjust({ scope: SCOPE, customerId: CUSTOMER_ID, userId: USER_ID, points: -1000, reason: 'clawback' })).rejects.toMatchObject({ statusCode: 409 });
   });

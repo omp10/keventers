@@ -107,7 +107,7 @@ export class WebhookService extends BaseService {
   }
 
   async #resolveTarget(parsed) {
-    let payment = parsed.providerPaymentRef ? await this.payments.findByProviderRef(parsed.providerPaymentRef) : null;
+    const payment = parsed.providerPaymentRef ? await this.payments.findByProviderRef(parsed.providerPaymentRef) : null;
     if (payment) {
       const order = await this.orders.getByIdSystem(String(payment.orderId));
       return { order, scope: this.#scopeOf(payment), payment };

@@ -6,7 +6,6 @@ import {
   toCustomersDTO,
   toEntityDTO,
   toKitchenDTO,
-  toNotificationsDTO,
   toOrdersDTO,
   toPaymentsDTO,
   toQrDTO,
@@ -67,12 +66,14 @@ export class DashboardService extends BaseService {
 
   async sales(tenant, restaurantId, range) {
     const scope = await this.resolveScope(tenant, restaurantId);
-    const [summary, series] = await Promise.all([
+    const [summary, orderSummary, series] = await Promise.all([
       this.#summary(scope, DOMAIN.SALES, range.from, range.to),
+      this.#summary(scope, DOMAIN.ORDERS, range.from, range.to),
       this.#series(scope, DOMAIN.SALES, range.period, range.from, range.to),
     ]);
+    const combined = { ...summary, [METRIC.ORDERS_COMPLETED]: orderSummary[METRIC.ORDERS_COMPLETED] ?? 0 };
     return {
-      summary: toSalesDTO(summary),
+      summary: toSalesDTO(combined),
       series: series.map((s) => ({ periodKey: s.periodKey, ...toSalesDTO(s.metrics) })),
     };
   }

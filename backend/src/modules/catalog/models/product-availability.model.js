@@ -53,7 +53,6 @@ productAvailabilitySchema.index(
   { unique: true },
 );
 productAvailabilitySchema.index({ restaurantId: 1, branchId: 1, status: 1 });
-productAvailabilitySchema.index({ productId: 1 });
 productAvailabilitySchema.index({ deletedAt: 1 });
 
 export const ProductAvailability =

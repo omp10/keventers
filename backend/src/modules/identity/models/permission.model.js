@@ -29,7 +29,6 @@ const permissionSchema = new Schema(
 );
 
 // Indexes
-permissionSchema.index({ name: 1 }, { unique: true });
 permissionSchema.index({ resource: 1, action: 1 });
 permissionSchema.index({ deletedAt: 1 });
 

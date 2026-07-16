@@ -25,7 +25,7 @@ export class PolicyEvaluator {
     if (granted === WILDCARD_PERMISSION || granted === required) return true;
     // Segment wildcard, e.g. "catalog:*" matches "catalog:read".
     const [gRes, gAct] = granted.split(':');
-    const [rRes, rAct] = required.split(':');
+    const [rRes] = required.split(':');
     return gRes === rRes && gAct === '*';
   }
 

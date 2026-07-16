@@ -74,9 +74,7 @@ const organizationSchema = new Schema(
   baseSchemaOptions,
 );
 
-organizationSchema.index({ slug: 1 }, { unique: true });
 organizationSchema.index({ status: 1, createdAt: -1 });
-organizationSchema.index({ ownerUserId: 1 });
 organizationSchema.index({ deletedAt: 1 });
 
 export const Organization =

@@ -4,7 +4,7 @@ import {
   LOYALTY_SOURCE,
   LOYALTY_TXN_TYPE,
 } from '../constants/customer.constants.js';
-import { baseSchemaOptions, pointsField, tenantFields } from '../utils/schema.util.js';
+import { pointsField, tenantFields } from '../utils/schema.util.js';
 
 const { Schema } = mongoose;
 

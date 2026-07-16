@@ -45,6 +45,13 @@ export class FakeCartRepo {
     return null;
   }
 
+  async findForCheckout(scope) {
+    for (const doc of this.docs.values()) {
+      if (this.#scopeMatch(doc, scope) && ['active', 'locked', 'checkout_pending'].includes(doc.status)) return { ...doc };
+    }
+    return null;
+  }
+
   async findActiveBySessionId(sessionId) {
     for (const doc of this.docs.values()) {
       if (String(doc.sessionId) === String(sessionId) && doc.status === 'active') return { ...doc };

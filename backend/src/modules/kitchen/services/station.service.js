@@ -65,7 +65,7 @@ export class StationService extends BaseService {
   }
 
   async updateStation(tenant, id, data, actorId = null) {
-    const station = await loadOwned(this.stations, tenant, id, KITCHEN_ERRORS.STATION_NOT_FOUND);
+    await loadOwned(this.stations, tenant, id, KITCHEN_ERRORS.STATION_NOT_FOUND);
     const patch = {};
     for (const key of ['name', 'type', 'code', 'description', 'routing', 'isActive', 'displayOrder']) {
       if (data[key] !== undefined) patch[key] = data[key];

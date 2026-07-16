@@ -32,8 +32,6 @@ const staffSchema = new Schema(
   baseSchemaOptions,
 );
 
-staffSchema.index({ userId: 1 }, { unique: true });
-staffSchema.index({ employeeId: 1 }, { unique: true });
 staffSchema.index({ department: 1, status: 1 });
 staffSchema.index({ deletedAt: 1 });
 

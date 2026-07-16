@@ -30,7 +30,6 @@ const roleSchema = new Schema(
   baseSchemaOptions,
 );
 
-roleSchema.index({ name: 1 }, { unique: true });
 roleSchema.index({ isSystem: 1 });
 roleSchema.index({ deletedAt: 1 });
 

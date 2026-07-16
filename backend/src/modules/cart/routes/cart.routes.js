@@ -8,6 +8,7 @@ import {
   addItemSchema,
   applyCouponSchema,
   itemIdParamSchema,
+  updateCartSchema,
   updateItemSchema,
 } from '../validators/cart.validators.js';
 
@@ -24,6 +25,8 @@ router.use(resolveGuest, requireGuest);
  */
 router.post('/', CartController.create);
 router.get('/', CartController.get);
+router.patch('/', validate({ body: updateCartSchema }), CartController.update);
+router.delete('/', CartController.abandon);
 
 /**
  * @openapi
