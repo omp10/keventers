@@ -18,7 +18,7 @@ export function EntryPage() {
     case 'resolve-qr':
       return <Navigate to={`/qr?code=${encodeURIComponent(decision.code)}`} replace />;
     case 'resume-session':
-      return decision.branchSlug ? <Navigate to={`/r/${decision.branchSlug}`} replace /> : <HomeScreen />;
+      return <HomeScreen />;
     default:
       return <HomeScreen />;
   }

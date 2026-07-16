@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { Icon } from '@/design-system';
 import { cn } from '@/lib/cn';
 import { useOffline } from '@/platform/offline';
+import { useAuth } from '@/platform/auth';
 import { useConnectionState } from '@/platform/socket';
 
 /**
@@ -13,11 +14,15 @@ import { useConnectionState } from '@/platform/socket';
  */
 export function ConnectionStatus({ className }: { className?: string }) {
   const { isOnline, pending } = useOffline();
+  const { isAuthenticated, isGuest } = useAuth();
   const { state: socket } = useConnectionState();
   const [justReconnected, setJustReconnected] = useState(false);
   const [wasDown, setWasDown] = useState(false);
 
-  const down = !isOnline || socket === 'reconnecting' || socket === 'disconnected' || socket === 'error';
+  const expectsRealtime = isAuthenticated || isGuest;
+  const down =
+    !isOnline ||
+    (expectsRealtime && (socket === 'reconnecting' || socket === 'disconnected' || socket === 'error'));
 
   useEffect(() => {
     if (down) {

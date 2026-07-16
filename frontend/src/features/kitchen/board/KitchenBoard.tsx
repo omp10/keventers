@@ -37,7 +37,7 @@ export function KitchenBoard() {
   if (queue.isError) {
     return (
       <div className="grid h-[60vh] place-items-center p-6">
-        <EmptyState icon={<Icon name="flame" className="mb-3 h-8 w-8 text-muted-foreground" />} title="Kitchen queue unavailable" description="Reconnecting…" size="sm" />
+        <EmptyState icon={<Icon name="flame" className="mb-3 h-8 w-8 text-muted-foreground" />} title="Kitchen queue unavailable" description="The queue could not be loaded. Check your branch access and try again." size="sm" />
       </div>
     );
   }

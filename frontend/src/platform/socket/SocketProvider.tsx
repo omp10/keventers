@@ -27,17 +27,31 @@ export function SocketProvider({ children }: { children: ReactNode }) {
     const unsubState = socketClient.onState(setState);
     // Re-auth on ANY token change — React auth status alone misses guest
     // ordering sessions, which write their token straight into the store.
-    const unsubTokens = tokenStore.subscribe(() => socketClient.reauthenticate());
-    socketClient.connect();
+    const unsubTokens = tokenStore.subscribe(() => {
+      const token = tokenStore.getAccess() ?? tokenStore.getGuest();
+      if (!token) {
+        socketClient.disconnectAll();
+        return;
+      }
+      socketClient.connect();
+      socketClient.reauthenticate();
+    });
     return () => {
       unsubState();
       unsubTokens();
+      socketClient.disconnectAll();
     };
   }, []);
 
   // Re-authenticate the socket when the session changes.
   useEffect(() => {
     if (status === 'loading') return;
+    const token = tokenStore.getAccess() ?? tokenStore.getGuest();
+    if (!token) {
+      socketClient.disconnectAll();
+      return;
+    }
+    socketClient.connect();
     socketClient.reauthenticate();
   }, [status]);
 
