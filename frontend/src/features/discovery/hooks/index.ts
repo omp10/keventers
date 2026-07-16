@@ -3,6 +3,8 @@ export {
   useBranchSearch,
   usePopularBranches,
   useFeaturedBranches,
+  usePromoBanners,
+  useStorefrontCategories,
   useBranchDetail,
   usePrefetchBranch,
 } from './useBranchQueries';

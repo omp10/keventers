@@ -66,17 +66,24 @@ export function DiscoveryBrowser({
         />
       )}
 
-      <div className="flex items-start justify-between gap-3">
-        <DiscoveryFilters filters={controller.filters} patch={controller.patchFilters} reset={controller.resetFilters} cuisines={cuisines} className="min-w-0 flex-1" />
+      {/* Filters own the full width (their chip rows scroll edge-to-edge on
+          phones); the view toggle lives on the results-header row below so the
+          two never fight for space at narrow widths. */}
+      <DiscoveryFilters filters={controller.filters} patch={controller.patchFilters} reset={controller.resetFilters} cuisines={cuisines} />
+
+      <div className="flex items-center justify-between gap-3">
+        {typeof controller.total === 'number' && controller.total > 0 ? (
+          <p className="flex min-w-0 items-center gap-1.5 text-sm text-foreground-muted">
+            <Icon name="store" className="h-4 w-4 shrink-0" />
+            <span className="truncate">
+              {controller.total} place{controller.total === 1 ? '' : 's'}
+            </span>
+          </p>
+        ) : (
+          <span aria-hidden />
+        )}
         <ViewToggle view={controller.view} setView={controller.setView} allowSplit={caps.hover} className="shrink-0" />
       </div>
-
-      {typeof controller.total === 'number' && controller.total > 0 && (
-        <p className="flex items-center gap-1.5 text-sm text-foreground-muted">
-          <Icon name="store" className="h-4 w-4" />
-          {controller.total} place{controller.total === 1 ? '' : 's'}
-        </p>
-      )}
 
       <DiscoveryResults
         branches={controller.branches}

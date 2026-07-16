@@ -184,6 +184,78 @@ export class ScanService extends BaseService {
   }
 
   /**
+   * OPEN a session WITHOUT a QR code — the "walked in / browsed the menu, now
+   * tell us your table" path. A QR scan proves which table you're at; here the
+   * customer types the table NUMBER instead, so every other check (restaurant
+   * active, branch active, business hours, table orderable) still applies and
+   * the resulting session is identical to a scanned one.
+   *
+   * A table is mandatory: guest sessions are table-scoped (the model requires
+   * it), which is what lets the kitchen and staff route an order to a place.
+   *
+   * @param {{branchSlug: string, tableNumber: string}} input
+   */
+  async openSession({ branchSlug, tableNumber }, meta = {}) {
+    const branch = await this.branches.getPublicBySlug(String(branchSlug ?? '').toLowerCase());
+    if (!branch) throw new NotFoundError(QR_ERRORS.BRANCH_UNAVAILABLE);
+    if (branch.status !== BRANCH_STATUS.ACTIVE) throw new ForbiddenError(QR_ERRORS.BRANCH_UNAVAILABLE);
+
+    const restaurant = await this.restaurants.getPublicProfile(branch.restaurantId);
+    if (!restaurant) throw new NotFoundError(QR_ERRORS.RESTAURANT_UNAVAILABLE);
+    if (restaurant.status !== RESTAURANT_STATUS.ACTIVE) {
+      throw new ForbiddenError(QR_ERRORS.RESTAURANT_UNAVAILABLE);
+    }
+
+    const timezone = branch.settings?.timezone || restaurant.settings?.timezone || 'Asia/Kolkata';
+    const hours = isBranchOpen(branch.businessHours, timezone, meta.now ?? new Date());
+    if (!hours.open) throw new ForbiddenError(QR_ERRORS.BRANCH_CLOSED);
+
+    const branchId = entityId(branch);
+    const table = await this.tables.findOne({
+      branchId,
+      number: String(tableNumber ?? '').trim(),
+      deletedAt: { $in: [null, undefined] },
+    });
+    if (!table) throw new NotFoundError(QR_ERRORS.TABLE_UNAVAILABLE);
+    if (
+      table.isOrderingEnabled === false ||
+      table.isReserved === true ||
+      table.status === TABLE_STATUS.OUT_OF_SERVICE
+    ) {
+      throw new ForbiddenError(QR_ERRORS.TABLE_UNAVAILABLE);
+    }
+
+    const scope = {
+      organizationId: branch.organizationId,
+      restaurantId: branch.restaurantId,
+      branchId,
+    };
+
+    const { session, recoveryCode } = await this.sessions.createSession({
+      scope,
+      tableId: entityId(table),
+      qrCodeId: null, // opened by table number, not by scanning a code
+      device: meta.device ?? {},
+      guestName: meta.guestName ?? '',
+      guestCount: meta.guestCount ?? 1,
+      customerUserId: meta.customerUserId ?? null,
+    });
+
+    const token = this.guestToken.issue({
+      sessionId: session.sessionId,
+      guestId: session.guestId,
+      organizationId: scope.organizationId,
+      restaurantId: scope.restaurantId,
+      branchId: scope.branchId,
+      tableId: entityId(table),
+      customerUserId: session.customerUserId ? String(session.customerUserId) : null,
+    });
+
+    const context = await this.#buildContext({ scope, restaurant, branch, table });
+    return { session: toPublicSessionDTO(session), guestToken: token, recoveryCode, context };
+  }
+
+  /**
    * Recover a session (page refresh / new device) and reissue a fresh guest
    * token carrying the same ordering context, so the client can resume without
    * re-scanning. Session history is preserved.

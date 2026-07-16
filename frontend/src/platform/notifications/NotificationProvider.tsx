@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, type ReactN
 
 import { toast } from '@/design-system';
 import { notificationService } from '@/services';
-import { useAuth } from '@/platform/auth';
+import { tokenStore, useAuth } from '@/platform/auth';
 import { useSocketEvent } from '@/platform/socket';
 import { useNotificationStore, type AppNotification } from './store';
 
@@ -33,6 +33,13 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
   const refresh = useCallback(async () => {
     if (!isAuthenticated && !isGuest) return;
+    // The REST inbox (`/notifications`) is GUEST-SESSION scoped on the backend:
+    // it reads the recipient from the guest token in the Authorization header.
+    // Staff/admin surfaces carry a staff token instead, so calling it there
+    // always 401s — which the API client reads as "session dead" and logs the
+    // user straight back out. Staff notifications come from the socket feed and
+    // their own /restaurant|/admin endpoints.
+    if (!tokenStore.getGuest()) return;
     try {
       const page = await notificationService.inbox<AppNotification>();
       store.getState().hydrate((page.items ?? []).map(toAppNotification));

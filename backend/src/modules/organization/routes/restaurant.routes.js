@@ -4,9 +4,11 @@ import { validate } from '#core/validation/validate.middleware.js';
 import { requireAuth, requireRole } from '#platform/auth/index.js';
 
 import { ORG_ROLES } from '../constants/organization.constants.js';
+import { MediaController } from '../controllers/admin-content.controller.js';
 import { BranchController } from '../controllers/branch.controller.js';
 import { RestaurantController } from '../controllers/restaurant.controller.js';
 import { StaffController } from '../controllers/staff.controller.js';
+import { singleMediaUpload } from '../middleware/media-upload.middleware.js';
 import { resolveTenant, requireTenant } from '../middleware/tenant.middleware.js';
 import { idParamSchema, listQuerySchema } from '../validators/common.validators.js';
 import {
@@ -30,6 +32,16 @@ router.use(
   requireTenant,
   requireRole(ORG_ROLES.ORGANIZATION_ADMIN, ORG_ROLES.RESTAURANT_MANAGER),
 );
+
+/**
+ * Image upload for restaurant-owned content (catalog media, branding). Files go
+ * to the Storage Platform server-side — no provider keys ever reach the client.
+ *
+ * @openapi
+ * /api/v1/restaurant/media/upload:
+ *   post: { tags: [Restaurant], security: [{ bearerAuth: [] }], summary: Upload an image (multipart `file`), responses: { 201: { description: Uploaded URL + key } } }
+ */
+router.post('/media/upload', singleMediaUpload, MediaController.upload);
 
 /**
  * @openapi

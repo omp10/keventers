@@ -1,123 +1,114 @@
 # Deployment & Operations Runbook
 
-Operational guide for running the Keventers backend in production. Pairs with the
-architecture docs (`docs/*.md`) and `README.md`.
+Operational guide for running the Keventers backend in production when the
+frontend is deployed separately on Vercel and only the backend stack runs on
+your VPS. This pairs with the architecture docs (`docs/*.md`) and `README.md`.
+
+## Recommended topology
+
+- Frontend: Vercel
+- Backend API + Socket.IO ingress: VPS behind Nginx
+- Background workers: separate process/container on the same VPS today, easy to move out later
+- Redis: local container or managed Redis
+- MongoDB: MongoDB Atlas or a dedicated external MongoDB deployment
+
+The production compose file is intentionally backend-only:
+
+- `api` serves REST + Socket.IO
+- `worker` runs BullMQ processors independently of the API
+- `redis` handles cache, locks, queues, rate limits, and Socket.IO pub/sub
+- `nginx` proxies public traffic to the API container
 
 ## Runtime
 
-- Node.js ≥ 18 (ESM, native `fetch`), MongoDB (replica set recommended for
-  transactions/change streams), Redis (single or cluster).
-- Process manager: PM2 cluster (`ecosystem.config.*`) or Docker (`Dockerfile` —
-  tini PID 1, non-root, multi-stage). Compose file wires Mongo + Redis with
-  `depends_on: service_healthy`.
+- Node.js >= 18, MongoDB, Redis
+- Docker: `Dockerfile` plus `docker-compose.prod.yml`
+- PM2: `ecosystem.config.js` now includes both `keventers-api` and `keventers-worker`
 
 ## Environment configuration
 
-Config is validated at boot by `src/config/env.schema.js` (zod) — **the process
-refuses to start on invalid config**. In `NODE_ENV=production` a `superRefine`
-enforces production-conditional strictness (fail-fast, never fail-late):
+Config is validated at boot by `src/config/env.schema.js`. In `NODE_ENV=production`
+the process fails fast if security-critical values are missing or permissive defaults
+are still in place.
 
 | Variable | Required | Notes |
 | --- | --- | --- |
-| `MONGO_URI` | always | fail-fast if missing |
-| `REDIS_HOST` / `REDIS_PORT` | always (defaults dev-local) | BullMQ + cache + locks + rate limit |
-| `JWT_ACCESS_SECRET` / `JWT_REFRESH_SECRET` | always (min 16) | distinct secrets |
-| `ENCRYPTION_KEY` | **production** (min 32) | AES-256-GCM for payment credentials; fails at boot in prod if unset |
-| `API_KEY_PEPPER` | **production** (min 16) | API-key hashing pepper |
-| `CORS_ORIGIN` / `SOCKET_CORS_ORIGIN` | **production: not `*`** | must be an explicit origin allowlist |
-| `QR_TOKEN_SECRET` | optional | defaults to `JWT_ACCESS_SECRET` |
-| `SMTP_*` / `RESEND_API_KEY` / `TWILIO_*` / `META_WA_*` / `FCM_*` | optional | a channel with no creds is skipped (in-app always works) |
-| `SOCKET_REDIS_ADAPTER` | **`true` for multi-instance** | required for cross-instance Socket.IO broadcasts |
-| `PLATFORM_ADMIN_*` | for seeding only | validated by the seeder when it runs |
+| `MONGO_URI` | always | point this at MongoDB Atlas or your external MongoDB host |
+| `REDIS_HOST` / `REDIS_PORT` | always | BullMQ + cache + locks + rate limit + Socket.IO adapter |
+| `JWT_ACCESS_SECRET` / `JWT_REFRESH_SECRET` | always | distinct secrets |
+| `ENCRYPTION_KEY` | production | required for encrypted payment credentials |
+| `API_KEY_PEPPER` | production | required for API-key hashing |
+| `CORS_ORIGIN` / `SOCKET_CORS_ORIGIN` | production | set these to your Vercel frontend URL(s), never `*` |
+| `QR_PUBLIC_BASE_URL` | recommended | use the public backend URL, for example `https://api.example.com/scan` |
+| `STORAGE_PUBLIC_BASE_URL` | when using local storage | should also use the public backend URL |
+| `SOCKET_REDIS_ADAPTER` | true for scaling | keep enabled for multi-instance Socket.IO |
 
-A non-production boot uses friendly developer defaults for all of the above.
+Example production origins:
 
-## Boot sequence (`src/server.js`)
+```env
+CORS_ORIGIN=https://keventers.vercel.app,https://admin-keventers.vercel.app
+SOCKET_CORS_ORIGIN=https://keventers.vercel.app,https://admin-keventers.vercel.app
+QR_PUBLIC_BASE_URL=https://api.keventers.example/scan
+STORAGE_PUBLIC_BASE_URL=https://api.keventers.example/static
+```
 
-1. Connect Mongo + Redis (fail-fast).
-2. `registerModules()` — DI registration, RBAC seed, event-handler subscription,
-   provider/job registration per module.
-3. Build the HTTP app, `listen`.
-4. Initialize Socket.IO (attaches the Redis adapter when `SOCKET_REDIS_ADAPTER=true`).
-5. `jobManager.start()` — BullMQ workers (started AFTER modules register their jobs).
+## Process layout
+
+API process:
+
+1. Connect Mongo + Redis.
+2. Register core dependencies and business modules.
+3. Start Express and Socket.IO.
+4. Start BullMQ workers.
+
+Worker process:
+
+1. Connect Mongo + Redis.
+2. Register the same module graph.
+3. Start BullMQ workers without binding an HTTP port.
+
+That worker entrypoint lives in `src/worker.js`, so queue capacity can now be
+scaled separately from the API.
 
 ## Health & readiness
 
-- `GET /health` — liveness (process up). Used by the Docker `HEALTHCHECK`.
-- `GET /ready` — readiness; pings Mongo + Redis and returns **503** when a
-  dependency is down. Wire this to the Kubernetes readiness probe (and the
-  liveness probe to `/health`).
-- `GET /metrics` — Prometheus (process + HTTP metrics). Scrape over a private
-  network or gate at the ingress; it exposes no business data.
+- `GET /health`: liveness
+- `GET /ready`: readiness for MongoDB + Redis
+- `GET /metrics`: Prometheus metrics
 
-## Seeding
+The production compose file uses `/ready` for the API container healthcheck.
+
+## Backend-only Docker deployment
+
+Use `docker-compose.prod.yml` on the VPS. It does not include the frontend,
+because the frontend is expected to run on Vercel.
+
+1. Create `backend/.env.production` from `.env.example`.
+2. Set `NODE_ENV=production`.
+3. Replace wildcard `CORS_ORIGIN` and `SOCKET_CORS_ORIGIN` with your Vercel URL(s).
+4. Point `MONGO_URI` at MongoDB Atlas or your dedicated MongoDB host.
+5. Start the stack:
 
 ```bash
-npm run seed              # idempotent: permission catalog, roles, platform admin,
-                          # per-module net-new permissions + notification templates
-npm run seed -- --rollback
+docker compose -f docker-compose.prod.yml up -d --build
 ```
 
-Set `PLATFORM_ADMIN_NAME/_EMAIL/_PASSWORD` first. Safe to re-run. See
-[docs/SEEDING.md](SEEDING.md).
+## Nginx notes
 
-## Graceful shutdown
-
-On `SIGTERM`/`SIGINT` (and `unhandledRejection`/`uncaughtException`) the server
-drains in order, bounded by `SHUTDOWN_TIMEOUT_MS` (default 10s, PM2 `kill_timeout`
-should be larger — it is 12s):
-
-```
-stop HTTP (drain in-flight) → close Socket.IO (+ its Redis adapter clients)
-                            → stop BullMQ workers + queues
-                            → disconnect Redis + Mongo
-```
+- `ops/nginx/backend.conf` includes WebSocket upgrade support for Socket.IO.
+- The config rate-limits generic API traffic and leaves `/health` and `/ready` cheap.
+- Add SSL termination at Cloudflare or extend Nginx with TLS server blocks before going live.
 
 ## Horizontal scaling
 
-- The app is stateless — scale HTTP instances behind a load balancer.
-- **Set `SOCKET_REDIS_ADAPTER=true`** so realtime events emitted on one instance
-  reach clients connected to any instance.
-- BullMQ workers run in-process; scale queue throughput by adding instances (each
-  runs the registered workers) — jobs are distributed via Redis. For heavy
-  analytics rebuilds, consider a dedicated worker deployment.
-- Redis is the coordination point (locks, rate limits, queues, cache, socket
-  adapter) — run it HA (Sentinel/cluster) for production.
+- The API is stateless and can sit behind a load balancer.
+- Keep `SOCKET_REDIS_ADAPTER=true` so broadcasts work across API instances.
+- BullMQ workers can now scale independently by increasing worker replicas only.
+- Redis remains the shared coordination point for locks, queues, cache, and Socket.IO.
 
-## Scale characteristics
+## Graceful shutdown
 
-- Dashboards read pre-aggregated **projections**, never the transaction history —
-  O(range) indexed reads. Projection writes are atomic `$inc` upserts driven by
-  events off the request path.
-- Analytics **rebuild** runs on the `analytics:rebuild` BullMQ queue (never the
-  request thread), streaming the order history in keyset batches with `bulkWrite`.
-- Payment settle, loyalty ledger, and the notification outbox are idempotent
-  (unique indexes) and safe under retries.
+- API drains HTTP first, then closes Socket.IO, workers, Redis, and MongoDB.
+- Worker drains BullMQ jobs, then closes Redis and MongoDB.
 
-## Backup & restore
-
-- **MongoDB**: scheduled `mongodump`/snapshots; the immutable ledgers
-  (transactions, loyalty ledger, invoices) are the financial source of truth —
-  back them up with point-in-time recovery. Restore = restore Mongo; analytics
-  projections can then be **rebuilt** per restaurant (`POST
-  /restaurant/analytics/rebuild`) or reconciled (`/reconcile`).
-- **Redis** is a cache/coordination store — it can be lost and repopulated
-  (projections/ledgers are authoritative in Mongo). Persist BullMQ queues if you
-  need in-flight jobs to survive a Redis restart.
-
-## Rollback
-
-1. Roll the deployment back to the previous image/release (stateless app).
-2. Schema changes are additive (Mongoose, no destructive migrations) — a rollback
-   is safe. If a projection shape changed, run a rebuild after rollback.
-3. If a bad projection state is suspected, run `/reconcile` (report-only) then
-   `/rebuild` (recompute from authoritative orders).
-
-## Monitoring hooks
-
-- Structured pino logs (JSON) with correlation ids + secret/PII redaction.
-- Prometheus `/metrics`.
-- Domain events for ops alerting: `analytics.reconciliation_failed`,
-  `notification.failed` (+ dead-letter queue), `kitchen.sla.breached`.
-- Watch: BullMQ failed/dead-letter counts, `analytics:rebuild` durations, Redis
-  memory, Mongo slow queries, readiness flaps.
+Both paths are bounded by `SHUTDOWN_TIMEOUT_MS`.

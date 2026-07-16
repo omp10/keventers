@@ -57,10 +57,12 @@ export type TypeStep = {
  * the whole system proportionally.
  */
 export const textRoles = {
-  displayXl: { size: '4.5rem', lineHeight: '1.05', letterSpacing: '-0.03em', weight: 700 },
-  displayLg: { size: '3.5rem', lineHeight: '1.07', letterSpacing: '-0.03em', weight: 700 },
-  display: { size: '2.75rem', lineHeight: '1.1', letterSpacing: '-0.025em', weight: 700 },
-  h1: { size: '2.25rem', lineHeight: '1.15', letterSpacing: '-0.022em', weight: 700 },
+  /* Display roles carry the brand's confident, badge-like presence: heavier
+     weight + tighter tracking (hero, splash, big dashboard numbers). */
+  displayXl: { size: '4.5rem', lineHeight: '1.04', letterSpacing: '-0.035em', weight: 800 },
+  displayLg: { size: '3.5rem', lineHeight: '1.06', letterSpacing: '-0.033em', weight: 800 },
+  display: { size: '2.75rem', lineHeight: '1.08', letterSpacing: '-0.03em', weight: 800 },
+  h1: { size: '2.25rem', lineHeight: '1.15', letterSpacing: '-0.024em', weight: 700 },
   h2: { size: '1.875rem', lineHeight: '1.2', letterSpacing: '-0.02em', weight: 600 },
   h3: { size: '1.5rem', lineHeight: '1.25', letterSpacing: '-0.018em', weight: 600 },
   h4: { size: '1.25rem', lineHeight: '1.3', letterSpacing: '-0.014em', weight: 600 },

@@ -18,6 +18,18 @@ export const AuthController = {
     ApiResponse.success(res, { data });
   }),
 
+  /** POST /identity/auth/otp/request — send a login code to a phone. */
+  requestOtp: asyncHandler(async (req, res) => {
+    const data = await authService.requestOtp(req.body.phone);
+    ApiResponse.success(res, { data });
+  }),
+
+  /** POST /identity/auth/otp/verify — code → session (creates the account if new). */
+  verifyOtp: asyncHandler(async (req, res) => {
+    const data = await authService.verifyOtp(req.body.phone, req.body.code, requestMeta(req));
+    ApiResponse.success(res, { data });
+  }),
+
   refresh: asyncHandler(async (req, res) => {
     const data = await authService.refresh(req.body.refreshToken);
     ApiResponse.success(res, { data });

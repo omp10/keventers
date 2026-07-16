@@ -82,6 +82,16 @@ export const adminNav: NavConfig = {
       ],
     },
     {
+      // Everything the CUSTOMER app renders, curated by admins.
+      title: 'Storefront',
+      items: [
+        { key: 'kitchens', label: 'Kitchens', icon: 'store', path: '/admin/kitchens', access: { anyRole: ['super_admin'] } },
+        { key: 'banners', label: 'Banners', icon: 'image', path: '/admin/banners', access: { anyRole: ['super_admin'] } },
+        { key: 'categories', label: 'Categories', icon: 'grid', path: '/admin/categories', access: { anyRole: ['super_admin'] } },
+        { key: 'zones', label: 'Zones', icon: 'mapPin', path: '/admin/zones', access: { anyRole: ['super_admin'] } },
+      ],
+    },
+    {
       title: 'Platform',
       items: [
         { key: 'analytics', label: 'Analytics', icon: 'trend', path: '/admin/analytics', access: { anyRole: ['super_admin'] } },

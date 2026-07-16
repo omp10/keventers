@@ -170,20 +170,22 @@ export const NOTIFICATION_NEW_PERMISSIONS = Object.freeze([
   { resource: 'notification', action: 'read', description: 'View notifications' },
   { resource: 'notification', action: 'send', description: 'Send / test notifications' },
   { resource: 'notification', action: 'manage', description: 'Manage notifications & delivery' },
-  { resource: 'notification_template', action: 'read', description: 'View notification templates' },
-  { resource: 'notification_template', action: 'manage', description: 'Manage notification templates' },
-  { resource: 'notification_campaign', action: 'read', description: 'View notification campaigns' },
-  { resource: 'notification_campaign', action: 'manage', description: 'Manage notification campaigns' },
+  // NOTE: permission names must match the Permission model's `[a-z0-9-]` name
+  // rule — hyphenated resources, never underscores.
+  { resource: 'notification-template', action: 'read', description: 'View notification templates' },
+  { resource: 'notification-template', action: 'manage', description: 'Manage notification templates' },
+  { resource: 'notification-campaign', action: 'read', description: 'View notification campaigns' },
+  { resource: 'notification-campaign', action: 'manage', description: 'Manage notification campaigns' },
 ]);
 
 export const NOTIFICATION_PERMISSIONS = Object.freeze({
   NOTIFICATION_READ: 'notification:read',
   NOTIFICATION_SEND: 'notification:send',
   NOTIFICATION_MANAGE: 'notification:manage',
-  TEMPLATE_READ: 'notification_template:read',
-  TEMPLATE_MANAGE: 'notification_template:manage',
-  CAMPAIGN_READ: 'notification_campaign:read',
-  CAMPAIGN_MANAGE: 'notification_campaign:manage',
+  TEMPLATE_READ: 'notification-template:read',
+  TEMPLATE_MANAGE: 'notification-template:manage',
+  CAMPAIGN_READ: 'notification-campaign:read',
+  CAMPAIGN_MANAGE: 'notification-campaign:manage',
 });
 
 // ==================== ERRORS ====================

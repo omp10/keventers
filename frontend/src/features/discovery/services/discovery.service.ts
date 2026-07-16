@@ -1,5 +1,5 @@
 import { api } from '@/platform/api';
-import type { Branch, BranchDetail, DiscoveryQuery, PlaceSuggestion } from '../types';
+import type { Branch, BranchDetail, DiscoveryQuery, PlaceSuggestion, PromoBanner, StorefrontCategory } from '../types';
 
 /**
  * DISCOVERY SERVICE — the ONE place the Customer app talks to the backend Discovery
@@ -54,6 +54,16 @@ class DiscoveryService {
   /** Autocomplete suggestions for the search bar (areas, cities, cuisines, brands). */
   suggest(term: string, origin?: { lat: number; lng: number }) {
     return api.get<PlaceSuggestion[]>(`${BASE}/suggest`, { query: { q: term, lat: origin?.lat, lng: origin?.lng }, skipAuth: true });
+  }
+
+  /** Admin-curated promotional banners for a placement (homepage carousel). */
+  banners(placement = 'customer_home') {
+    return api.get<PromoBanner[]>('/public/banners', { query: { placement }, skipAuth: true });
+  }
+
+  /** Admin-curated storefront browse categories (the home tiles). */
+  categories() {
+    return api.get<StorefrontCategory[]>('/public/categories', { skipAuth: true });
   }
 
   /** Full branch detail by SEO slug (never by DB id). */

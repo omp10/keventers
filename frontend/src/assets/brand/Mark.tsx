@@ -1,21 +1,44 @@
+import { useEffect, useState } from 'react';
+
 import { cn } from '@/lib/cn';
 import { useBrand } from '@/theme';
 
 export type MarkProps = {
   size?: number;
   className?: string;
-  /** Force a specific glyph; defaults to the brand's initial. */
+  /** Force a specific glyph; defaults to the brand's initial (fallback mark only). */
   glyph?: string;
 };
 
 /**
- * Brand MARK — a themed, inline-SVG app glyph (rounded tile + brand initial with
- * a brand gradient). Fully rebrandable with ZERO asset files: it reads the brand
- * name + primary/accent colors from the theme. Used in collapsed nav, avatars,
- * loading screens, favicons-in-app.
+ * Brand MARK — the square app glyph, fully brand-driven. When the active Brand
+ * supplies a mark asset (`brand.logo.mark`), that image renders; if the asset
+ * is missing or fails to load, it gracefully falls back to the generated
+ * inline-SVG tile (rounded square + brand initial on the primary gradient), so
+ * a brand preset without files never shows a broken image. Used in nav bars,
+ * loading screens, install prompts and avatars.
  */
 export function Mark({ size = 32, className, glyph }: MarkProps) {
-  const { appName } = useBrand();
+  const { appName, markSrc } = useBrand();
+  const [failed, setFailed] = useState(false);
+
+  // A new brand (new asset path) gets a fresh chance to load.
+  useEffect(() => setFailed(false), [markSrc]);
+
+  if (markSrc && !failed) {
+    return (
+      <img
+        src={markSrc}
+        alt={`${appName} logo`}
+        width={size}
+        height={size}
+        draggable={false}
+        onError={() => setFailed(true)}
+        className={cn('shrink-0 select-none object-contain', className)}
+      />
+    );
+  }
+
   const letter = (glyph ?? (appName.trim().charAt(0) || 'K')).toUpperCase();
   const id = `kv-mark-${letter}`;
   return (

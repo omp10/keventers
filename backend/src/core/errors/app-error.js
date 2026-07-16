@@ -70,6 +70,12 @@ export class ConflictError extends AppError {
   }
 }
 
+export class TooManyRequestsError extends AppError {
+  constructor(message = 'Too many requests', details = []) {
+    super({ message, code: ErrorCode.RATE_LIMITED, statusCode: 429, details });
+  }
+}
+
 export class ServiceUnavailableError extends AppError {
   constructor(message = 'Service unavailable', details = []) {
     super({ message, code: ErrorCode.SERVICE_UNAVAILABLE, statusCode: 503, details });

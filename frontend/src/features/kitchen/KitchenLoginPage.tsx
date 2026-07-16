@@ -1,23 +1,21 @@
-import { useState, type FormEvent } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 
 import { AuthLayout } from '@/layouts';
-import { Button, Input, toast } from '@/design-system';
-import { useAuth } from '@/platform/auth';
+import { PhoneOtpForm, useAuth } from '@/platform/auth';
 import { kitchenOnboardingService } from './onboarding';
 
 /**
- * KitchenLoginPage — dedicated sign-in entry for the KDS surface. Keeps the same
- * auth mechanics as staff login, but returns to /kitchen by default and uses
- * kitchen-specific copy so the flow feels like its own app.
+ * KitchenLoginPage — the KDS entry point. Sign-in is PHONE-ONLY: enter a number,
+ * enter the code. Where you land next depends on who you are:
+ *   · brand-new number  → /kitchen/onboarding (set the kitchen up first)
+ *   · returning, set up → the kitchen board
+ *   · returning, mid-setup → back into onboarding where they left off
+ * The onboarding state is backend-owned; this only routes on it.
  */
 export function KitchenLoginPage() {
-  const { login, isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [busy, setBusy] = useState(false);
 
   const redirectParam = new URLSearchParams(location.search).get('redirect');
   const fromState = (location.state as { from?: string } | null)?.from;
@@ -26,24 +24,21 @@ export function KitchenLoginPage() {
 
   if (isAuthenticated) return <Navigate to={nextPath} replace />;
 
-  const submit = async (e: FormEvent) => {
-    e.preventDefault();
-    setBusy(true);
+  const afterSignIn = async ({ isNewUser }: { isNewUser: boolean }) => {
+    if (isNewUser) return navigate('/kitchen/onboarding', { replace: true });
     try {
-      await login({ email, password });
       const onboarding = await kitchenOnboardingService.getState();
       navigate(onboarding.completed ? nextPath : '/kitchen/onboarding', { replace: true });
-    } catch (err) {
-      toast.error('Sign in failed', { description: (err as Error).message });
-    } finally {
-      setBusy(false);
+    } catch {
+      // No kitchen attached to this account yet → set one up.
+      navigate('/kitchen/onboarding', { replace: true });
     }
   };
 
   return (
     <AuthLayout
       title="Kitchen sign in"
-      subtitle="Access the live kitchen board, station controls, and service alerts"
+      subtitle="Enter your phone number to access the live kitchen board"
       aside={(
         <>
           <h2 className="text-3xl font-bold tracking-tight text-balance">Run the line without losing the pace.</h2>
@@ -51,11 +46,7 @@ export function KitchenLoginPage() {
         </>
       )}
     >
-      <form onSubmit={submit} className="space-y-3">
-        <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Kitchen work email" autoComplete="username" required autoFocus />
-        <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password" autoComplete="current-password" required />
-        <Button type="submit" fullWidth size="lg" loading={busy}>Enter kitchen</Button>
-      </form>
+      <PhoneOtpForm onSignedIn={(r) => void afterSignIn(r)} submitLabel="Send code" />
     </AuthLayout>
   );
 }

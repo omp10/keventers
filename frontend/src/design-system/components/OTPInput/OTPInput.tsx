@@ -1,5 +1,4 @@
-import { OTPInput as OTPRoot, OTPInputContext } from 'input-otp';
-import { useContext } from 'react';
+import { OTPInput as OTPRoot, type SlotProps } from 'input-otp';
 
 import { cn } from '@/lib/cn';
 
@@ -28,10 +27,12 @@ export function OTPInput({ value, onChange, length = 6, onComplete, disabled, cl
       disabled={disabled}
       containerClassName={cn('flex items-center gap-2', disabled && 'opacity-50', className)}
       aria-label={aria['aria-label'] ?? 'One-time code'}
+      // `render` hands us the slot state directly — pass it down rather than
+      // re-reading OTPInputContext, which isn't provided to the render tree.
       render={({ slots }) => (
         <>
-          {slots.map((_, i) => (
-            <Slot key={i} index={i} split={length > 6 && i === Math.floor(length / 2)} />
+          {slots.map((slot, i) => (
+            <Slot key={i} slot={slot} split={length > 6 && i === Math.floor(length / 2)} />
           ))}
         </>
       )}
@@ -39,9 +40,7 @@ export function OTPInput({ value, onChange, length = 6, onComplete, disabled, cl
   );
 }
 
-function Slot({ index, split }: { index: number; split?: boolean }) {
-  const ctx = useContext(OTPInputContext);
-  const slot = ctx.slots[index];
+function Slot({ slot, split }: { slot: SlotProps; split?: boolean }) {
   return (
     <>
       {split && <span className="mx-1 h-px w-3 bg-border" aria-hidden />}

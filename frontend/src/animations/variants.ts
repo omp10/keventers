@@ -68,6 +68,17 @@ export const staggerItem: Variants = {
   exit: { opacity: 0, y: 6, transition: transitions.fast },
 };
 
+/* ── Scroll reveal (whileInView, once) — fade-up as sections enter the viewport ── */
+export const revealVariants: Variants = {
+  initial: { opacity: 0, y: 18 },
+  animate: { opacity: 1, y: 0, transition: transitions.entrance },
+};
+
+export const revealScaleVariants: Variants = {
+  initial: { opacity: 0, y: 12, scale: 0.98 },
+  animate: { opacity: 1, y: 0, scale: 1, transition: transitions.entrance },
+};
+
 /* ── Interaction (hover / tap) — used via whileHover / whileTap ── */
 export const interactive = {
   hover: { scale: 1.02, transition: transitions.snappy },

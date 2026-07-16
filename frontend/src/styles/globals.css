@@ -47,6 +47,11 @@
   --color-accent-foreground: var(--kv-color-accent-foreground);
   --color-accent-soft: var(--kv-color-accent-soft);
 
+  /* Brand secondary identity (hero panels, gradients, markers) */
+  --color-brand-secondary: var(--kv-color-brand-secondary);
+  --color-brand-secondary-foreground: var(--kv-color-brand-secondary-foreground);
+  --color-brand-secondary-soft: var(--kv-color-brand-secondary-soft);
+
   --color-muted: var(--kv-color-muted);
   --color-muted-foreground: var(--kv-color-muted-foreground);
 
@@ -62,6 +67,14 @@
   --color-info: var(--kv-color-info);
   --color-info-foreground: var(--kv-color-info-foreground);
   --color-info-soft: var(--kv-color-info-soft);
+
+  /* Chart series (brand-derived by the resolver) */
+  --color-chart-1: var(--kv-color-chart1);
+  --color-chart-2: var(--kv-color-chart2);
+  --color-chart-3: var(--kv-color-chart3);
+  --color-chart-4: var(--kv-color-chart4);
+  --color-chart-5: var(--kv-color-chart5);
+  --color-chart-6: var(--kv-color-chart6);
 
   /* Radius → rounded-* utilities */
   --radius-none: var(--kv-radius-none);
@@ -83,6 +96,8 @@
   --shadow-xl: var(--kv-shadow-xl);
   --shadow-2xl: var(--kv-shadow-2xl);
   --shadow-inner: var(--kv-shadow-inner);
+  --shadow-brand: var(--kv-shadow-brand);
+  --shadow-glow: var(--kv-shadow-glow);
 
   /* Fonts → font-* utilities */
   --font-sans: var(--kv-font-sans);
@@ -102,6 +117,11 @@
   --animate-shimmer: kv-shimmer 1.6s linear infinite;
   --animate-pulse-soft: kv-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   --animate-spin-fast: kv-spin 0.7s linear infinite;
+  /* Ambient hero motion (GPU transform/opacity only; disabled by reduced-motion) */
+  --animate-float: kv-float 7s ease-in-out infinite;
+  --animate-float-slow: kv-float 11s ease-in-out infinite reverse;
+  --animate-scan: kv-scan 2.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  --animate-bounce-soft: kv-bounce-soft 2.2s ease-in-out infinite;
 }
 
 /* ───────────────────────────  DERIVED VARIABLES  ───────────────────────────
@@ -111,6 +131,7 @@
   --kv-color-ring-soft: color-mix(in oklab, var(--kv-color-ring) 35%, transparent);
   --kv-color-primary-soft: color-mix(in oklab, var(--kv-color-primary) 12%, transparent);
   --kv-color-accent-soft: color-mix(in oklab, var(--kv-color-accent) 12%, transparent);
+  --kv-color-brand-secondary-soft: color-mix(in oklab, var(--kv-color-brand-secondary) 12%, transparent);
   --kv-color-success-soft: color-mix(in oklab, var(--kv-color-success) 14%, transparent);
   --kv-color-warning-soft: color-mix(in oklab, var(--kv-color-warning) 16%, transparent);
   --kv-color-danger-soft: color-mix(in oklab, var(--kv-color-danger) 14%, transparent);
@@ -214,6 +235,45 @@
 @keyframes kv-spin {
   to {
     transform: rotate(360deg);
+  }
+}
+/* Ambient float for hero decorative elements (transform-only, 60fps-safe). */
+@keyframes kv-float {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(0, -14px, 0) scale(1.04);
+  }
+}
+/* QR scan-line sweep. */
+@keyframes kv-scan {
+  0%,
+  12% {
+    transform: translateY(-120%);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  80% {
+    opacity: 1;
+  }
+  88%,
+  100% {
+    transform: translateY(220%);
+    opacity: 0;
+  }
+}
+/* Gentle bounce for the scroll cue. */
+@keyframes kv-bounce-soft {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(6px);
   }
 }
 @keyframes kv-progress-indeterminate {

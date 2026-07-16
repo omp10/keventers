@@ -1,3 +1,5 @@
+import { randomUUID } from 'node:crypto';
+
 import { BaseService } from '#core/service/base.service.js';
 import { ForbiddenError, NotFoundError, UnauthorizedError } from '#core/errors/app-error.js';
 import { passwordService, sessionService } from '#platform/auth/index.js';
@@ -9,6 +11,7 @@ import { roleRepository } from '../repositories/role.repository.js';
 import { userRepository } from '../repositories/user.repository.js';
 import { buildSessionIdentity, resolveEffectivePermissions } from '../utils/identity.utils.js';
 
+import { otpService } from './otp.service.js';
 import { userService } from './user.service.js';
 
 /**
@@ -23,6 +26,7 @@ export class AuthService extends BaseService {
     passwords = passwordService,
     sessions = sessionService,
     userSvc = userService,
+    otp = otpService,
     eventBus,
   } = {}) {
     super({ name: 'identity.auth', eventBus });
@@ -31,6 +35,7 @@ export class AuthService extends BaseService {
     this.passwords = passwords;
     this.sessions = sessions;
     this.userService = userSvc;
+    this.otp = otp;
   }
 
   /** Issue a session + token pair for an authenticated user record. */
@@ -51,6 +56,57 @@ export class AuthService extends BaseService {
     const { sessionId, tokens } = await this.#issueSession(user, meta);
     this.audit.success('identity.auth.registered', { targetId: user.id });
     return toAuthDTO({ user, tokens, sessionId });
+  }
+
+  /* ─────────────────────── Phone + OTP sign-in ─────────────────────── */
+
+  /** Send a login code to a phone number. */
+  async requestOtp(phone) {
+    return this.otp.request(phone);
+  }
+
+  /**
+   * Verify a phone code and sign the holder in, creating the account on first
+   * use. `isNewUser` tells the client whether to route into onboarding.
+   *
+   * Phone-first accounts still have to satisfy the User schema's required
+   * `email`/`passwordHash`, so a placeholder email is synthesized and an
+   * unusable random password is set: the account can ONLY be entered by OTP
+   * until onboarding collects real details. `emailVerified` stays false.
+   */
+  async verifyOtp(rawPhone, code, meta = {}) {
+    const { phone } = await this.otp.verify(rawPhone, code);
+
+    let user = await this.users.findByPhone(phone);
+    const isNewUser = !user;
+
+    if (!user) {
+      const created = await this.users.create({
+        email: `${phone.replace('+', '')}@phone.keventers.local`,
+        phone,
+        // Random, never shared: password login is impossible for these accounts.
+        passwordHash: await this.passwords.hash(randomUUID()),
+        firstName: 'New',
+        lastName: 'User',
+        type: USER_TYPE.STAFF,
+        status: USER_STATUS.ACTIVE,
+        emailVerified: false,
+        roles: [],
+        permissions: [],
+      });
+      user = await this.users.findById(created.id ?? created._id);
+    } else {
+      if (user.status === USER_STATUS.DISABLED) throw new ForbiddenError(IDENTITY_ERRORS.ACCOUNT_DISABLED);
+      await this.users.updateById(String(user.id ?? user._id), {
+        failedLoginAttempts: 0,
+        lockedUntil: null,
+        lastLoginAt: new Date(),
+      });
+    }
+
+    const { sessionId, tokens } = await this.#issueSession(user, meta);
+    this.audit.success('identity.auth.otp-login', { targetId: String(user.id ?? user._id) });
+    return { ...toAuthDTO({ user, tokens, sessionId }), isNewUser };
   }
 
   async login(email, password, meta = {}) {

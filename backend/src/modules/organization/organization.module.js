@@ -6,13 +6,22 @@ import { permissionRegistry } from '#platform/auth/index.js';
 import { ORG_PERMISSIONS } from './constants/organization.constants.js';
 import { ORG_TOKENS } from './constants/organization.tokens.js';
 import { registerOrganizationEventHandlers } from './events/handlers.js';
+import { bannerRepository } from './repositories/banner.repository.js';
 import { branchRepository } from './repositories/branch.repository.js';
+import { categoryRepository } from './repositories/category.repository.js';
+import { zoneRepository } from './repositories/zone.repository.js';
 import { membershipRepository } from './repositories/membership.repository.js';
 import { onboardingApplicationRepository } from './repositories/onboarding-application.repository.js';
 import { organizationRepository } from './repositories/organization.repository.js';
 import { restaurantRepository } from './repositories/restaurant.repository.js';
 import organizationRouter from './routes/index.js';
+import { adminKitchenService } from './services/admin-kitchen.service.js';
+import { bannerService } from './services/banner.service.js';
 import { branchService } from './services/branch.service.js';
+import { categoryService } from './services/category.service.js';
+import { mediaService } from './services/media.service.js';
+import { publicDiscoveryService } from './services/public-discovery.service.js';
+import { zoneService } from './services/zone.service.js';
 import { onboardingService } from './services/onboarding.service.js';
 import { organizationService } from './services/organization.service.js';
 import { provisioningService } from './services/provisioning.service.js';
@@ -39,6 +48,9 @@ export const organizationModule = {
     container.register(ORG_TOKENS.RestaurantRepository, restaurantRepository);
     container.register(ORG_TOKENS.BranchRepository, branchRepository);
     container.register(ORG_TOKENS.MembershipRepository, membershipRepository);
+    container.register(ORG_TOKENS.BannerRepository, bannerRepository);
+    container.register(ORG_TOKENS.CategoryRepository, categoryRepository);
+    container.register(ORG_TOKENS.ZoneRepository, zoneRepository);
 
     container.register(ORG_TOKENS.OnboardingService, onboardingService);
     container.register(ORG_TOKENS.OrganizationService, organizationService);
@@ -49,6 +61,12 @@ export const organizationModule = {
     container.register(ORG_TOKENS.ProvisioningService, provisioningService);
     container.register(ORG_TOKENS.TenantService, tenantService);
     container.register(ORG_TOKENS.StaffService, staffService);
+    container.register(ORG_TOKENS.BannerService, bannerService);
+    container.register(ORG_TOKENS.PublicDiscoveryService, publicDiscoveryService);
+    container.register(ORG_TOKENS.CategoryService, categoryService);
+    container.register(ORG_TOKENS.ZoneService, zoneService);
+    container.register(ORG_TOKENS.AdminKitchenService, adminKitchenService);
+    container.register(ORG_TOKENS.MediaService, mediaService);
   },
 
   bootstrapRbac() {

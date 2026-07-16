@@ -11,6 +11,9 @@ export type NavItem = {
   onClick?: () => void;
   active?: boolean;
   badge?: ReactNode;
+  /** Render as the shell's PRIMARY action (e.g. raised center tab in the
+   *  customer bottom nav). At most one item per nav should set this. */
+  emphasized?: boolean;
   /** Nested items (sidebar sections). */
   children?: NavItem[];
 };

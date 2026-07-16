@@ -37,7 +37,75 @@ export const neutral: ColorScale = {
   950: '#0B0B0F',
 };
 
-/** Keventers signature — warm amber/gold. */
+/**
+ * Keventers signature — raspberry/magenta. Extracted from the brand badge:
+ * the milkshake pink + magenta speed-lines. 500 is the light-scheme CTA step
+ * (AA vs. white); 400 is the dark-scheme step (AA vs. near-black ink).
+ */
+export const raspberry: ColorScale = {
+  50: '#FDF2F8',
+  100: '#FCE8F2',
+  200: '#FAD0E4',
+  300: '#F7A8CC',
+  400: '#F26FAB',
+  500: '#D6246F',
+  600: '#B41A5C',
+  700: '#93154C',
+  800: '#771441',
+  900: '#631239',
+  950: '#3D081F',
+};
+
+/** Keventers heritage navy — the wordmark + bottom pill of the brand badge. */
+export const navy: ColorScale = {
+  50: '#EEF0FB',
+  100: '#DFE3F7',
+  200: '#C3CAEE',
+  300: '#9BA6E0',
+  400: '#7280CD',
+  500: '#5262BA',
+  600: '#3D4699',
+  700: '#303879',
+  800: '#272E60',
+  900: '#1F2450',
+  950: '#131736',
+};
+
+/** Keventers teal — the badge ring segment + "repeat" dot. */
+export const teal: ColorScale = {
+  50: '#EFFCFA',
+  100: '#D3F7F1',
+  200: '#A8EFE4',
+  300: '#6FDFD1',
+  400: '#38C7B9',
+  500: '#12AC9F',
+  600: '#078078',
+  700: '#0A6E67',
+  800: '#0C5852',
+  900: '#0C4843',
+  950: '#042A27',
+};
+
+/**
+ * Keventers cream — a WARM neutral extracted from the badge field. Light end is
+ * cream/linen; the dark end cools into heritage navy-black so dark mode feels
+ * branded, not generic. Used as a brand `neutral` canvas override.
+ */
+export const cream: ColorScale = {
+  50: '#FBF8F1',
+  100: '#F4EFE3',
+  200: '#E8E1D2',
+  300: '#D5CDBB',
+  400: '#A29C90',
+  500: '#6F6B66',
+  600: '#514F55',
+  700: '#3B3A46',
+  800: '#2A2938',
+  900: '#1C1B2A',
+  950: '#121120',
+};
+
+/** Keventers gold — warm amber/gold (the badge's upper field + "enjoy" dot). */
 export const amber: ColorScale = {
   50: '#FFF8EB',
   100: '#FEECC7',
@@ -122,5 +190,5 @@ export const sky: ColorScale = {
   950: '#082F49',
 };
 
-export const palettes = { neutral, amber, indigo, emerald, amberyellow: amberyellow, rose, sky } as const;
+export const palettes = { neutral, raspberry, navy, teal, cream, amber, indigo, emerald, amberyellow: amberyellow, rose, sky } as const;
 export type PaletteName = keyof typeof palettes;

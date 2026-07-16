@@ -17,6 +17,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<AuthStatus>('loading');
   const [user, setUser] = useState<AuthUser | null>(null);
   const refreshTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const loggingOut = useRef(false);
 
   /* Perform a token refresh (used by session recovery + the API adapter). */
   const performRefresh = useCallback(async (): Promise<boolean> => {
@@ -59,19 +60,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [applySession]);
 
   const logout = useCallback(async (opts?: { everywhere?: boolean }) => {
+    // Re-entrancy guard: the logout request is itself authenticated, so when the
+    // token is already dead it 401s — which drives the API adapter's
+    // onUnauthorized straight back into logout(). Without this, that recursion
+    // never terminates and floods the server.
+    if (loggingOut.current) return;
+    loggingOut.current = true;
     try {
       await (opts?.everywhere ? authService.logoutAll() : authService.logout());
-    } catch { /* best-effort */ }
-    clearRefreshTimer();
-    tokenStore.clearSession();
-    setUser(null);
-    setStatus(tokenStore.getGuest() ? 'guest' : 'unauthenticated');
+    } catch {
+      /* best-effort — the local session is cleared either way */
+    } finally {
+      clearRefreshTimer();
+      tokenStore.clearSession();
+      setUser(null);
+      setStatus(tokenStore.getGuest() ? 'guest' : 'unauthenticated');
+      loggingOut.current = false;
+    }
   }, []);
 
   const login = useCallback(async (credentials: { email: string; password: string }) => {
     const session = await authService.login(credentials);
     tokenStore.setSession(session.tokens.accessToken, session.tokens.refreshToken);
     applySession(session.user);
+  }, [applySession]);
+
+  /**
+   * Passwordless phone sign-in. Returns `isNewUser` so the caller can route a
+   * first-timer into onboarding; the session itself is already live either way.
+   */
+  const loginWithOtp = useCallback(async (phone: string, code: string): Promise<{ isNewUser: boolean }> => {
+    const session = await authService.verifyOtp(phone, code);
+    tokenStore.setSession(session.tokens.accessToken, session.tokens.refreshToken);
+    applySession(session.user);
+    return { isNewUser: session.isNewUser };
   }, [applySession]);
 
   const register = useCallback(async (body: Parameters<typeof authService.register>[0]) => {
@@ -124,13 +146,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isAuthenticated: status === 'authenticated',
       isGuest: status === 'guest',
       login,
+      loginWithOtp,
       register,
       logout,
       setGuestToken,
       refresh: performRefresh,
       reloadUser,
     }),
-    [status, user, login, register, logout, setGuestToken, performRefresh, reloadUser],
+    [status, user, login, loginWithOtp, register, logout, setGuestToken, performRefresh, reloadUser],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

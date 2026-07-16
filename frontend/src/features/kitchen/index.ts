@@ -9,6 +9,7 @@
 export { KitchenShell, KitchenBoardRoute, KitchenDashboardRoute, KitchenStationsRoute } from './routes';
 export { KitchenLoginPage } from './KitchenLoginPage';
 export { KitchenOnboardingGate, KitchenOnboardingPage } from './KitchenOnboarding';
+export { KitchenRegisterPage } from './KitchenRegisterPage';
 
 export * from './types';
 export * from './hooks';

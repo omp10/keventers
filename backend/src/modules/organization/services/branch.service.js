@@ -80,6 +80,16 @@ export class BranchService extends BaseService {
     return branch ? toBranchDTO(branch) : null;
   }
 
+  /**
+   * Trusted read of a branch by its PUBLIC slug, no tenant check — the customer
+   * app addresses branches by slug (/r/:slug), so opening an ordering session
+   * from a typed table number resolves the branch here. Returns null if absent.
+   */
+  async getPublicBySlug(slug) {
+    const branch = await this.branches.findOne({ slug: String(slug ?? '').toLowerCase() });
+    return branch ? toBranchDTO(branch) : null;
+  }
+
   async updateBranch(tenant, id, data, actorId = null) {
     const branch = await this.#getOrThrow(id);
     assertOrganizationAccess(tenant, String(branch.organizationId));

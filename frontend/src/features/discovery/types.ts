@@ -100,6 +100,36 @@ export type DiscoveryQuery = DiscoveryFilterState & {
   limit?: number;
 };
 
+/**
+ * ADMIN-MANAGED promotional banner (homepage carousel). Curated by platform
+ * admins via /admin/banners; the client renders `theme` through its design
+ * tokens so banners stay white-label.
+ */
+export type PromoBanner = {
+  id: string;
+  title: string;
+  subtitle?: string;
+  theme: 'brand' | 'accent' | 'image';
+  imageUrl?: string;
+  cta?: { label: string; href: string };
+  branchSlug?: string;
+  sortOrder: number;
+};
+
+/**
+ * ADMIN-MANAGED storefront browse category (the home tiles). Curated via
+ * /admin/categories; `searchTerm` is what tapping the tile searches for.
+ */
+export type StorefrontCategory = {
+  id: string;
+  name: string;
+  slug: string;
+  imageUrl?: string;
+  icon: string;
+  searchTerm: string;
+  sortOrder: number;
+};
+
 /** Lightweight place suggestion for the search autocomplete. */
 export type PlaceSuggestion = {
   id: string;

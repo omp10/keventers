@@ -1,0 +1,8 @@
+# Uploaded media is RUNTIME data, not source: keep the folder structure in git,
+# ignore the files themselves. (Remove the first two rules if you ever want to
+# commit seeded artwork.)
+*
+!.gitignore
+!README.md
+!*/
+!*/.gitkeep

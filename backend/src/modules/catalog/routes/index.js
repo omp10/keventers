@@ -7,6 +7,7 @@ import categoryRoutes from './category.routes.js';
 import menuRoutes from './menu.routes.js';
 import modifierRoutes from './modifier.routes.js';
 import productRoutes from './product.routes.js';
+import publicMenuRoutes from './public-menu.routes.js';
 import variantRoutes from './variant.routes.js';
 
 /**
@@ -24,8 +25,14 @@ import variantRoutes from './variant.routes.js';
  *   /api/v1/restaurant/addons/...
  *   /api/v1/restaurant/catalog/...       (aggregated + import/export)
  *   /api/v1/admin/catalog/...            (super-admin inspection)
+ *   /api/v1/public/branches/:slug/menu   (customer menu — see note below)
  */
 const router = Router();
+
+// Customer-facing menu. Mounted on the same `/public/branches` prefix the
+// organization module uses for branch detail; because catalog is registered
+// first, these deeper paths match here and anything else falls through to it.
+router.use('/public/branches', publicMenuRoutes);
 
 router.use('/restaurant/menus', menuRoutes);
 router.use('/restaurant/categories', categoryRoutes);

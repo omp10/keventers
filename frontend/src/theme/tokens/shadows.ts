@@ -12,6 +12,10 @@ export type ShadowTokens = {
   '2xl': string;
   inner: string;
   focus: string;
+  /** Primary-tinted lift — hero CTAs, floating cart, featured cards. */
+  brand: string;
+  /** Soft brand halo — active/selected emphasis (QR frame, live order pulse). */
+  glow: string;
 };
 
 export const lightShadows: ShadowTokens = {
@@ -23,6 +27,9 @@ export const lightShadows: ShadowTokens = {
   '2xl': '0 24px 48px -12px rgb(16 16 20 / 0.24)',
   inner: 'inset 0 1px 2px 0 rgb(16 16 20 / 0.06)',
   focus: '0 0 0 3px var(--color-ring-soft)',
+  brand:
+    '0 2px 6px -2px color-mix(in oklab, var(--color-primary) 26%, transparent), 0 10px 24px -8px color-mix(in oklab, var(--color-primary) 30%, transparent)',
+  glow: '0 0 0 1px color-mix(in oklab, var(--color-primary) 20%, transparent), 0 6px 28px -6px color-mix(in oklab, var(--color-primary) 42%, transparent)',
 };
 
 export const darkShadows: ShadowTokens = {
@@ -34,6 +41,9 @@ export const darkShadows: ShadowTokens = {
   '2xl': '0 32px 64px -16px rgb(0 0 0 / 0.80)',
   inner: 'inset 0 1px 2px 0 rgb(0 0 0 / 0.40)',
   focus: '0 0 0 3px var(--color-ring-soft)',
+  brand:
+    '0 2px 8px -2px color-mix(in oklab, var(--color-primary) 30%, transparent), 0 12px 32px -8px color-mix(in oklab, var(--color-primary) 36%, transparent)',
+  glow: '0 0 0 1px color-mix(in oklab, var(--color-primary) 28%, transparent), 0 8px 36px -6px color-mix(in oklab, var(--color-primary) 52%, transparent)',
 };
 
 export const shadowTokens = { light: lightShadows, dark: darkShadows };

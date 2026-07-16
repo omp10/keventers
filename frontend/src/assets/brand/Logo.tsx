@@ -1,3 +1,5 @@
+import { useEffect, useState } from 'react';
+
 import { cn } from '@/lib/cn';
 import { useBrand } from '@/theme';
 import { Mark } from './Mark';
@@ -10,15 +12,36 @@ export type LogoProps = {
 };
 
 /**
- * Brand LOGO — mark + wordmark, fully theme-driven (reads brand name/colors). No
- * asset file required; rebrands automatically. Every layout/nav uses this rather
- * than importing an image, so switching brand switches every logo instantly.
+ * Brand LOGO — fully theme-driven. Renders the active Brand's scheme-aware logo
+ * asset (`brand.logo.light|dark`) when it exists, with the app wordmark beside
+ * it; falls back to the generated Mark + wordmark when no asset loads. Every
+ * layout/nav uses this rather than importing an image, so switching brand (or
+ * scheme) switches every logo instantly.
  */
 export function Logo({ variant = 'full', size = 30, className }: LogoProps) {
-  const { appName } = useBrand();
+  const { appName, logoSrc } = useBrand();
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => setFailed(false), [logoSrc]);
+
+  const glyph =
+    logoSrc && !failed ? (
+      <img
+        src={logoSrc}
+        alt={`${appName} logo`}
+        width={size}
+        height={size}
+        draggable={false}
+        onError={() => setFailed(true)}
+        className="shrink-0 select-none object-contain"
+      />
+    ) : (
+      <Mark size={size} />
+    );
+
   return (
     <span className={cn('inline-flex items-center gap-2.5 select-none', className)}>
-      <Mark size={size} />
+      {glyph}
       {variant === 'full' && (
         <span
           className="font-display font-bold tracking-tight text-foreground"

@@ -15,7 +15,7 @@ export type DiscoveryRoute = {
   path: string;
   element: ReactNode;
   chrome: 'tabs' | 'minimal';
-  tab?: { key: string; label: string; icon: IconName };
+  tab?: { key: string; label: string; icon: IconName; emphasized?: boolean };
 };
 
 const EntryPage = lazy(() => import('./pages/EntryPage').then((m) => ({ default: m.EntryPage })));
@@ -27,11 +27,14 @@ const ScannerPage = lazy(() => import('./pages/ScannerPage').then((m) => ({ defa
 const ManualQrPage = lazy(() => import('./pages/ManualQrPage').then((m) => ({ default: m.ManualQrPage })));
 const RestaurantDetailPage = lazy(() => import('./pages/RestaurantDetailPage').then((m) => ({ default: m.RestaurantDetailPage })));
 
+// NOTE: tab ORDER follows this array (see `discoveryTabs`). Scan sits in the
+// MIDDLE deliberately — it's the raised primary action and the thumb's easiest
+// reach on a phone.
 export const discoveryRoutes: DiscoveryRoute[] = [
   { path: '/', element: <EntryPage />, chrome: 'tabs', tab: { key: 'home', label: 'Home', icon: 'home' } },
   { path: '/discover', element: <DiscoverPage />, chrome: 'tabs', tab: { key: 'discover', label: 'Discover', icon: 'search' } },
+  { path: '/qr', element: <ScannerPage />, chrome: 'minimal', tab: { key: 'scan', label: 'Scan', icon: 'qr', emphasized: true } },
   { path: '/nearby', element: <NearbyPage />, chrome: 'tabs', tab: { key: 'nearby', label: 'Nearby', icon: 'store' } },
-  { path: '/qr', element: <ScannerPage />, chrome: 'minimal', tab: { key: 'scan', label: 'Scan', icon: 'qr' } },
   { path: '/favorites', element: <FavoritesPage />, chrome: 'tabs', tab: { key: 'favorites', label: 'Saved', icon: 'star' } },
   { path: '/search', element: <SearchPage />, chrome: 'tabs' },
   { path: '/qr/manual', element: <ManualQrPage />, chrome: 'minimal' },

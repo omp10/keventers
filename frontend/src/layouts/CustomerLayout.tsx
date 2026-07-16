@@ -31,7 +31,9 @@ export function CustomerLayout({ tabs, header, headerActions, renderLink = defau
       </header>
 
       <main className="flex-1 overflow-y-auto">
-        <div className="mx-auto w-full max-w-2xl px-4 py-5">{children}</div>
+        {/* Comfortable single column on phones; opens up to a flagship-width
+            canvas on desktop (grids/rails/hero are all responsive to it). */}
+        <div className="mx-auto w-full max-w-2xl px-4 py-5 lg:max-w-5xl xl:max-w-6xl">{children}</div>
       </main>
 
       {tabs && tabs.length > 0 && (
@@ -41,7 +43,20 @@ export function CustomerLayout({ tabs, header, headerActions, renderLink = defau
           aria-label="Primary"
         >
           {tabs.map((tab) => {
-            const content = (
+            // Emphasized tab — the shell's raised primary action (e.g. Scan).
+            const content = tab.emphasized ? (
+              <span className="flex flex-1 flex-col items-center justify-end gap-0.5 pb-2 text-[0.6875rem] font-semibold text-primary outline-none">
+                <span
+                  className={cn(
+                    '-mt-5 grid h-13 w-13 place-items-center rounded-full bg-primary text-primary-foreground shadow-brand ring-4 ring-background transition-transform active:scale-95 motion-reduce:transition-none',
+                    tab.active && 'ring-primary/25',
+                  )}
+                >
+                  {tab.icon && <Icon name={tab.icon} size="lg" />}
+                </span>
+                {tab.label}
+              </span>
+            ) : (
               <span
                 className={cn(
                   'flex flex-1 flex-col items-center justify-center gap-0.5 py-2.5 text-[0.6875rem] font-medium transition-colors outline-none',
@@ -56,7 +71,7 @@ export function CustomerLayout({ tabs, header, headerActions, renderLink = defau
               </span>
             );
             return (
-              <div key={tab.key} className="flex flex-1">
+              <div key={tab.key} className={cn('flex flex-1', tab.emphasized && 'overflow-visible')}>
                 {renderLink(tab, content, 'flex flex-1')}
               </div>
             );

@@ -73,7 +73,10 @@ export function AppProviders({
 
   return (
     <ErrorBoundary onError={onError}>
-      <ThemeProvider brand={brand} defaultMode="system">
+      {/* First-time visitors get LIGHT (not the OS scheme) — matches the
+          pre-paint script in index.html, so there's no flash and no surprise
+          dark-mode first impression. Users can still pick dark/system. */}
+      <ThemeProvider brand={brand} defaultMode="light">
         {routed(
           <QueryClientProvider client={queryClient}>
             <FeatureFlagProvider overrides={flags}>

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import { Avatar, Badge, Icon } from '@/design-system';
@@ -29,6 +30,24 @@ export type RestaurantCardProps = {
 
 const branchHref = (b: Branch) => `/r/${b.slug}`;
 
+/** Cover image with a smooth fade-in once loaded (skeleton tone shows behind). */
+function CoverImage({ src }: { src: string }) {
+  const [loaded, setLoaded] = useState(false);
+  return (
+    <img
+      src={src}
+      alt=""
+      loading="lazy"
+      onLoad={() => setLoaded(true)}
+      className={cn(
+        'h-full w-full object-cover transition-[opacity,transform] duration-500 group-hover:scale-105',
+        'motion-reduce:transition-none motion-reduce:group-hover:scale-100',
+        loaded ? 'opacity-100' : 'opacity-0',
+      )}
+    />
+  );
+}
+
 /**
  * RestaurantCard — the ONE reusable branch card. The same component renders in
  * grids, lists, carousels, map overlays, and search results with no forking of
@@ -55,8 +74,10 @@ export function RestaurantCard({ branch, variant = 'grid', active, onPrefetch, o
   return (
     <article
       className={cn(
-        'group relative overflow-hidden rounded-2xl border bg-surface transition-shadow',
+        'group relative overflow-hidden rounded-2xl border bg-surface transition-[box-shadow,transform] duration-300 motion-reduce:transition-none',
         active ? 'border-primary ring-2 ring-primary/30 shadow-lg' : 'border-border hover:shadow-lg',
+        // Tactile lift on pointer surfaces (vertical variants only; GPU transform).
+        !horizontal && 'hover:-translate-y-1 motion-reduce:hover:translate-y-0',
         horizontal ? 'flex' : 'flex flex-col',
         variant === 'carousel' && 'h-full',
         className,
@@ -72,12 +93,11 @@ export function RestaurantCard({ branch, variant = 'grid', active, onPrefetch, o
         )}
       >
         {branch.coverImageUrl ? (
-          <img
-            src={branch.coverImageUrl}
-            alt=""
-            loading="lazy"
-            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105 motion-reduce:transition-none motion-reduce:group-hover:scale-100"
-          />
+          <>
+            <CoverImage src={branch.coverImageUrl} />
+            {/* Soft top scrim keeps badges + heart legible on bright covers. */}
+            <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-12 bg-gradient-to-b from-overlay/25 to-transparent" />
+          </>
         ) : (
           <div className="grid h-full w-full place-items-center bg-gradient-to-br from-primary-soft to-muted">
             <Icon name="utensils" className="h-7 w-7 text-primary/50" />

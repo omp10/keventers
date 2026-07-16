@@ -17,6 +17,7 @@ import { variantRepository } from './repositories/variant.repository.js';
 import catalogRouter from './routes/index.js';
 import { addonService } from './services/addon.service.js';
 import { availabilityService } from './services/availability.service.js';
+import { publicMenuService } from './services/public-menu.service.js';
 import { catalogService } from './services/catalog.service.js';
 import { categoryService } from './services/category.service.js';
 import { importExportService } from './services/import-export.service.js';
@@ -73,10 +74,23 @@ export const catalogModule = {
     registerCatalogEventHandlers(eventBus);
   },
 
+  /**
+   * The public menu is addressed by BRANCH slug, but branches belong to the
+   * organization module. Rather than importing across the boundary, the branch
+   * resolver is INJECTED here at bootstrap — the same decoupling the API client
+   * uses for auth on the frontend. Imported lazily so module load order can't
+   * create a cycle.
+   */
+  async wireBranchLookup() {
+    const { branchRepository } = await import('#modules/organization/repositories/branch.repository.js');
+    publicMenuService.setBranchLookup((slug) => branchRepository.findOne({ slug, status: 'active' }));
+  },
+
   register({ container = sharedContainer, eventBus = sharedEventBus } = {}) {
     this.registerDependencies(container);
     this.bootstrapRbac();
     this.registerEventHandlers(eventBus);
+    void this.wireBranchLookup();
     logger().info({ module: this.name }, 'Catalog module registered');
     return this;
   },

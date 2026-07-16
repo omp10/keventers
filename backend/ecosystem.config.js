@@ -28,6 +28,23 @@ export default {
       },
     },
     {
+      name: 'keventers-worker',
+      script: 'src/worker.js',
+      exec_mode: 'fork',
+      instances: 1,
+      autorestart: true,
+      max_memory_restart: '512M',
+      kill_timeout: 12000,
+      wait_ready: true,
+      listen_timeout: 15000,
+      env: {
+        NODE_ENV: 'development',
+      },
+      env_production: {
+        NODE_ENV: 'production',
+      },
+    },
+    {
       name: 'keventers-api-dev',
       script: 'src/server.js',
       exec_mode: 'fork',

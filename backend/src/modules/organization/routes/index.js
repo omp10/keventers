@@ -1,7 +1,15 @@
 import { Router } from 'express';
 
+import {
+  categoryAdminRouter,
+  kitchenAdminRouter,
+  mediaAdminRouter,
+  zoneAdminRouter,
+} from './admin-content.routes.js';
 import adminOnboardingRoutes from './admin-onboarding.routes.js';
 import adminOrganizationRoutes from './admin-organization.routes.js';
+import bannerAdminRoutes from './banner-admin.routes.js';
+import publicDiscoveryRoutes from './public-discovery.routes.js';
 import publicRoutes from './public.routes.js';
 import restaurantRoutes from './restaurant.routes.js';
 
@@ -16,8 +24,14 @@ import restaurantRoutes from './restaurant.routes.js';
 const router = Router();
 
 router.use('/public', publicRoutes);
+router.use('/public', publicDiscoveryRoutes); // discovery/branches/banners (customer app)
 router.use('/admin/onboarding', adminOnboardingRoutes);
 router.use('/admin/organizations', adminOrganizationRoutes);
+router.use('/admin/banners', bannerAdminRoutes);
+router.use('/admin/categories', categoryAdminRouter);
+router.use('/admin/zones', zoneAdminRouter);
+router.use('/admin/kitchens', kitchenAdminRouter);
+router.use('/admin/media', mediaAdminRouter);
 router.use('/restaurant', restaurantRoutes);
 
 export default router;

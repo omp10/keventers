@@ -19,7 +19,51 @@ function assertSessionOwnership(req, sessionId) {
   }
 }
 
+/**
+ * Map the internal session + context onto the customer app's OrderingSession
+ * contract (flat, slug-addressed, token included) — the client shouldn't have to
+ * know the QR module's internal shape.
+ */
+const toOrderingSession = ({ session, guestToken, context }, { branchSlug, tableNumber }) => ({
+  id: session.sessionId,
+  branchSlug,
+  branchName: context?.branch?.name ?? undefined,
+  tableCode: tableNumber ?? undefined,
+  channel: 'dine_in',
+  token: guestToken,
+  currency: context?.branch?.settings?.currency ?? context?.restaurant?.settings?.currency ?? 'INR',
+});
+
 export const PublicSessionController = {
+  /**
+   * POST /public/session/open — start ordering at a table without a QR scan.
+   * Same validation as a scan (restaurant/branch active, open hours, table
+   * orderable); the typed table number replaces the signed code.
+   */
+  open: asyncHandler(async (req, res) => {
+    const { branchSlug, tableNumber } = req.body;
+    const result = await scanService.openSession(
+      { branchSlug, tableNumber },
+      {
+        device: deviceOf(req),
+        guestName: req.body.guestName,
+        guestCount: req.body.guestCount,
+        customerUserId: req.principal?.authenticated ? req.principal.id : null,
+      },
+    );
+    ApiResponse.success(res, {
+      data: toOrderingSession(result, { branchSlug, tableNumber }),
+      statusCode: 201,
+    });
+  }),
+
+  /** GET /public/session/current — resume from the caller's guest token. */
+  current: asyncHandler(async (req, res) => {
+    if (!req.guest?.sessionId) throw new ForbiddenError(QR_ERRORS.INVALID_SESSION_TOKEN);
+    const data = await sessionService.getPublicSession(req.guest.sessionId);
+    ApiResponse.success(res, { data });
+  }),
+
   /** GET /public/session/:sessionId */
   get: asyncHandler(async (req, res) => {
     assertSessionOwnership(req, req.params.sessionId);

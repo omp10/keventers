@@ -13,6 +13,8 @@ export type AuthContextValue = {
   isGuest: boolean;
 
   login: (credentials: { email: string; password: string }) => Promise<void>;
+  /** Passwordless phone sign-in; resolves `isNewUser` for onboarding routing. */
+  loginWithOtp: (phone: string, code: string) => Promise<{ isNewUser: boolean }>;
   register: (body: { email: string; password: string; firstName: string; lastName?: string; phone?: string }) => Promise<void>;
   logout: (opts?: { everywhere?: boolean }) => Promise<void>;
   /** Adopt a guest token (from a QR scan) — enables the guest ordering flow. */

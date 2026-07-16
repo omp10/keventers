@@ -6,8 +6,7 @@ import { discoveryRoutes, DiscoveryMinimalLayout, DiscoveryTabsLayout } from '@/
 import { orderingRoutes, OrderingLayout } from '@/features/ordering';
 import { restaurantRoutes, RestaurantLayout, RestaurantLoginPage } from '@/features/restaurant';
 import { catalogRoutes, CatalogLayout } from '@/features/catalog';
-import { KitchenShell, KitchenBoardRoute, KitchenDashboardRoute, KitchenStationsRoute, KitchenLoginPage, KitchenOnboardingGate, KitchenOnboardingPage } from '@/features/kitchen';
-import { InstallPrompt } from '@/pwa';
+import { KitchenShell, KitchenBoardRoute, KitchenDashboardRoute, KitchenStationsRoute, KitchenLoginPage, KitchenOnboardingGate, KitchenOnboardingPage, KitchenRegisterPage } from '@/features/kitchen';
 import { Showcase } from '@/app/Showcase';
 import { AdminLayout, AdminLoginPage, adminRoutes } from '@/features/admin';
 
@@ -44,6 +43,7 @@ export function App() {
       <Route path="/dashboard/login" element={<RestaurantLoginPage />} />
       <Route path="/kitchen/login" element={<KitchenLoginPage />} />
       <Route path="/kitchen/onboarding" element={<RequireAuth redirectTo="/kitchen/login"><KitchenOnboardingPage /></RequireAuth>} />
+      <Route path="/kitchen/onboarding/register" element={<RequireAuth redirectTo="/kitchen/login"><KitchenRegisterPage /></RequireAuth>} />
       <Route path="/admin/login" element={<AdminLoginPage />} />
       <Route
         element={
@@ -82,7 +82,6 @@ export function App() {
       <Route path="/showcase" element={<Showcase />} />
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
-    <InstallPrompt />
     </>
   );
 }

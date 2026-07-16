@@ -44,6 +44,8 @@ export const spring = {
   gentle: { type: 'spring', stiffness: 240, damping: 30, mass: 1 },
   /** Bouncy: success / celebratory only (use sparingly). */
   bouncy: { type: 'spring', stiffness: 500, damping: 18, mass: 0.8 },
+  /** Lively: playful-premium signature — a wink of overshoot, never cartoonish. */
+  lively: { type: 'spring', stiffness: 460, damping: 27, mass: 0.85 },
   /** Smooth non-spring tween for opacity/color. */
   smooth: { type: 'tween', duration: duration.base, ease: easing.standard },
 } as const;

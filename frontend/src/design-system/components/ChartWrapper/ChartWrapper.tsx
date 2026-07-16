@@ -36,7 +36,8 @@ export const chartColors = {
   info: color('info'),
   grid: color('border'),
   axis: color('foregroundSubtle'),
-  series: [color('primary'), color('accent'), color('info'), color('success'), color('warning'), color('danger')],
+  /** Categorical series — resolver-derived `chart*` roles, on-brand for any Brand. */
+  series: [color('chart1'), color('chart2'), color('chart3'), color('chart4'), color('chart5'), color('chart6')],
 };
 
 export function ChartWrapper({ title, description, actions, legend, loading, empty, emptyMessage = 'No data for this period.', height = 280, className, children }: ChartWrapperProps) {

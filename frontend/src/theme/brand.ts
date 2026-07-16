@@ -11,7 +11,7 @@
  * variable set for light + dark from it.
  */
 import type { ColorScale } from './tokens/palette';
-import { amber, emerald, indigo, rose, sky } from './tokens/palette';
+import { amber, cream, emerald, navy, raspberry, rose, teal } from './tokens/palette';
 import type { RadiusScale } from './tokens/radius';
 import type { Density } from './tokens/spacing';
 import type { SpringToken } from './tokens/motion';
@@ -19,15 +19,30 @@ import type { SpringToken } from './tokens/motion';
 export type BrandColors = {
   /** Primary brand ramp — buttons, links, focus, active nav. */
   primary: ColorScale;
-  /** Secondary accent ramp — highlights, secondary CTAs, charts. */
+  /** Accent ramp — highlights, secondary CTAs, loyalty, charts. */
   accent: ColorScale;
+  /**
+   * SECONDARY identity ramp — hero surfaces, gradients, map markers, chart
+   * series (`brandSecondary` role). NOT the neutral `secondary` button surface.
+   */
+  secondary?: ColorScale;
+  /**
+   * Warm/cool NEUTRAL canvas override. When set, backgrounds, surfaces and
+   * borders take the brand's temperature (light end = paper, dark end = the
+   * brand's night canvas) instead of the system's cool gray.
+   */
+  neutral?: ColorScale;
   /** Optional status overrides (else the system defaults are used). */
   success?: ColorScale;
+  warning?: ColorScale;
   danger?: ColorScale;
   info?: ColorScale;
   /** Foreground to place ON the primary color (contrast-critical). */
   onPrimaryLight?: string;
   onPrimaryDark?: string;
+  /** Foreground to place ON the accent color (e.g. dark ink on gold). */
+  onAccentLight?: string;
+  onAccentDark?: string;
 };
 
 export type BrandTypography = {
@@ -57,31 +72,48 @@ export type Brand = {
 
 /* ─────────────────────────── PRESETS ─────────────────────────── */
 
-/** Keventers — warm amber, rounded, comfortable. The default identity. */
+/**
+ * Keventers — the default identity, extracted from the official brand badge
+ * (EST. 1925). Design language:
+ *  - PRIMARY   raspberry/magenta — the milkshake + speed-lines. CTAs, focus, nav.
+ *  - ACCENT    heritage gold — the badge's upper field. Loyalty, ratings, promos.
+ *  - SECONDARY deep navy — the wordmark. Hero panels, gradients, premium anchors.
+ *  - INFO      teal — the badge ring. Live/realtime signals, tracking.
+ *  - NEUTRAL   cream→navy — warm paper in light mode, branded navy-black at night.
+ *  - SHAPE     circular badge + pill bar → soft, friendly radius.
+ *  - MOTION    "lively" — playful spring with a wink of overshoot, never bouncy.
+ * Premium, warm, appetizing; playful without being childish.
+ */
 export const keventers: Brand = {
   id: 'keventers',
   name: 'Keventers',
   appName: 'Keventers',
-  tagline: 'Milkshakes since 1925',
+  tagline: 'Scan. Order. Enjoy. Repeat.',
   logo: {
-    light: '/brand/keventers/logo.svg',
-    dark: '/brand/keventers/logo-dark.svg',
-    mark: '/brand/keventers/mark.svg',
-    favicon: '/brand/favicon.svg',
+    // The official badge (transparent PNG) — works on light AND dark canvases,
+    // so all variants point at the same asset. Swap per-scheme files any time.
+    light: '/brand/keventers/logo.png',
+    dark: '/brand/keventers/logo.png',
+    mark: '/brand/keventers/logo.png',
+    favicon: '/brand/keventers/logo.png',
   },
   colors: {
-    primary: amber,
-    accent: indigo,
+    primary: raspberry,
+    accent: amber,
+    secondary: navy,
+    neutral: cream,
     success: emerald,
     danger: rose,
-    info: sky,
+    info: teal,
     onPrimaryLight: '#FFFFFF',
-    onPrimaryDark: '#1A1206',
+    onPrimaryDark: '#380D1F',
+    onAccentLight: '#43290A',
+    onAccentDark: '#2A1B06',
   },
   typography: { sans: undefined, scale: 1 },
-  radius: 'rounded',
+  radius: 'soft',
   density: 'comfortable',
-  motion: { signature: 'default' },
+  motion: { signature: 'lively' },
 };
 
 /** Proof of rebrandability #1 — Starbucks: deep green, refined, subtle radius. */
@@ -101,7 +133,7 @@ export const starbucks: Brand = {
     mark: '/brand/starbucks/mark.svg',
     favicon: '/brand/starbucks/favicon.svg',
   },
-  colors: { primary: starbucksGreen, accent: amber, onPrimaryLight: '#FFFFFF', onPrimaryDark: '#00190F' },
+  colors: { primary: starbucksGreen, accent: amber, onPrimaryLight: '#FFFFFF', onPrimaryDark: '#00190F', onAccentLight: '#3D2606' },
   typography: { scale: 1 },
   radius: 'subtle',
   density: 'comfortable',
@@ -130,7 +162,7 @@ export const mcdonalds: Brand = {
     mark: '/brand/mcdonalds/mark.svg',
     favicon: '/brand/mcdonalds/favicon.svg',
   },
-  colors: { primary: mcdRed, accent: mcdYellow, onPrimaryLight: '#FFFFFF', onPrimaryDark: '#FFFFFF' },
+  colors: { primary: mcdRed, accent: mcdYellow, onPrimaryLight: '#FFFFFF', onPrimaryDark: '#FFFFFF', onAccentLight: '#442B00' },
   typography: { scale: 1.02 },
   radius: 'pill',
   density: 'spacious',

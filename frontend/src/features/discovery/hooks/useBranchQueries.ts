@@ -2,7 +2,7 @@ import { useCallback } from 'react';
 
 import { qk, queryClient, useInfiniteResource, useQueryResource } from '@/platform/query';
 import { discoveryService } from '../services';
-import type { Branch, BranchDetail, DiscoveryQuery, GeoPoint } from '../types';
+import type { Branch, BranchDetail, DiscoveryQuery, GeoPoint, PromoBanner, StorefrontCategory } from '../types';
 
 const LIMIT = 12;
 
@@ -37,6 +37,24 @@ export function useFeaturedBranches(point: GeoPoint | null) {
   return useQueryResource<Branch[]>(
     qk('discovery', 'featured', point ?? null),
     () => discoveryService.featured({ lat: point?.lat, lng: point?.lng }),
+  );
+}
+
+/** Admin-curated homepage banners (the promo carousel's data source). */
+export function usePromoBanners() {
+  return useQueryResource<PromoBanner[]>(
+    qk('discovery', 'banners', 'customer_home'),
+    () => discoveryService.banners('customer_home'),
+    { staleTime: 120_000 },
+  );
+}
+
+/** Admin-curated storefront categories (the home tiles' data source). */
+export function useStorefrontCategories() {
+  return useQueryResource<StorefrontCategory[]>(
+    qk('discovery', 'categories'),
+    () => discoveryService.categories(),
+    { staleTime: 300_000 },
   );
 }
 

@@ -30,6 +30,10 @@ export type ColorRole =
   | 'secondaryForeground'
   | 'accent'
   | 'accentForeground'
+  /** The brand's SECONDARY identity color (hero surfaces, gradients, markers) —
+   *  distinct from `secondary`, which is the neutral subtle-button surface. */
+  | 'brandSecondary'
+  | 'brandSecondaryForeground'
   | 'muted'
   | 'mutedForeground'
   | 'success'
@@ -39,7 +43,15 @@ export type ColorRole =
   | 'danger'
   | 'dangerForeground'
   | 'info'
-  | 'infoForeground';
+  | 'infoForeground'
+  /** Categorical chart series — derived from the brand by the resolver so every
+   *  chart is on-brand without a single hardcoded hex in chart code. */
+  | 'chart1'
+  | 'chart2'
+  | 'chart3'
+  | 'chart4'
+  | 'chart5'
+  | 'chart6';
 
 export type ColorTokens = Record<ColorRole, string>;
 
@@ -74,6 +86,9 @@ export const lightColors: ColorTokens = {
   accent: indigo[500],
   accentForeground: '#FFFFFF',
 
+  brandSecondary: indigo[700],
+  brandSecondaryForeground: '#FFFFFF',
+
   muted: neutral[100],
   mutedForeground: neutral[500],
 
@@ -85,6 +100,13 @@ export const lightColors: ColorTokens = {
   dangerForeground: '#FFFFFF',
   info: sky[600],
   infoForeground: '#FFFFFF',
+
+  chart1: amber[500],
+  chart2: indigo[500],
+  chart3: indigo[700],
+  chart4: sky[600],
+  chart5: emerald[600],
+  chart6: amberyellow[500],
 };
 
 /**
@@ -118,6 +140,9 @@ export const darkColors: ColorTokens = {
   accent: indigo[400],
   accentForeground: neutral[950],
 
+  brandSecondary: indigo[300],
+  brandSecondaryForeground: neutral[950],
+
   muted: '#1C1C22',
   mutedForeground: neutral[400],
 
@@ -129,6 +154,13 @@ export const darkColors: ColorTokens = {
   dangerForeground: neutral[950],
   info: sky[400],
   infoForeground: neutral[950],
+
+  chart1: amber[400],
+  chart2: indigo[400],
+  chart3: indigo[300],
+  chart4: sky[400],
+  chart5: emerald[400],
+  chart6: amberyellow[400],
 };
 
 export const colorTokens = { light: lightColors, dark: darkColors };

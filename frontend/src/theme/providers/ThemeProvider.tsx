@@ -11,7 +11,11 @@ export type ThemeProviderProps = {
   children: ReactNode;
   /** Initial brand (e.g. resolved from the tenant at bootstrap). */
   brand?: Brand;
-  /** Default mode if the user hasn't chosen one. */
+  /**
+   * Mode for a first-time visitor who hasn't chosen one yet. Defaults to
+   * 'light' (matching index.html's pre-paint script) so the brand's warm canvas
+   * is the first impression rather than whatever the OS happens to be set to.
+   */
   defaultMode?: ThemeMode;
   /** Persist the user's mode preference (default true). */
   persist?: boolean;
@@ -28,7 +32,7 @@ function readStoredMode(fallback: ThemeMode): ThemeMode {
  * the DOM (via the generator), reacts to OS scheme/motion changes, and exposes
  * the theme context. Mount ONCE at the app root, above everything.
  */
-export function ThemeProvider({ children, brand: initialBrand = defaultBrand, defaultMode = 'system', persist = true }: ThemeProviderProps) {
+export function ThemeProvider({ children, brand: initialBrand = defaultBrand, defaultMode = 'light', persist = true }: ThemeProviderProps) {
   const [brand, setBrandState] = useState<Brand>(initialBrand);
   const [mode, setModeState] = useState<ThemeMode>(() => (persist ? readStoredMode(defaultMode) : defaultMode));
   const [scheme, setScheme] = useState<Scheme>('light');

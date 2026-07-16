@@ -47,10 +47,15 @@ export function DiscoveryFilters({
   const hasActive =
     filters.openNow || filters.minRating || filters.radiusKm || filters.services?.length || filters.cuisines?.length || (filters.sort && filters.sort !== 'nearest');
 
+  // Chip rows scroll edge-to-edge on phones (bleed past the page padding) so
+  // chips glide off-screen instead of clipping mid-chip inside the column.
+  const row =
+    '-mx-4 flex snap-x items-center gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mx-0 sm:px-0';
+
   return (
     <div className={cn('flex flex-col gap-2', className)}>
       {/* Primary row: sort */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className={row}>
         {SORTS.map((s) => (
           <FilterChip key={s.key} active={filters.sort === s.key} onClick={() => patch({ sort: s.key })}>
             {s.label}
@@ -69,7 +74,7 @@ export function DiscoveryFilters({
       </div>
 
       {/* Secondary row: service modes + distance */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className={row}>
         {SERVICE_MODES.map((m) => (
           <FilterChip key={m} active={filters.services?.includes(m)} icon={SERVICE_MODE_ICONS[m]} onClick={() => toggleService(m)}>
             {SERVICE_MODE_LABELS[m]}
@@ -85,7 +90,7 @@ export function DiscoveryFilters({
 
       {/* Cuisine facets (backend-provided) */}
       {cuisines && cuisines.length > 0 && (
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className={row}>
           {cuisines.map((c) => (
             <FilterChip key={c} active={filters.cuisines?.includes(c)} icon="utensils" onClick={() => toggleCuisine(c)}>
               {c}

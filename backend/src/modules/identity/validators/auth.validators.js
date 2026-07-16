@@ -7,6 +7,16 @@ export const loginSchema = z.object({
   password: z.string().min(1),
 });
 
+/** Phone is normalized to E.164 by the OTP service — accept what users type. */
+const phoneSchema = z.string().trim().min(8).max(20);
+
+export const otpRequestSchema = z.object({ phone: phoneSchema });
+
+export const otpVerifySchema = z.object({
+  phone: phoneSchema,
+  code: z.string().trim().regex(/^\d{6}$/, 'Enter the 6-digit code'),
+});
+
 export const registerSchema = z.object({
   email: z.string().email().toLowerCase(),
   password: passwordSchema,

@@ -9,11 +9,48 @@ import type { NotificationRecord, OnboardingApplication, Organization, PlatformP
 const tones = { active: 'success', pending: 'warning', suspended: 'danger', disabled: 'neutral', rejected: 'danger' } as const;
 const Search = ({ value, onChange, placeholder = 'Search...' }: { value: string; onChange: (v: string) => void; placeholder?: string }) => <div className="relative"><Icon name="search" className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-foreground-subtle" /><Input className="min-w-64 pl-9" value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} /></div>;
 
+/** Backend analytics money is an integer in MINOR units — format, never compute. */
+const inr = (minor = 0) => `₹${(minor / 100).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
+const pct = (rate: number | null | undefined) => (rate == null ? '—' : `${Math.round(rate * 100)}%`);
+
 export function PlatformDashboardPage() {
   const q = useQueryResource(qk('admin', 'dashboard'), () => adminService.dashboard());
   const d = q.data;
-  const cards = [['Total revenue', formatMoney(d?.revenue)], ['Active restaurants', d?.restaurants ?? 0], ['Active branches', d?.branches ?? 0], ['Active customers', d?.customers ?? 0], ['Active orders', d?.orders ?? 0], ['Payments today', formatMoney(d?.paymentsToday)]];
-  return <ManagementPage title="Platform overview" description="Realtime SaaS operations, growth, and platform health."><div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{cards.map(([label, value]) => <Card key={label as string} padding="lg"><p className="text-sm text-foreground-muted">{label as string}</p><p className="mt-2 text-2xl font-bold">{value}</p></Card>)}</div><div className="grid gap-4 lg:grid-cols-[2fr_1fr]"><Card padding="lg" className="min-h-72"><h2 className="font-semibold">Live revenue</h2><div className="mt-8 flex h-44 items-end gap-2">{[35,48,42,68,55,78,72,91,84,96].map((h, i) => <div key={i} className="flex-1 rounded-t bg-primary/70" style={{ height: `${h}%` }} />)}</div></Card><Card padding="lg"><div className="flex items-center justify-between"><h2 className="font-semibold">Platform health</h2><StatusPill tone={d?.health === 'healthy' ? 'success' : 'warning'}>{d?.health ?? 'checking'}</StatusPill></div><p className="mt-6 text-4xl font-bold text-primary">{d?.growth ?? 0}%</p><p className="text-sm text-foreground-muted">Platform growth</p></Card></div></ManagementPage>;
+  // Cards mirror the backend's grouped projection (sales/orders/customers/payments).
+  const cards: [string, string | number][] = [
+    ['Net revenue', inr(d?.sales.netRevenue)],
+    ['Gross revenue', inr(d?.sales.grossRevenue)],
+    ['Average order value', inr(d?.sales.averageOrderValue)],
+    ['Orders placed', d?.orders.ordersPlaced ?? 0],
+    ['Orders completed', d?.orders.ordersCompleted ?? 0],
+    ['New customers', d?.customers.newCustomers ?? 0],
+  ];
+  const paymentsCaptured = d?.payments.captured ?? 0;
+  return (
+    <ManagementPage title="Platform overview" description="Realtime SaaS operations, growth, and platform health.">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        {cards.map(([label, value]) => (
+          <Card key={label} padding="lg"><p className="text-sm text-foreground-muted">{label}</p><p className="mt-2 text-2xl font-bold">{value}</p></Card>
+        ))}
+      </div>
+      <div className="grid gap-4 lg:grid-cols-[2fr_1fr]">
+        <Card padding="lg">
+          <h2 className="font-semibold">Payments</h2>
+          <div className="mt-4 grid gap-3 sm:grid-cols-3">
+            <div><p className="text-sm text-foreground-muted">Captured</p><p className="mt-1 text-xl font-bold">{paymentsCaptured}</p><p className="text-xs text-foreground-subtle">{inr(d?.payments.capturedAmount)}</p></div>
+            <div><p className="text-sm text-foreground-muted">Failed</p><p className="mt-1 text-xl font-bold">{d?.payments.failed ?? 0}</p><p className="text-xs text-foreground-subtle">{pct(d?.payments.failureRate)} of attempts</p></div>
+            <div><p className="text-sm text-foreground-muted">Refunded</p><p className="mt-1 text-xl font-bold">{d?.payments.refunded ?? 0}</p><p className="text-xs text-foreground-subtle">{inr(d?.payments.refundedAmount)}</p></div>
+          </div>
+          <p className="mt-6 text-sm text-foreground-muted">Success rate <strong className="text-foreground">{pct(d?.payments.successRate)}</strong></p>
+        </Card>
+        <Card padding="lg">
+          <div className="flex items-center justify-between"><h2 className="font-semibold">Notifications</h2><StatusPill tone={(d?.notificationHealth.failed ?? 0) === 0 ? 'success' : 'warning'}>{(d?.notificationHealth.failed ?? 0) === 0 ? 'healthy' : 'degraded'}</StatusPill></div>
+          <p className="mt-6 text-4xl font-bold text-primary">{pct(d?.notificationHealth.deliveryRate)}</p>
+          <p className="text-sm text-foreground-muted">Delivery rate · {d?.notificationHealth.sent ?? 0} sent</p>
+        </Card>
+      </div>
+    </ManagementPage>
+  );
 }
 
 export function OrganizationsPage() {

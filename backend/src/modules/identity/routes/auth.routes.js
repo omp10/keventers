@@ -7,6 +7,8 @@ import { AuthController } from '../controllers/auth.controller.js';
 import { authRateLimit } from '../middleware/auth-rate-limit.middleware.js';
 import {
   loginSchema,
+  otpRequestSchema,
+  otpVerifySchema,
   refreshSchema,
   registerSchema,
 } from '../validators/auth.validators.js';
@@ -72,6 +74,32 @@ router.post('/register', authRateLimit('register'), validate({ body: registerSch
  *       403: { description: Account disabled or locked }
  */
 router.post('/login', authRateLimit('login'), validate({ body: loginSchema }), AuthController.login);
+
+/**
+ * Passwordless phone sign-in — the entry point for the Kitchen and Staff apps.
+ * `verify` creates the account on first use and reports `isNewUser` so the
+ * client can route a first-timer into onboarding instead of the app.
+ *
+ * @openapi
+ * /api/v1/identity/auth/otp/request:
+ *   post:
+ *     tags: [Identity/Auth]
+ *     summary: Send a one-time login code to a phone number
+ *     description: Rate limited per IP + phone. Outside production the response echoes `devCode` so the flow is testable without an SMS provider.
+ *     responses:
+ *       200: { description: Code sent (expiry + resend cooldown) }
+ *       429: { description: Cooldown active or too many codes requested }
+ * /api/v1/identity/auth/otp/verify:
+ *   post:
+ *     tags: [Identity/Auth]
+ *     summary: Verify a phone code and sign in (creates the account if new)
+ *     responses:
+ *       200: { description: user + tokens + isNewUser }
+ *       401: { description: Code invalid or expired }
+ *       429: { description: Too many incorrect attempts }
+ */
+router.post('/otp/request', authRateLimit('otp-request'), validate({ body: otpRequestSchema }), AuthController.requestOtp);
+router.post('/otp/verify', authRateLimit('otp-verify'), validate({ body: otpVerifySchema }), AuthController.verifyOtp);
 
 /**
  * @openapi
