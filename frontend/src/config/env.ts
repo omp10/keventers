@@ -20,6 +20,16 @@ function detectEnvironment(): AppEnvironment {
 const environment = detectEnvironment();
 
 const flag = (v: string | undefined, fallback = false) => (v == null ? fallback : v === 'true' || v === '1');
+const apiBaseUrl = (import.meta.env.VITE_API_URL as string) ?? '/api/v1';
+
+function apiOrigin(baseUrl: string): string {
+  if (typeof location === 'undefined') return '';
+  try {
+    return new URL(baseUrl, location.origin).origin;
+  } catch {
+    return location.origin;
+  }
+}
 
 export const env = {
   environment,
@@ -29,12 +39,14 @@ export const env = {
   isNonProd: environment !== 'production',
 
   api: {
-    baseUrl: (import.meta.env.VITE_API_URL as string) ?? '/api/v1',
+    baseUrl: apiBaseUrl,
     version: (import.meta.env.VITE_API_VERSION as string) ?? 'v1',
     timeoutMs: Number(import.meta.env.VITE_API_TIMEOUT_MS ?? 20000),
   },
   socket: {
-    url: (import.meta.env.VITE_SOCKET_URL as string) ?? '',
+    // The API and Socket.IO server share an origin in production. Deriving this
+    // prevents Vercel from accidentally attempting sockets against its own host.
+    url: (import.meta.env.VITE_SOCKET_URL as string) || apiOrigin(apiBaseUrl),
     path: (import.meta.env.VITE_SOCKET_PATH as string) ?? '/socket.io',
     enabled: flag(import.meta.env.VITE_SOCKET_ENABLED as string, true),
   },

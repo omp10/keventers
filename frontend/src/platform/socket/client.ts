@@ -31,7 +31,10 @@ export class SocketClient {
     this.setState('connecting');
     const socket = io((env.socket.url || undefined) + namespace, {
       path: env.socket.path,
-      transports: ['websocket'],
+      // Prefer WebSocket, but allow polling when a mobile network or proxy blocks
+      // the upgrade. Socket.IO will upgrade automatically when WebSocket recovers.
+      transports: ['websocket', 'polling'],
+      tryAllTransports: true,
       auth: (cb) => cb({ token: this.getToken() }),
       reconnection: true,
       reconnectionAttempts: Infinity,

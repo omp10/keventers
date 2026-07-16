@@ -53,7 +53,7 @@ export function ProductCard({ product, variant = 'list', onAdd, onOpen, onPrefet
   );
 
   const addButton = (
-    <div className="flex flex-col items-center">
+    <div className="relative z-10 flex flex-col items-center">
       <Button
         size="sm"
         variant={unavailable ? 'ghost' : 'secondary'}
@@ -62,7 +62,7 @@ export function ProductCard({ product, variant = 'list', onAdd, onOpen, onPrefet
           e.stopPropagation();
           onAdd(product);
         }}
-        className="min-w-20 font-semibold uppercase"
+        className="h-11 min-w-24 touch-manipulation font-semibold uppercase"
       >
         {unavailable ? 'Unavailable' : inCartQty ? 'Add +' : 'Add'}
       </Button>
@@ -106,7 +106,7 @@ export function ProductCard({ product, variant = 'list', onAdd, onOpen, onPrefet
           <button type="button" onClick={open} className="w-full focus-visible:outline-none">
             {image}
           </button>
-          <div className="-mt-4">{addButton}</div>
+          <div className="relative z-10 -mt-4">{addButton}</div>
         </div>
       </article>
     );

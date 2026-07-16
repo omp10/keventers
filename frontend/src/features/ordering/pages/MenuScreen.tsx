@@ -129,7 +129,12 @@ export function MenuScreen() {
 
       <MenuBoard menu={data} onAdd={onAdd} onOpen={onOpen} onPrefetch={prefetch} cartQuantities={cartQuantities} />
 
-      <FloatingCart itemCount={cart.itemCount} total={cart.pricing?.total} onClick={() => navigate('/cart')} />
+      <FloatingCart
+        itemCount={cart.itemCount}
+        total={cart.pricing?.total}
+        onClick={() => navigate('/cart')}
+        className="bottom-[calc(4rem+env(safe-area-inset-bottom))] lg:bottom-0"
+      />
 
       <ProductDetailDrawer
         product={productQ.data}
