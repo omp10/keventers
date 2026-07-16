@@ -24,6 +24,7 @@ export type AppCommand = {
 class CommandRegistry {
   private commands = new Map<string, AppCommand>();
   private listeners = new Set<() => void>();
+  private snapshot: AppCommand[] = [];
 
   register(command: AppCommand): () => void {
     this.commands.set(command.id, command);
@@ -43,13 +44,14 @@ class CommandRegistry {
     this.emit();
   }
   all(): AppCommand[] {
-    return [...this.commands.values()];
+    return this.snapshot;
   }
   subscribe(fn: () => void) {
     this.listeners.add(fn);
     return () => this.listeners.delete(fn);
   }
   private emit() {
+    this.snapshot = [...this.commands.values()];
     this.listeners.forEach((l) => l());
   }
 }

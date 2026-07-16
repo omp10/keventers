@@ -8,6 +8,8 @@ import { registerRestaurantSchema } from '../validators/onboarding.validators.js
 
 const router = Router();
 
+router.get('/onboarding-form', PublicController.getOnboardingForm);
+
 /**
  * @openapi
  * /api/v1/public/register-restaurant:

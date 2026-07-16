@@ -76,6 +76,7 @@ export const adminNav: NavConfig = {
         { key: 'overview', label: 'Overview', icon: 'dashboard', path: '/admin', access: { anyRole: ['super_admin'] } },
         { key: 'organizations', label: 'Organizations', icon: 'store', path: '/admin/organizations', access: { anyRole: ['super_admin'] } },
         { key: 'approvals', label: 'Approvals', icon: 'check', path: '/admin/approvals', access: { anyRole: ['super_admin'] } },
+        { key: 'onboarding-fields', label: 'Onboarding fields', icon: 'settings', path: '/admin/onboarding-fields', access: { anyRole: ['super_admin'] } },
         { key: 'restaurants', label: 'Restaurants', icon: 'utensils', path: '/admin/restaurants', access: { anyRole: ['super_admin'] } },
         { key: 'users', label: 'Users & RBAC', icon: 'users', path: '/admin/users', access: { anyRole: ['super_admin'] } },
       ],

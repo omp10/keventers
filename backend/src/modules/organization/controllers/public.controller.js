@@ -2,9 +2,13 @@ import { asyncHandler } from '#core/http/async-handler.js';
 import { ApiResponse } from '#core/http/api-response.js';
 
 import { onboardingService } from '../services/onboarding.service.js';
+import { onboardingFormConfigService } from '../services/onboarding-form-config.service.js';
 
 /** Public onboarding controller. No auth — assembles the payload + files. */
 export const PublicController = {
+  getOnboardingForm: asyncHandler(async (_req, res) => {
+    ApiResponse.success(res, { data: await onboardingFormConfigService.get({ publicOnly: true }) });
+  }),
   registerRestaurant: asyncHandler(async (req, res) => {
     const b = req.body;
     const payload = {

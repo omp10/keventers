@@ -33,6 +33,7 @@ export type SearchProvider = {
 class SearchRegistry {
   private providers = new Map<string, SearchProvider>();
   private listeners = new Set<() => void>();
+  private snapshot: SearchProvider[] = [];
 
   register(provider: SearchProvider): () => void {
     this.providers.set(provider.id, provider);
@@ -44,13 +45,14 @@ class SearchRegistry {
     this.emit();
   }
   all(): SearchProvider[] {
-    return [...this.providers.values()];
+    return this.snapshot;
   }
   subscribe(fn: () => void) {
     this.listeners.add(fn);
     return () => this.listeners.delete(fn);
   }
   private emit() {
+    this.snapshot = [...this.providers.values()];
     this.listeners.forEach((l) => l());
   }
 }

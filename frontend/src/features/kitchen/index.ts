@@ -7,6 +7,8 @@
  * polling). No business rules on the frontend.
  */
 export { KitchenShell, KitchenBoardRoute, KitchenDashboardRoute, KitchenStationsRoute } from './routes';
+export { KitchenLoginPage } from './KitchenLoginPage';
+export { KitchenOnboardingGate, KitchenOnboardingPage } from './KitchenOnboarding';
 
 export * from './types';
 export * from './hooks';

@@ -2,10 +2,18 @@ import { asyncHandler } from '#core/http/async-handler.js';
 import { ApiResponse } from '#core/http/api-response.js';
 
 import { onboardingService } from '../services/onboarding.service.js';
+import { onboardingFormConfigService } from '../services/onboarding-form-config.service.js';
 
 const actor = (req) => req.principal?.id ?? null;
 
 export const AdminOnboardingController = {
+  getFormConfig: asyncHandler(async (_req, res) => {
+    ApiResponse.success(res, { data: await onboardingFormConfigService.get() });
+  }),
+
+  updateFormConfig: asyncHandler(async (req, res) => {
+    ApiResponse.success(res, { data: await onboardingFormConfigService.update(req.body.fields) });
+  }),
   list: asyncHandler(async (req, res) => {
     const data = await onboardingService.listApplications(req.validatedQuery ?? {});
     ApiResponse.success(res, { data });

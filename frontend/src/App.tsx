@@ -6,10 +6,10 @@ import { discoveryRoutes, DiscoveryMinimalLayout, DiscoveryTabsLayout } from '@/
 import { orderingRoutes, OrderingLayout } from '@/features/ordering';
 import { restaurantRoutes, RestaurantLayout, RestaurantLoginPage } from '@/features/restaurant';
 import { catalogRoutes, CatalogLayout } from '@/features/catalog';
-import { KitchenShell, KitchenBoardRoute, KitchenDashboardRoute, KitchenStationsRoute } from '@/features/kitchen';
+import { KitchenShell, KitchenBoardRoute, KitchenDashboardRoute, KitchenStationsRoute, KitchenLoginPage, KitchenOnboardingGate, KitchenOnboardingPage } from '@/features/kitchen';
 import { InstallPrompt } from '@/pwa';
 import { Showcase } from '@/app/Showcase';
-import { AdminLayout, adminRoutes } from '@/features/admin';
+import { AdminLayout, AdminLoginPage, adminRoutes } from '@/features/admin';
 
 /**
  * App root — the Customer Discovery Platform (Phase F3.1). Routes are derived from
@@ -42,6 +42,9 @@ export function App() {
       </Route>
       {/* Restaurant Operations Dashboard (F4.1) — staff app under /dashboard, auth-gated. */}
       <Route path="/dashboard/login" element={<RestaurantLoginPage />} />
+      <Route path="/kitchen/login" element={<KitchenLoginPage />} />
+      <Route path="/kitchen/onboarding" element={<RequireAuth redirectTo="/kitchen/login"><KitchenOnboardingPage /></RequireAuth>} />
+      <Route path="/admin/login" element={<AdminLoginPage />} />
       <Route
         element={
           <RequireAuth redirectTo="/dashboard/login">
@@ -63,8 +66,8 @@ export function App() {
       <Route
         path="/kitchen"
         element={
-          <RequireAuth redirectTo="/dashboard/login">
-            <KitchenShell />
+          <RequireAuth redirectTo="/kitchen/login">
+            <KitchenOnboardingGate><KitchenShell /></KitchenOnboardingGate>
           </RequireAuth>
         }
       >
@@ -72,7 +75,7 @@ export function App() {
         <Route path="dashboard" element={<KitchenDashboardRoute />} />
         <Route path="stations" element={<KitchenStationsRoute />} />
       </Route>
-      <Route element={<RequireRole roles={['super_admin']} redirectTo="/dashboard/login"><AdminLayout /></RequireRole>}>
+      <Route element={<RequireRole roles={['super_admin']} redirectTo="/admin/login"><AdminLayout /></RequireRole>}>
         {adminRoutes.map((r) => <Route key={r.path} path={r.path} element={r.element} />)}
       </Route>
       {/* The F1 component gallery stays available for design QA. */}

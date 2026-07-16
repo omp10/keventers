@@ -39,7 +39,11 @@ export function RouteGuard({ children, redirectTo = '/login', rule, forbiddenTo 
   if (status === 'loading') return <AuthLoading />;
 
   const passesAuth = isAuthenticated || (allowGuest && isGuest);
-  if (!passesAuth) return <Navigate to={redirectTo} replace state={{ from: location.pathname }} />;
+  if (!passesAuth) {
+    const redirect = `${location.pathname}${location.search}${location.hash}`;
+    const join = redirectTo.includes('?') ? '&' : '?';
+    return <Navigate to={`${redirectTo}${join}redirect=${encodeURIComponent(redirect)}`} replace state={{ from: redirect }} />;
+  }
 
   if (rule && !can(rule)) return <Navigate to={forbiddenTo} replace />;
 

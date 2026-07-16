@@ -1,5 +1,5 @@
 import { api, type Paginated } from '@/platform/api';
-import type { NotificationRecord, OnboardingApplication, Organization, PlatformKpis, PlatformPayment, PlatformUser } from './types';
+import type { NotificationRecord, OnboardingApplication, OnboardingFieldDefinition, OnboardingFormConfig, Organization, PlatformKpis, PlatformPayment, PlatformUser } from './types';
 
 export type AdminFilters = { search?: string; status?: string; type?: string; provider?: string; from?: string; to?: string };
 const page = (filters: AdminFilters, pageNumber: number, limit: number) => ({ ...filters, page: pageNumber, limit });
@@ -14,6 +14,8 @@ export const adminService = {
   application: (id: string) => api.get<OnboardingApplication>(`/admin/onboarding/applications/${id}`),
   approve: (id: string) => api.post(`/admin/onboarding/${id}/approve`, {}),
   reject: (id: string, reason: string) => api.post(`/admin/onboarding/${id}/reject`, { reason }),
+  onboardingForm: (): Promise<OnboardingFormConfig> => api.get('/admin/onboarding/form-config'),
+  updateOnboardingForm: (fields: OnboardingFieldDefinition[]): Promise<OnboardingFormConfig> => api.put('/admin/onboarding/form-config', { fields }),
   users: (filters: AdminFilters, p = 1, limit = 25): Promise<Paginated<PlatformUser>> => api.paginate('/identity/users', { query: { ...page(filters, p, limit), search: filters.search } }),
   userAction: (id: string, action: 'enable' | 'disable') => api.post<PlatformUser>(`/identity/users/${id}/${action}`),
   roles: () => api.paginate<unknown>('/identity/roles', { query: { page: 1, limit: 100 } }),

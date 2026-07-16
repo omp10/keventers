@@ -12,12 +12,16 @@ import {
   listApplicationsQuerySchema,
   rejectApplicationSchema,
   requestInformationSchema,
+  updateOnboardingFormConfigSchema,
 } from '../validators/onboarding.validators.js';
 
 const router = Router();
 
 // Platform Super Admin only.
 router.use(requireAuth, requireRole(ORG_ROLES.SUPER_ADMIN), resolveTenant);
+
+router.get('/form-config', AdminOnboardingController.getFormConfig);
+router.put('/form-config', validate({ body: updateOnboardingFormConfigSchema }), AdminOnboardingController.updateFormConfig);
 
 /**
  * @openapi

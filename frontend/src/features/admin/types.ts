@@ -7,3 +7,10 @@ export type OnboardingApplication = { id: string; businessName: string; ownerNam
 export type PlatformUser = { id: string; name?: string; email: string; type?: string; status: AdminStatus; roles?: string[]; lastLoginAt?: string; createdAt?: string };
 export type PlatformPayment = { id: string; orderId?: string; provider?: string; status: string; amount: Money; createdAt: string };
 export type NotificationRecord = { id: string; title?: string; channel?: string; status: string; recipient?: string; createdAt?: string };
+export type OnboardingFieldType = 'text' | 'email' | 'number' | 'textarea' | 'select' | 'file';
+export type OnboardingFieldDefinition = {
+  key: string; label: string; phase: 'application' | 'setup'; type: OnboardingFieldType;
+  required: boolean; enabled: boolean; helpText: string; placeholder: string;
+  options: string[]; acceptedFileTypes: string[]; maxFileSizeMb: number; multiple: boolean; order?: number;
+};
+export type OnboardingFormConfig = { fields: OnboardingFieldDefinition[]; updatedAt: string | null };

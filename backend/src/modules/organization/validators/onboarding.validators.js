@@ -52,3 +52,26 @@ export const requestInformationSchema = z.object({
   requestedInformation: z.array(z.string().trim().min(1)).min(1),
   message: z.string().trim().max(1000).optional(),
 });
+
+const onboardingFieldSchema = z.object({
+  key: z.string().trim().regex(/^[a-z][a-zA-Z0-9_]*$/).max(80),
+  label: z.string().trim().min(1).max(120),
+  phase: z.enum(['application', 'setup']),
+  type: z.enum(['text', 'email', 'number', 'textarea', 'select', 'file']),
+  required: z.boolean(),
+  enabled: z.boolean(),
+  helpText: z.string().trim().max(300).optional().default(''),
+  placeholder: z.string().trim().max(160).optional().default(''),
+  options: z.array(z.string().trim().min(1).max(100)).max(50).optional().default([]),
+  acceptedFileTypes: z.array(z.string().trim().min(1).max(100)).max(20).optional().default([]),
+  maxFileSizeMb: z.coerce.number().int().min(1).max(25).optional().default(5),
+  multiple: z.boolean().optional().default(false),
+  order: z.number().int().min(0).optional(),
+});
+
+export const updateOnboardingFormConfigSchema = z.object({
+  fields: z.array(onboardingFieldSchema).max(100).refine(
+    (fields) => new Set(fields.map((field) => field.key)).size === fields.length,
+    { message: 'Onboarding field keys must be unique' },
+  ),
+});
