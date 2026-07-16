@@ -158,5 +158,6 @@ export const ORG_ERRORS = Object.freeze({
   ALREADY_PROCESSED: 'Application has already been processed',
   CROSS_TENANT: 'Access to this organization is not allowed',
   NO_TENANT: 'No organization membership found for this account',
+  NO_RESTAURANT: 'No restaurant is set up for this account yet',
   ONBOARDING_INCOMPLETE: 'Onboarding is not yet complete',
 });

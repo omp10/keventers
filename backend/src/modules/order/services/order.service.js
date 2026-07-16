@@ -307,6 +307,31 @@ export class OrderService extends BaseService {
     return toOrderDTO(await this.#transition(id, ORDER_STATUS.COMPLETED, { actorId, actorType: ACTOR_TYPE.RESTAURANT }), { forStaff: true });
   }
 
+  /**
+   * Advance an order from a KITCHEN transition (event-driven, no tenant check —
+   * the kitchen already authorized the actor and owns the same order).
+   *
+   * The kitchen and the order each run their own state machine; this is the
+   * return leg of the seam whose outbound half is `order.confirmed → enqueue`.
+   * Without it the kitchen can cook and serve while the customer's order sits at
+   * "confirmed" forever.
+   *
+   * Illegal/duplicate transitions are swallowed: the kitchen is allowed to move
+   * in ways the order doesn't mirror (recall/refire), and staff may have already
+   * advanced the order by hand.
+   */
+  async syncFromKitchen(orderId, toStatus) {
+    const order = await this.orders.findById(orderId);
+    if (!order || order.status === toStatus) return null;
+    try {
+      return await this.#transition(orderId, toStatus, { actorType: ACTOR_TYPE.SYSTEM, reason: 'kitchen' });
+    } catch {
+      // Not a legal move for the order right now — the kitchen stays authoritative
+      // for its own board, and staff can still drive the order explicitly.
+      return null;
+    }
+  }
+
   /** Generic staff status change (PATCH). Legality enforced by the state machine. */
   async updateStatus(tenant, id, toStatus, { reason = '' } = {}, actorId = null) {
     await loadForStaff(this.orders, tenant, id);

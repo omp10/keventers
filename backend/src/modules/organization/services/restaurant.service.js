@@ -22,12 +22,27 @@ export class RestaurantService extends BaseService {
 
   /** Resolve a restaurant the tenant may access (defaults to primary). */
   async resolveForTenant(tenant, restaurantId) {
-    const targetId = restaurantId ?? tenant?.primaryRestaurantId;
-    if (!targetId) throw new ForbiddenError(ORG_ERRORS.NO_TENANT);
+    const targetId = restaurantId ?? tenant?.primaryRestaurantId ?? (await this.#defaultRestaurantId(tenant));
+    if (!targetId) throw new ForbiddenError(ORG_ERRORS.NO_RESTAURANT);
     const restaurant = await this.restaurants.findById(targetId);
     if (!restaurant) throw new NotFoundError(ORG_ERRORS.RESTAURANT_NOT_FOUND);
     assertRestaurantAccess(tenant, restaurant);
     return restaurant;
+  }
+
+  /**
+   * An ORGANIZATION-scoped membership (an owner / org admin) carries no
+   * restaurantId, so the tenant context has no `primaryRestaurantId` — yet such
+   * a member reaches every restaurant in their org (see `assertRestaurantAccess`).
+   * Without this fallback every restaurant-scoped read fails for owners unless
+   * they pass an explicit id. Defaults to the org's oldest restaurant, which for
+   * the single-restaurant case (the norm) is simply "theirs".
+   */
+  async #defaultRestaurantId(tenant) {
+    const organizationId = tenant?.primaryOrganizationId;
+    if (!organizationId) return null;
+    const [restaurant] = await this.restaurants.find({ organizationId }, { limit: 1, sort: 'createdAt' });
+    return restaurant ? entityId(restaurant) : null;
   }
 
   async getProfile(tenant, restaurantId) {
