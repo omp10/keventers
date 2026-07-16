@@ -4,6 +4,7 @@ import { config } from '#config';
 import { logger } from '#core/logging/logger.js';
 
 import { createSocketAuth } from './socket-auth.js';
+import { isGuestRoomAllowed } from './room-guards.js';
 import { namespaceRegistry } from './namespace-registry.js';
 import { attachRedisAdapter } from './redis-adapter.js';
 import { RoomManager, Rooms } from './room.manager.js';
@@ -45,6 +46,25 @@ export class SocketServer {
         const principal = socket.data.principal;
         // Auto-join the per-user room so modules can target a user's devices.
         if (principal?.id) socket.join(Rooms.user(principal.id));
+
+        // Room membership protocol — the client half already speaks this
+        // (`socketClient.joinRoom` emits `room:join` and re-joins on reconnect);
+        // this is the server half. Authorization: staff principals may join any
+        // tenant room (their token already gates the data behind those events);
+        // guest principals are confined to rooms of THEIR session's order scope
+        // via the registered guard. Room names are validated to `type:id`.
+        const canJoin = async (room) => {
+          if (typeof room !== 'string' || !/^[a-z-]+:[\w-]+$/i.test(room) || room.length > 128) return false;
+          if (principal?.guest) return isGuestRoomAllowed(room, principal.guest);
+          return Boolean(principal?.authenticated);
+        };
+        socket.on('room:join', async ({ room } = {}) => {
+          if (await canJoin(room)) socket.join(room);
+          else logger().debug({ room, socketId: socket.id }, 'Socket room join rejected');
+        });
+        socket.on('room:leave', ({ room } = {}) => {
+          if (typeof room === 'string') socket.leave(room);
+        });
 
         logger().debug({ nsp: path, socketId: socket.id, userId: principal?.id }, 'Socket connected');
         socketEventRegistry.applyTo(path, socket, nsp);

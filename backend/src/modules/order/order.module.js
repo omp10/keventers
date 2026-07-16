@@ -2,6 +2,7 @@ import { container as sharedContainer } from '#core/di/container.js';
 import { eventBus as sharedEventBus } from '#core/eventbus/index.js';
 import { logger } from '#core/logging/logger.js';
 import { permissionRegistry } from '#platform/auth/index.js';
+import { registerSocketRoomGuard } from '#platform/socket/index.js';
 
 import { ORDER_PERMISSIONS } from './constants/order.constants.js';
 import { ORDER_TOKENS } from './constants/order.tokens.js';
@@ -52,6 +53,13 @@ export const orderModule = {
     this.registerDependencies(container);
     this.bootstrapRbac();
     this.registerEventHandlers(eventBus);
+    // Guests may join `order:<id>` socket rooms ONLY for orders belonging to
+    // their own table session — this module owns orders, so it owns that rule.
+    registerSocketRoomGuard('order', async (orderId, guest) => {
+      if (!guest?.sessionId || !/^[0-9a-fA-F]{24}$/.test(String(orderId))) return false;
+      const order = await orderRepository.findById(orderId);
+      return Boolean(order && order.sessionId === guest.sessionId);
+    });
     logger().info({ module: this.name }, 'Order module registered');
     return this;
   },

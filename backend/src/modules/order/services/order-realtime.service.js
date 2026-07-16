@@ -25,9 +25,16 @@ export class OrderRealtimeService extends BaseService {
         branchId: String(order.branchId),
         sessionId: order.sessionId,
       };
-      rooms.emitToRoom(Rooms.entity('order', payload.orderId), eventName, payload);
-      rooms.emitToRoom(Rooms.entity('session', order.sessionId), eventName, payload);
-      rooms.emitToRoom(Rooms.entity('branch', String(order.branchId)), eventName, payload);
+      // Each transition goes out twice: the SPECIFIC event (order:preparing …)
+      // for consumers that switch on names, and the GENERIC
+      // `order:status_changed` that trackers subscribe to once. Without the
+      // generic one, the customer tracking page (which listens for
+      // status_changed) would never hear anything — the two lists must overlap.
+      for (const name of [eventName, 'order:status_changed']) {
+        rooms.emitToRoom(Rooms.entity('order', payload.orderId), name, payload);
+        rooms.emitToRoom(Rooms.entity('session', order.sessionId), name, payload);
+        rooms.emitToRoom(Rooms.entity('branch', String(order.branchId)), name, payload);
+      }
     } catch (err) {
       this.logger.warn({ err }, 'Realtime order emit failed (continuing)');
     }

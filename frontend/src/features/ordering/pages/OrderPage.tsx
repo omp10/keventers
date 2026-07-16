@@ -2,7 +2,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
 import { Button, Spinner, ErrorState } from '@/design-system';
 import { PriceBreakdown } from '../cart';
-import { OrderStatusTimeline, OrderSuccess } from '../order';
+import { OrderStatusTimeline, OrderSuccess, OrderTrackingHero } from '../order';
 import { PaymentPanel } from '../payment';
 import { useOrder } from '../hooks';
 import type { PaymentProvider } from '../types';
@@ -42,15 +42,20 @@ export function OrderPage() {
 
   return (
     <div className="mx-auto max-w-lg space-y-6 py-4">
-      <OrderSuccess order={order} />
-
       {showPayment ? (
-        <PaymentPanel order={order} provider={provider} onBack={() => navigate('/checkout')} />
+        <>
+          {/* Payment first — the animated tracker takes over once it's settled. */}
+          <OrderSuccess order={order} />
+          <PaymentPanel order={order} provider={provider} onBack={() => navigate('/checkout')} />
+        </>
       ) : (
-        <section>
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-foreground-subtle">Order status</h2>
-          <OrderStatusTimeline order={order} />
-        </section>
+        <>
+          <OrderTrackingHero order={order} />
+          <section>
+            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-foreground-subtle">Order status</h2>
+            <OrderStatusTimeline order={order} />
+          </section>
+        </>
       )}
 
       {/* Items + totals */}

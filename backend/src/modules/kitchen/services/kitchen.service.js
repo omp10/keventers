@@ -344,7 +344,7 @@ export class KitchenService extends BaseService {
       sort: query.sort ?? '-priorityWeight timers.queuedAt',
       pagination: { page: query.page, limit: query.limit },
     });
-    return this.paginated(page, (e) => toKitchenBoardRowDTO(e));
+    return this.paginated(page, (e) => toKitchenEntryDTO(e));
   }
 
   async getEntry(tenant, orderId) {

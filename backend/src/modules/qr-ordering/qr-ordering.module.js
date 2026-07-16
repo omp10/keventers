@@ -2,6 +2,7 @@ import { container as sharedContainer } from '#core/di/container.js';
 import { eventBus as sharedEventBus } from '#core/eventbus/index.js';
 import { logger } from '#core/logging/logger.js';
 import { permissionRegistry } from '#platform/auth/index.js';
+import { setSocketGuestVerifier } from '#platform/socket/index.js';
 
 import { QR_PERMISSIONS } from './constants/qr.constants.js';
 import { QR_TOKENS } from './constants/qr.tokens.js';
@@ -73,6 +74,10 @@ export const qrOrderingModule = {
     this.registerDependencies(container);
     this.bootstrapRbac();
     this.registerEventHandlers(eventBus);
+    // Let guest ordering tokens authenticate SOCKETS too (live order tracking).
+    // The platform stays generic — this module owns guest identity, so it
+    // supplies the verifier; toGuest() normalizes the decoded payload.
+    setSocketGuestVerifier((token) => guestTokenService.toGuest(guestTokenService.verify(token)));
     logger().info({ module: this.name }, 'QR Ordering module registered');
     return this;
   },

@@ -31,7 +31,10 @@ export function OrderStatusTimeline({ order }: { order: Order }) {
     );
   }
 
-  const currentIndex = Math.max(0, ORDER_PROGRESSION.indexOf(order.status));
+  // `completed` (and any post-progression status) renders as all-steps-done
+  // rather than falling back to step 0.
+  const rawIndex = ORDER_PROGRESSION.indexOf(order.status);
+  const currentIndex = rawIndex === -1 ? ORDER_PROGRESSION.length : rawIndex;
   const timeAt = (s: OrderStatus) => order.timeline.find((t) => t.status === s)?.at;
 
   return (

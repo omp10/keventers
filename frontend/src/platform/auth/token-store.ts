@@ -11,33 +11,61 @@ let accessToken: string | null = null;
 let refreshToken: string | null = safeGet(REFRESH_KEY);
 let guestToken: string | null = safeGet(GUEST_KEY);
 
+/**
+ * Change listeners. Consumers that hold live connections keyed to the token
+ * (the socket client re-authenticating, for one) subscribe here — React auth
+ * STATE isn't enough, because guest ordering sessions write tokens directly to
+ * this store without going through the AuthProvider.
+ */
+const listeners = new Set<() => void>();
+function notify() {
+  for (const l of listeners) {
+    try {
+      l();
+    } catch {
+      /* one bad listener must not break the rest */
+    }
+  }
+}
+
 export const tokenStore = {
   getAccess: () => accessToken,
   getRefresh: () => refreshToken,
   getGuest: () => guestToken,
 
+  /** Subscribe to any token change. Returns an unsubscribe function. */
+  subscribe(listener: () => void): () => void {
+    listeners.add(listener);
+    return () => listeners.delete(listener);
+  },
+
   setSession(access: string, refresh: string) {
     accessToken = access;
     refreshToken = refresh;
     safeSet(REFRESH_KEY, refresh);
+    notify();
   },
   setAccess(access: string) {
     accessToken = access;
+    notify();
   },
   setGuest(token: string | null) {
     guestToken = token;
     if (token) safeSet(GUEST_KEY, token);
     else safeRemove(GUEST_KEY);
+    notify();
   },
   clearSession() {
     accessToken = null;
     refreshToken = null;
     safeRemove(REFRESH_KEY);
+    notify();
   },
   clearAll() {
     this.clearSession();
     guestToken = null;
     safeRemove(GUEST_KEY);
+    notify();
   },
   hasSession: () => Boolean(refreshToken),
 };

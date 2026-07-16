@@ -1,10 +1,14 @@
 import { api } from '@/platform/api';
+import { mapCart } from './mappers';
 import type { Cart, CartItemSelection } from '../types';
 
 /**
  * CART SERVICE — the guest-owned, server-authoritative cart. The frontend sends
  * only SELECTIONS (product + variant + modifiers + qty); the backend Pricing
  * Engine returns every price. We NEVER send or compute prices.
+ *
+ * Responses pass through `mapCart` (see mappers.ts) so components consume the
+ * flat view types, not the backend's wire shape.
  *
  * Enterprise semantics preserved from the backend:
  *  · Idempotency-Key on adds (no double-add on retry)
@@ -23,39 +27,43 @@ const versioned = (version?: number) => (version != null ? { 'If-Match': String(
 
 class CartService {
   /** The current cart (creates an empty one server-side if none). */
-  get() {
-    return api.get<Cart>('/cart');
+  async get(): Promise<Cart> {
+    return mapCart(await api.get('/cart'));
   }
 
-  addItem(selection: CartItemSelection, idempotencyKey = newIdempotencyKey()) {
-    return api.post<Cart>('/cart/items', selection, {
-      headers: { 'Idempotency-Key': idempotencyKey },
-      offlineQueueable: true,
-    });
+  async addItem(selection: CartItemSelection, idempotencyKey = newIdempotencyKey()): Promise<Cart> {
+    return mapCart(
+      await api.post('/cart/items', selection, {
+        headers: { 'Idempotency-Key': idempotencyKey },
+        offlineQueueable: true,
+      }),
+    );
   }
 
-  updateItem(itemId: string, patch: Partial<CartItemSelection>, version?: number) {
-    return api.patch<Cart>(`/cart/items/${itemId}`, { ...patch, version }, { headers: versioned(version), offlineQueueable: true });
+  async updateItem(itemId: string, patch: Partial<CartItemSelection>, version?: number): Promise<Cart> {
+    return mapCart(
+      await api.patch(`/cart/items/${itemId}`, { ...patch, version }, { headers: versioned(version), offlineQueueable: true }),
+    );
   }
 
   setQuantity(itemId: string, quantity: number, version?: number) {
     return this.updateItem(itemId, { quantity }, version);
   }
 
-  removeItem(itemId: string, version?: number) {
-    return api.delete<Cart>(`/cart/items/${itemId}`, { headers: versioned(version), offlineQueueable: true });
+  async removeItem(itemId: string, version?: number): Promise<Cart> {
+    return mapCart(await api.delete(`/cart/items/${itemId}`, { headers: versioned(version), offlineQueueable: true }));
   }
 
-  applyCoupon(code: string, version?: number) {
-    return api.post<Cart>('/cart/apply-coupon', { code, version }, { headers: versioned(version) });
+  async applyCoupon(code: string, version?: number): Promise<Cart> {
+    return mapCart(await api.post('/cart/apply-coupon', { code, version }, { headers: versioned(version) }));
   }
 
-  removeCoupon(version?: number) {
-    return api.delete<Cart>('/cart/remove-coupon', { headers: versioned(version) });
+  async removeCoupon(version?: number): Promise<Cart> {
+    return mapCart(await api.delete('/cart/remove-coupon', { headers: versioned(version) }));
   }
 
-  setNotes(notes: string, version?: number) {
-    return api.patch<Cart>('/cart', { notes, version }, { headers: versioned(version) });
+  async setNotes(notes: string, version?: number): Promise<Cart> {
+    return mapCart(await api.patch('/cart', { notes, version }, { headers: versioned(version) }));
   }
 
   clear() {
@@ -63,8 +71,8 @@ class CartService {
   }
 
   /** Lock the cart for checkout (freezes pricing). Order module converts it. */
-  lockForCheckout() {
-    return api.post<Cart>('/cart/checkout', {});
+  async lockForCheckout(): Promise<Cart> {
+    return mapCart(await api.post('/cart/checkout', {}));
   }
 }
 

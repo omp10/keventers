@@ -33,7 +33,7 @@ export function filterEntries(entries: KitchenEntry[], f: KitchenFilterState): K
     if (f.status && e.status !== f.status) return false;
     if (f.channel && e.channel !== f.channel) return false;
     if (q) {
-      const hay = [e.orderNumber, e.tableLabel, e.station?.name, e.chef?.name, ...e.items.map((i) => i.name)]
+      const hay = [e.orderNumber, e.tableLabel, e.station?.name, e.chef?.name, ...(e.items ?? []).map((i) => i.name)]
         .filter(Boolean)
         .join(' ')
         .toLowerCase();

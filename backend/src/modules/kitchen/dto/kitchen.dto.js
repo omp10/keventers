@@ -46,6 +46,15 @@ export function toSlaTargetDTO(t) {
 
 export function toKitchenEntryDTO(e, now = new Date()) {
   if (!e) return null;
+  const timers = computeTimers(e.timers ?? {}, now);
+  const targetSeconds = e.sla?.targetSeconds ?? null;
+  const elapsedSeconds = timers.totalKitchenTimeSeconds ?? 0;
+  const slaState =
+    e.sla?.breached || (targetSeconds && elapsedSeconds >= targetSeconds)
+      ? 'breached'
+      : targetSeconds && elapsedSeconds >= targetSeconds * 0.8
+        ? 'approaching'
+        : 'on_time';
   return {
     id: id(e),
     organizationId: oid(e.organizationId),
@@ -54,16 +63,20 @@ export function toKitchenEntryDTO(e, now = new Date()) {
     orderId: oid(e.orderId),
     orderNumber: e.orderNumber,
     tableId: oid(e.tableId),
+    tableLabel: e.metadata?.tableLabel ?? (e.tableId ? `Table ${oid(e.tableId)}` : ''),
     orderType: e.orderType ?? 'dine_in',
+    channel: e.orderType ?? 'dine_in',
     status: e.status,
     priority: e.priority,
     items: (e.items ?? []).map((it) => ({
+      id: it.orderItemId ?? oid(it.productId),
       productId: oid(it.productId),
       name: it.name,
       quantity: it.quantity,
       variantName: it.variantName ?? '',
       modifiers: it.modifiers ?? [],
       specialInstructions: it.specialInstructions ?? '',
+      instructions: it.specialInstructions ?? '',
       stationIds: oids(it.stationIds),
     })),
     stationIds: oids(e.stationIds),
@@ -73,9 +86,12 @@ export function toKitchenEntryDTO(e, now = new Date()) {
       assignedBy: oid(e.assignment?.assignedBy),
       assignedAt: e.assignment?.assignedAt ?? null,
     },
-    timers: computeTimers(e.timers ?? {}, now),
+    timers: { ...timers, startedAt: timers.preparingAt },
     sla: {
-      targetSeconds: e.sla?.targetSeconds ?? null,
+      state: slaState,
+      targetSeconds,
+      elapsedSeconds,
+      remainingSeconds: targetSeconds == null ? null : targetSeconds - elapsedSeconds,
       breached: Boolean(e.sla?.breached),
       breachedAt: e.sla?.breachedAt ?? null,
     },
@@ -83,6 +99,7 @@ export function toKitchenEntryDTO(e, now = new Date()) {
     refireCount: e.refireCount ?? 0,
     timeline: (e.timeline ?? []).map((t) => ({
       at: t.at,
+      status: t.newStatus,
       actorId: oid(t.actorId),
       actorType: t.actorType,
       previousStatus: t.previousStatus ?? null,
@@ -90,6 +107,7 @@ export function toKitchenEntryDTO(e, now = new Date()) {
       reason: t.reason ?? '',
     })),
     version: e.version ?? 0,
+    paymentStatus: e.metadata?.paymentStatus ?? 'pending',
     createdAt: e.createdAt ?? null,
     updatedAt: e.updatedAt ?? null,
   };

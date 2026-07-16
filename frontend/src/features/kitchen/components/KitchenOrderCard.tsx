@@ -32,8 +32,9 @@ export function KitchenOrderCard({
   className?: string;
 }) {
   const actions = useKitchenActions();
-  const pay = PAYMENT_STATUS_PRESENTATION[entry.paymentStatus];
-  const allergens = [...new Set(entry.items.flatMap((i) => i.allergens ?? []))];
+  const items = Array.isArray(entry.items) ? entry.items : [];
+  const pay = PAYMENT_STATUS_PRESENTATION[entry.paymentStatus] ?? PAYMENT_STATUS_PRESENTATION.pending;
+  const allergens = [...new Set(items.flatMap((i) => i.allergens ?? []))];
 
   return (
     <article
@@ -78,7 +79,7 @@ export function KitchenOrderCard({
 
       {/* Items */}
       <ul className="space-y-2">
-        {entry.items.map((it) => {
+        {items.map((it) => {
           const opts = [it.variantName, ...(it.modifiers ?? []), ...(it.addons ?? [])].filter(Boolean);
           return (
             <li key={it.id} className="flex gap-3">

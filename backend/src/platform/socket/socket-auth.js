@@ -1,9 +1,25 @@
 import { tokenVerificationService } from '#platform/auth/index.js';
 
 /**
- * Socket.IO authentication middleware. Verifies the access token from the
- * handshake and attaches the principal to `socket.data`. Reuses the exact same
- * token verification as the HTTP layer — one identity model everywhere.
+ * Optional GUEST verifier, injected by whichever module owns guest identity
+ * (qr-ordering registers its guest-token service at bootstrap). The platform
+ * stays generic: it knows "a secondary verifier may exist", never whose.
+ *
+ * @type {((token: string) => { sessionId: string, guestId?: string, branchId?: string, restaurantId?: string, organizationId?: string }) | null}
+ */
+let guestVerifier = null;
+
+/** Register the guest-token verifier (called once at module bootstrap). */
+export function setSocketGuestVerifier(verify) {
+  guestVerifier = verify;
+}
+
+/**
+ * Socket.IO authentication middleware. Verifies the handshake token and
+ * attaches the principal to `socket.data`. Accepts EITHER a staff/customer
+ * access token (same verification as HTTP) OR — when a guest verifier has been
+ * registered — a guest ordering token, so customers can receive live order
+ * updates without an account.
  *
  * Token is read from `socket.handshake.auth.token` (preferred) or the
  * Authorization header.
@@ -35,6 +51,22 @@ export function createSocketAuth({ required = true } = {}) {
       };
       return next();
     } catch {
+      // Not a staff/customer access token — try the guest verifier, if any.
+      if (guestVerifier) {
+        try {
+          const guest = guestVerifier(token);
+          socket.data.principal = {
+            id: null,
+            roles: [],
+            permissions: [],
+            authenticated: true,
+            guest, // { sessionId, guestId, branchId, restaurantId, organizationId }
+          };
+          return next();
+        } catch {
+          /* fall through to rejection */
+        }
+      }
       return next(new Error('UNAUTHORIZED'));
     }
   };

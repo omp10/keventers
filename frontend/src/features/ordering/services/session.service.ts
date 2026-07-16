@@ -1,6 +1,7 @@
 import { api } from '@/platform/api';
 import { tokenStore } from '@/platform/auth';
 import { setActiveBranchSlug } from '@/features/discovery';
+import { rememberBranchName } from './mappers';
 
 /**
  * SESSION SERVICE — the guest ORDERING identity. The backend session is the
@@ -30,6 +31,7 @@ class SessionService {
     const session = await api.post<OrderingSession>(`${BASE}/open`, { branchSlug, ...opts }, { skipAuth: true });
     tokenStore.setGuest(session.token);
     setActiveBranchSlug(session.branchSlug);
+    rememberBranchName(session.branchName);
     return session;
   }
 

@@ -24,10 +24,14 @@ export function SocketProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     socketClient.setTokenProvider(() => tokenStore.getAccess() ?? tokenStore.getGuest());
-    const unsub = socketClient.onState(setState);
+    const unsubState = socketClient.onState(setState);
+    // Re-auth on ANY token change — React auth status alone misses guest
+    // ordering sessions, which write their token straight into the store.
+    const unsubTokens = tokenStore.subscribe(() => socketClient.reauthenticate());
     socketClient.connect();
     return () => {
-      unsub();
+      unsubState();
+      unsubTokens();
     };
   }, []);
 

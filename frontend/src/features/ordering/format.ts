@@ -40,8 +40,12 @@ export const ORDER_STATUS_PRESENTATION: Record<OrderStatus, { label: string; ton
   refunded: { label: 'Refunded', tone: 'neutral' },
 };
 
-/** The customer-facing progression used by the tracking timeline. */
-export const ORDER_PROGRESSION: OrderStatus[] = ['placed', 'confirmed', 'preparing', 'ready', 'completed'];
+/**
+ * The customer-facing progression used by the tracking timeline. Dine-in ends
+ * at SERVED (that's the moment the customer experiences); `completed` is the
+ * back-office close-out and renders as "everything done" rather than a step.
+ */
+export const ORDER_PROGRESSION: OrderStatus[] = ['placed', 'confirmed', 'preparing', 'ready', 'served'];
 
 export const PAYMENT_STATUS_PRESENTATION: Record<PaymentStatus, { label: string; tone: 'info' | 'primary' | 'success' | 'warning' | 'danger' | 'neutral' }> = {
   pending: { label: 'Payment pending', tone: 'warning' },

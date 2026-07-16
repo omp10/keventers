@@ -16,6 +16,43 @@ import type {
  */
 const BASE = '/restaurant/kitchen';
 
+type KitchenWireEntry = Partial<KitchenEntry> & {
+  queuedAt?: string | null;
+  elapsedSeconds?: number;
+  slaTargetSeconds?: number | null;
+  slaBreached?: boolean;
+};
+
+function normalizeEntry(raw: KitchenWireEntry): KitchenEntry {
+  const timers = raw.timers ?? {
+    queuedAt: raw.queuedAt ?? new Date().toISOString(),
+  };
+  const elapsed = raw.sla?.elapsedSeconds ?? raw.elapsedSeconds ?? 0;
+  const target = raw.sla?.targetSeconds ?? raw.slaTargetSeconds ?? undefined;
+  const state = raw.sla?.state ?? (
+    raw.slaBreached || (target != null && elapsed >= target)
+      ? 'breached'
+      : target != null && elapsed >= target * 0.8
+        ? 'approaching'
+        : 'on_time'
+  );
+
+  return {
+    ...raw,
+    id: raw.id ?? raw.orderId ?? '',
+    orderId: raw.orderId ?? raw.id ?? '',
+    orderNumber: raw.orderNumber ?? 'Pending',
+    status: raw.status ?? 'pending',
+    priority: raw.priority ?? 'normal',
+    items: Array.isArray(raw.items) ? raw.items : [],
+    paymentStatus: raw.paymentStatus ?? 'pending',
+    timers,
+    sla: { ...raw.sla, state, targetSeconds: target, elapsedSeconds: elapsed },
+    timeline: Array.isArray(raw.timeline) ? raw.timeline : [],
+    createdAt: raw.createdAt ?? timers.queuedAt,
+  };
+}
+
 /** Map UI verbs → backend transition path segments. */
 const ACTION_PATH: Record<KitchenAction, string> = {
   assign: 'assign',
@@ -43,14 +80,14 @@ function toParams(f?: KitchenFilterState) {
 class KitchenService {
   /** The live queue (bounded — no pagination; realtime-driven). */
   async queue(filters?: KitchenFilterState) {
-    const page = await api.paginate<KitchenEntry>(`${BASE}/queue`, {
+    const page = await api.paginate<KitchenWireEntry>(`${BASE}/queue`, {
       query: { ...toParams(filters), page: 1, limit: 100 },
     });
-    return page.items;
+    return page.items.map(normalizeEntry);
   }
 
   get(orderId: string) {
-    return api.get<KitchenEntry>(`${BASE}/orders/${orderId}`);
+    return api.get<KitchenWireEntry>(`${BASE}/orders/${orderId}`).then(normalizeEntry);
   }
 
   async stations() {
@@ -70,7 +107,9 @@ class KitchenService {
 
   /** Advance/adjust an order through the backend kitchen state machine. `:id` = order id. */
   transition(orderId: string, action: KitchenAction, payload?: Record<string, unknown>) {
-    return api.post<KitchenEntry>(`${BASE}/orders/${orderId}/${ACTION_PATH[action]}`, payload);
+    return api
+      .post<KitchenWireEntry>(`${BASE}/orders/${orderId}/${ACTION_PATH[action]}`, payload)
+      .then(normalizeEntry);
   }
 
   setStationStatus(stationId: string, status: string) {
