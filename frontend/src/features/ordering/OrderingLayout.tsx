@@ -25,7 +25,7 @@ export function OrderingLayout() {
   const showCustomerTabs = isMenu || tabs.some((t) => t.href === pathname);
 
   return (
-    <div className={cn('min-h-dvh bg-background', showCustomerTabs && 'pb-[calc(4.5rem+max(env(safe-area-inset-bottom),0.625rem))] lg:pb-0')}>
+    <div className={cn('min-h-dvh bg-background', showCustomerTabs && 'pb-[calc(4.5rem+max(env(safe-area-inset-bottom),1.25rem))] lg:pb-0')}>
       <ConnectionStatus />
       <main className="mx-auto w-full max-w-2xl px-4 py-5">
         <Suspense
@@ -44,7 +44,7 @@ export function OrderingLayout() {
           className={cn('fixed inset-x-0 bottom-0 z-[100] flex items-stretch border-t border-border lg:hidden', glass())}
           // max(): see CustomerLayout — Android 15 edge-to-edge reports a 0
           // inset while drawing under the gesture bar.
-          style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 0.625rem)' }}
+          style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 1.25rem)' }}
           aria-label="Primary"
         >
           {tabs.map((tab) => {

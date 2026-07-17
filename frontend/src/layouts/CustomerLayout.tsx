@@ -34,7 +34,7 @@ export function CustomerLayout({ tabs, header, headerActions, renderLink = defau
   return (
     // The bottom padding reserves room for the FIXED tab bar so the last row of
     // content can scroll clear of it.
-    <div className={cn('relative flex min-h-dvh flex-col bg-background', hasTabs && 'pb-[calc(4.5rem+max(env(safe-area-inset-bottom),0.625rem))] lg:pb-0', className)}>
+    <div className={cn('relative flex min-h-dvh flex-col bg-background', hasTabs && 'pb-[calc(4.5rem+max(env(safe-area-inset-bottom),1.25rem))] lg:pb-0', className)}>
       {/* Ambient desktop backdrop. `overflow-hidden` belongs HERE (clipping the
           blurred blooms so they can't widen the page), not on the shell. */}
       <div aria-hidden className="pointer-events-none fixed inset-0 hidden overflow-hidden lg:block">
@@ -88,7 +88,7 @@ export function CustomerLayout({ tabs, header, headerActions, renderLink = defau
           // max(): Android 15 edge-to-edge draws the page under the system
           // gesture bar while Chrome reports the inset as 0 — env() alone left
           // the bottom of the tabs behind the gesture strip ("cut off").
-          style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 0.625rem)' }}
+          style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 1.25rem)' }}
           aria-label="Primary"
         >
           {tabs.map((tab) => {
