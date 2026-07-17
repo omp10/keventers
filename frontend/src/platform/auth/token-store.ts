@@ -31,7 +31,21 @@ function notify() {
 export const tokenStore = {
   getAccess: () => accessToken,
   getRefresh: () => refreshToken,
-  getGuest: () => guestToken,
+  /**
+   * Self-expiring: a guest table session is a 2h JWT with NO refresh, but it
+   * persisted in localStorage forever — every visit after those 2h attached a
+   * dead token to every request, so the whole app answered with "Invalid or
+   * expired guest session token". Check `exp` at the one point everyone reads
+   * from; an expired token simply ceases to exist.
+   */
+  getGuest: () => {
+    if (guestToken && secondsUntilExpiry(guestToken) <= 0) {
+      guestToken = null;
+      safeRemove(GUEST_KEY);
+      notify();
+    }
+    return guestToken;
+  },
 
   /** Subscribe to any token change. Returns an unsubscribe function. */
   subscribe(listener: () => void): () => void {
