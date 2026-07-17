@@ -120,7 +120,12 @@ export function MenuScreen() {
         restaurantName={branch.data?.restaurant.name}
         coverImageUrl={branch.data?.coverImageUrl}
         openNow={branch.data?.hours.openNow}
-        onBack={() => navigate(`/r/${branchSlug}`)}
+        // Back POPS, it does not push /r/:slug. Pushing it was the loop: the
+        // branch page's own Back is navigate(-1), which landed straight back on
+        // the menu, which pushed the branch page again, forever. `idx` is the
+        // router's own history position — 0 means we opened here cold (a scanned
+        // QR), so there is nothing to pop back to and we go to the branch page.
+        onBack={() => ((window.history.state?.idx ?? 0) > 0 ? navigate(-1) : navigate(`/r/${branchSlug}`, { replace: true }))}
         onOpenSearch={() => setSearchOpen(true)}
       />
 

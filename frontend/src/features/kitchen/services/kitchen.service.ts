@@ -105,10 +105,12 @@ class KitchenService {
     return api.get<KitchenMetrics>(`${BASE}/metrics`);
   }
 
-  /** Advance/adjust an order through the backend kitchen state machine. `:id` = order id. */
+  /** Advance/adjust an order through the backend kitchen state machine. `:id` = order id.
+   * PATCH, not POST — the backend registers every transition as PATCH, so POST
+   * here 404'd with ROUTE_NOT_FOUND on assign/start/ready/etc. */
   transition(orderId: string, action: KitchenAction, payload?: Record<string, unknown>) {
     return api
-      .post<KitchenWireEntry>(`${BASE}/orders/${orderId}/${ACTION_PATH[action]}`, payload)
+      .patch<KitchenWireEntry>(`${BASE}/orders/${orderId}/${ACTION_PATH[action]}`, payload)
       .then(normalizeEntry);
   }
 

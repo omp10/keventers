@@ -92,6 +92,12 @@ export type AuthAdapter = {
   refresh: () => Promise<boolean>;
   /** Called on an unrecoverable 401 (refresh failed) — auth platform logs out. */
   onUnauthorized: () => void;
+  /**
+   * Called when a request authorised by the GUEST table session 401s. Guest
+   * sessions have no refresh — the token is dead and must be dropped, or it
+   * poisons every later request.
+   */
+  onGuestExpired: () => void;
 };
 
 /** Interceptors let cross-cutting concerns hook the pipeline without coupling. */

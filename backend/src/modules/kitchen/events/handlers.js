@@ -30,6 +30,11 @@ export function registerKitchenEventHandlers(eventBus, deps = {}) {
   };
 
   // Both the domain event and the dedicated seam trigger enqueue (idempotent).
+  // PLACED too: a dine-in QR order paying at the counter never gets an online
+  // payment confirmation, so waiting for `order.confirmed` left it invisible to
+  // the KDS until staff manually confirmed it in the dashboard. The entry starts
+  // PENDING either way, and `order.cancelled` already cleans up.
+  eventBus.subscribe(ORDER_EVENTS.ORDER_PLACED, enqueue, { name: 'kitchen.on-order-placed' });
   eventBus.subscribe(ORDER_EVENTS.ORDER_CONFIRMED, enqueue, { name: 'kitchen.on-order-confirmed' });
   eventBus.subscribe(ORDER_EVENTS.KITCHEN_QUEUE_REQUESTED, enqueue, { name: 'kitchen.on-queue-requested' });
 

@@ -22,7 +22,10 @@ export function useUpload() {
     try {
       for (let i = 0; i < list.length; i++) {
         const img = await mediaService.upload(list[i], (pct) => setProgress(Math.round(((i + pct / 100) / list.length) * 100)));
-        out.push(img);
+        // The upload response has no `id` (only url/key/publicId), but the
+        // gallery keys and REMOVES by id — with it undefined, React keys
+        // collided and removing one image removed every uploaded one.
+        out.push({ ...img, id: img.id ?? img.publicId ?? img.url });
       }
     } catch (e) {
       toast.error('Upload failed', { description: (e as Error).message });

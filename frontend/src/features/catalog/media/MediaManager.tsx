@@ -22,7 +22,10 @@ export function MediaManager({ images, onChange }: { images: MediaImage[]; onCha
     if (added.length) onChange([...images, ...added]);
   };
 
-  const remove = (id: string) => onChange(images.filter((i) => i.id !== id));
+  // By INDEX, not id — images loaded from the API have no `id` (the backend
+  // image schema doesn't store one), so an id filter matched every id-less
+  // image and one click wiped the whole gallery.
+  const remove = (idx: number) => onChange(images.filter((_, i) => i !== idx));
 
   const reorder = (from: number, to: number) => {
     if (to < 0 || to >= images.length || from === to) return;
@@ -37,7 +40,7 @@ export function MediaManager({ images, onChange }: { images: MediaImage[]; onCha
       <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
         {images.map((img, i) => (
           <div
-            key={img.id}
+            key={img.id ?? img.url}
             draggable
             onDragStart={() => (dragFrom.current = i)}
             onDragOver={(e) => {
@@ -57,7 +60,7 @@ export function MediaManager({ images, onChange }: { images: MediaImage[]; onCha
             <button
               type="button"
               aria-label="Remove image"
-              onClick={() => remove(img.id)}
+              onClick={() => remove(i)}
               className="absolute right-1.5 top-1.5 grid h-6 w-6 place-items-center rounded-full bg-black/50 text-white opacity-0 transition group-hover:opacity-100 focus-visible:opacity-100"
             >
               <Icon name="close" className="h-3.5 w-3.5" />

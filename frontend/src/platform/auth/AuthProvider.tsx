@@ -122,6 +122,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setStatus((s) => (s === 'authenticated' ? s : token ? 'guest' : 'unauthenticated'));
   }, []);
 
+  /**
+   * The guest table session died (expired, or the staff closed the table).
+   *
+   * Drop the token FIRST — leaving it in storage is what made "Invalid or
+   * expired guest session token" follow the customer around forever — then send
+   * them to the entry screen, which is the only place a new session can be
+   * started (by scanning the table QR again). Signing in would NOT fix this:
+   * the cart is scoped to the table session, not the account, so /login would
+   * hand them an account and still no session.
+   *
+   * A hard navigation rather than useNavigate: this provider is also mounted
+   * with `withRouter={false}`, where router hooks would throw — and a dead
+   * session means every cached cart/order query is garbage anyway, so a clean
+   * reload is the honest reset.
+   */
+  const expireGuest = useCallback(() => {
+    if (!tokenStore.getGuest()) return; // already handled by a concurrent 401
+    tokenStore.setGuest(null);
+    setStatus(tokenStore.hasSession() ? 'authenticated' : 'unauthenticated');
+    if (window.location.pathname !== '/') window.location.assign('/');
+  }, []);
+
   /* Wire the API client adapter ONCE (decoupled — API never imports auth). */
   useEffect(() => {
     api.setAuthAdapter({
@@ -129,8 +151,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       getGuestToken: () => tokenStore.getGuest(),
       refresh: performRefresh,
       onUnauthorized: () => { void logout(); },
+      onGuestExpired: expireGuest,
     });
-  }, [performRefresh, logout]);
+  }, [performRefresh, logout, expireGuest]);
 
   /* Session recovery on mount. */
   useEffect(() => {

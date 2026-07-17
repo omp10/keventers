@@ -34,14 +34,16 @@ export function useKitchenRealtime() {
     }, 250);
   }, []);
 
-  useSocketEvent<KitchenEventPayload>('kitchen:order_created', (p) => {
+  // Event names ARE the backend's SOCKET_EVENTS values (kitchen.constants.js /
+  // order.constants.js). This hook used to listen for 'kitchen:order_created',
+  // 'order:created' and 'order:status_changed' — none of which the backend has
+  // ever emitted, so the new-order chime never once fired.
+  const onNew = (p: KitchenEventPayload) => {
     playKitchenSound(p.priority === 'rush' || p.priority === 'vip' ? 'priority' : 'new');
     scheduleRefresh();
-  });
-  useSocketEvent<KitchenEventPayload>('order:created', (p) => {
-    playKitchenSound(p.priority === 'rush' || p.priority === 'vip' ? 'priority' : 'new');
-    scheduleRefresh();
-  });
+  };
+  useSocketEvent<KitchenEventPayload>('kitchen:order_queued', onNew);
+  useSocketEvent<KitchenEventPayload>('order:placed', onNew);
   useSocketEvent<KitchenEventPayload>('kitchen:order_ready', () => {
     playKitchenSound('ready');
     scheduleRefresh();
@@ -55,8 +57,10 @@ export function useKitchenRealtime() {
     scheduleRefresh();
   });
   useSocketEvent<KitchenEventPayload>('kitchen:queue_updated', () => scheduleRefresh());
-  useSocketEvent<KitchenEventPayload>('kitchen:order_updated', () => scheduleRefresh());
-  useSocketEvent<KitchenEventPayload>('order:status_changed', () => scheduleRefresh());
+  useSocketEvent<KitchenEventPayload>('kitchen:order_assigned', () => scheduleRefresh());
+  useSocketEvent<KitchenEventPayload>('kitchen:order_preparing', () => scheduleRefresh());
+  useSocketEvent<KitchenEventPayload>('kitchen:order_served', () => scheduleRefresh());
+  useSocketEvent<KitchenEventPayload>('kitchen:order_recalled', () => scheduleRefresh());
 
   useEffect(() => () => { if (flush.current) clearTimeout(flush.current); }, []);
 }

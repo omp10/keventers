@@ -17,6 +17,7 @@ const noopAuth: AuthAdapter = {
   getGuestToken: () => null,
   refresh: async () => false,
   onUnauthorized: () => {},
+  onGuestExpired: () => {},
 };
 
 /**
@@ -99,10 +100,18 @@ export class ApiClient {
       try {
         const res = await this.execute(path, config);
 
-        if (res.status === 401 && !config.skipAuth && !didRefresh) {
-          didRefresh = true;
-          if (await this.refreshOnce()) continue; // retry once with a fresh token
-          this.auth.onUnauthorized();
+        if (res.status === 401 && !config.skipAuth) {
+          // A dead GUEST session is terminal — refresh only renews ACCESS tokens,
+          // so calling it here never helped, and nothing cleared the stale guest
+          // token afterwards. It stayed in localStorage and rode along on every
+          // subsequent request, which is why "expired guest session" reappeared
+          // on every single call until storage was wiped by hand.
+          if (this.credentialFor(config).kind === 'guest') this.auth.onGuestExpired();
+          else if (!didRefresh) {
+            didRefresh = true;
+            if (await this.refreshOnce()) continue; // retry once with a fresh token
+            this.auth.onUnauthorized();
+          }
         }
 
         if (!res.ok) {
@@ -166,17 +175,31 @@ export class ApiClient {
     return `${base}${path.startsWith('/') ? path : `/${path}`}${qs}`;
   }
 
+  /**
+   * Which credential this request rides on. The 401 handler needs the KIND, not
+   * just the string: an access token can be refreshed, a guest table session
+   * cannot — there is no guest refresh endpoint, so retrying one is pure waste
+   * and the only recovery is starting a new session.
+   */
+  private credentialFor(config: RequestConfig): { token: string | null; kind: 'access' | 'guest' | null } {
+    if (config.skipAuth) return { token: null, kind: null };
+    const access = this.auth.getAccessToken();
+    const guest = this.auth.getGuestToken();
+    // 'guest' = session-scoped endpoints (cart/orders): the table session
+    // stays the credential even after the customer signs into an account.
+    if (config.auth === 'guest') {
+      if (guest) return { token: guest, kind: 'guest' };
+      return access ? { token: access, kind: 'access' } : { token: null, kind: null };
+    }
+    if (access) return { token: access, kind: 'access' };
+    return guest ? { token: guest, kind: 'guest' } : { token: null, kind: null };
+  }
+
   private buildHeaders(config: RequestConfig): Record<string, string> {
     const headers: Record<string, string> = { accept: 'application/json', ...config.headers };
     if (!(config.body instanceof FormData) && config.body != null) headers['content-type'] = 'application/json';
-    if (!config.skipAuth) {
-      const access = this.auth.getAccessToken();
-      const guest = this.auth.getGuestToken();
-      // 'guest' = session-scoped endpoints (cart/orders): the table session
-      // stays the credential even after the customer signs into an account.
-      const token = config.auth === 'guest' ? (guest ?? access) : (access ?? guest);
-      if (token) headers.authorization = `Bearer ${token}`;
-    }
+    const { token } = this.credentialFor(config);
+    if (token) headers.authorization = `Bearer ${token}`;
     return headers;
   }
 

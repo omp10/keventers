@@ -191,7 +191,12 @@ export function ProductEditor({ productId, isNew, onClose }: ProductEditorProps)
       return null;
     }
     try {
-      const saved = isNew ? await m.create(draft) : await m.update(productId!, draft);
+      // Keep the cover in sync with the gallery: the customer menu prefers
+      // heroImageUrl/thumbnailUrl over images[0], so leaving them stale after a
+      // gallery edit showed the OLD photo (or none) to customers.
+      const cover = draft.images[0]?.url ?? null;
+      const body = { ...draft, heroImageUrl: cover, thumbnailUrl: cover };
+      const saved = isNew ? await m.create(body) : await m.update(productId!, body);
       return saved ?? null;
     } catch {
       return null;

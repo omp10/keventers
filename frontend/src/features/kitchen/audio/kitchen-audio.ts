@@ -60,6 +60,9 @@ export function playKitchenSound(kind: KitchenSoundKind): void {
   if (!current.enabled) return;
   const ac = audioCtx();
   if (!ac) return;
+  // Chrome's autoplay policy suspends an AudioContext created before the first
+  // user gesture; without this resume the tones are scheduled but never heard.
+  if (ac.state === 'suspended') void ac.resume();
   const now = ac.currentTime;
   for (const [freq, start, dur] of TONES[kind]) {
     const osc = ac.createOscillator();
