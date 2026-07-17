@@ -173,6 +173,23 @@ export function ProductEditor({ productId, isNew, onClose }: ProductEditorProps)
 
   // ---- Save / publish ----
   const save = async (): Promise<CatalogProduct | null> => {
+    // A product MUST be filed under a category — the API requires `categoryId`
+    // and 422s without it. Catch it here so the answer is a sentence rather
+    // than a raw validation error, and so a brand-new restaurant with no
+    // categories yet is told what to do instead of what went wrong.
+    if (!draft.categoryId) {
+      toast.error(
+        mains.length === 0 ? 'Create a category first' : 'Choose a category',
+        {
+          description:
+            mains.length === 0
+              ? 'Every item lives under a category. Add one in Categories, then come back.'
+              : 'Every item lives under a category — pick the one this belongs in.',
+        },
+      );
+      setTab('General');
+      return null;
+    }
     try {
       const saved = isNew ? await m.create(draft) : await m.update(productId!, draft);
       return saved ?? null;
@@ -275,18 +292,40 @@ export function ProductEditor({ productId, isNew, onClose }: ProductEditorProps)
                   />
                 </Section>
                 <Section label="Category">
-                  <select
-                    value={mainId ?? ''}
-                    onChange={(e) => selectMain(e.target.value || undefined)}
-                    className="h-10 w-full rounded-lg border border-border bg-surface px-3 text-sm text-foreground outline-none focus:border-border-strong"
-                  >
-                    <option value="">Uncategorised</option>
-                    {mains.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </select>
+                  {/*
+                    No "Uncategorised" option: `categoryId` is REQUIRED by the
+                    API, so offering it promised something the save could never
+                    honour — you'd pick it and get a raw 422 back. It's a
+                    placeholder now, and with no categories at all the field
+                    says so rather than presenting an empty dropdown.
+                  */}
+                  {mains.length === 0 ? (
+                    <div className="rounded-lg border border-warning/40 bg-warning-soft px-3 py-2.5">
+                      <p className="text-sm text-foreground">
+                        No categories yet — every item has to live under one.
+                      </p>
+                      <p className="mt-1 text-xs text-foreground-muted">
+                        Create one in Catalog → Categories, then come back and it'll appear here.
+                      </p>
+                    </div>
+                  ) : (
+                    <select
+                      value={mainId ?? ''}
+                      onChange={(e) => selectMain(e.target.value || undefined)}
+                      aria-invalid={!draft.categoryId || undefined}
+                      className={cn(
+                        'h-10 w-full rounded-lg border bg-surface px-3 text-sm text-foreground outline-none focus:border-border-strong',
+                        draft.categoryId ? 'border-border' : 'border-danger',
+                      )}
+                    >
+                      <option value="">Choose a category…</option>
+                      {mains.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name}
+                        </option>
+                      ))}
+                    </select>
+                  )}
                 </Section>
                 {/* Only asked for when the chosen category actually has subcategories. */}
                 {subs.length > 0 && (

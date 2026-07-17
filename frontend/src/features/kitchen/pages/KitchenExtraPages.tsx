@@ -164,8 +164,11 @@ export function KitchenMenuPage() {
           }
           action={
             search ? undefined : (
-              <Button leftIcon="add" onClick={() => navigate('/dashboard/catalog/products')}>
-                Add your first item
+              // Categories FIRST: a product requires a categoryId, so sending a
+              // brand-new restaurant straight to the product editor lands them
+              // on a form they can't submit.
+              <Button leftIcon="add" onClick={() => navigate('/dashboard/catalog/categories')}>
+                Set up your menu
               </Button>
             )
           }
