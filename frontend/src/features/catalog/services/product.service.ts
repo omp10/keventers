@@ -99,9 +99,9 @@ class ProductService {
         case 'unarchive':
           return this.update(id, { status: 'active' });
         case 'available':
-          return this.setAvailability(id, { status: 'available' } as Availability);
+          return this.setAvailability(id, { status: 'available' });
         case 'unavailable':
-          return this.setAvailability(id, { status: 'out_of_stock' } as Availability);
+          return this.setAvailability(id, { status: 'out_of_stock' });
         case 'delete':
           return this.remove(id);
       }

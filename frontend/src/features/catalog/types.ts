@@ -8,10 +8,19 @@ import type { Money, VegClass } from '@/features/ordering';
  */
 export type { Money, VegClass } from '@/features/ordering';
 
-/** Lifecycle state — owned by the backend; the frontend only reflects it. */
-export type CatalogStatus = 'draft' | 'published' | 'scheduled' | 'archived';
+/**
+ * Lifecycle state — owned by the backend; the frontend only reflects it.
+ *
+ * These are the API's OWN values (`PRODUCT_STATUS`). They used to read
+ * 'published' | 'scheduled', which the API has never sent or accepted: it
+ * returns 'active'/'inactive', and its enum rejects anything else. So the badge
+ * looked up a value that never arrives, and publishing was a 422 waiting to
+ * happen. The vocabulary has to match the wire, not a nicer-sounding invention.
+ */
+export type CatalogStatus = 'draft' | 'active' | 'inactive' | 'archived';
 
-export type AvailabilityState = 'available' | 'unavailable' | 'scheduled';
+/** The API's `AVAILABILITY_STATUS` — it distinguishes WHY something is off. */
+export type AvailabilityState = 'available' | 'out_of_stock' | 'temporarily_disabled';
 
 export type Schedule = {
   startAt?: string | null;
@@ -22,10 +31,14 @@ export type Schedule = {
   to?: string;
 };
 
-export type BranchAvailabilityOverride = { branchId: string; branchName?: string; state: AvailabilityState };
+export type BranchAvailabilityOverride = { branchId: string; branchName?: string; status: AvailabilityState };
 
+/** Mirrors the API's availability sub-document. The key is `status`, not `state`. */
 export type Availability = {
-  state: AvailabilityState;
+  status: AvailabilityState;
+  /** Why it's off — the API stores a reason alongside the status. */
+  unavailableReason?: string;
+  scheduled?: boolean;
   schedule?: Schedule | null;
   branchOverrides?: BranchAvailabilityOverride[];
 };

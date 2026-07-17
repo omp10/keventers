@@ -52,7 +52,7 @@ function blankDraft(): CatalogProduct {
     name: '',
     price: { ...ZERO },
     images: [],
-    availability: { state: 'available' },
+    availability: { status: 'available' },
     status: 'draft',
     variants: [],
     modifierGroups: [],
@@ -234,7 +234,7 @@ export function ProductEditor({ productId, isNew, onClose }: ProductEditorProps)
     discountedPrice: draft.discountedPrice,
     veg: draft.veg,
     popular: draft.popular,
-    available: draft.availability.state === 'available',
+    available: draft.availability?.status === 'available',
     customizable: (draft.variants?.length || draft.modifierGroups?.length) ? true : false,
   };
 
@@ -574,7 +574,10 @@ export function ProductEditor({ productId, isNew, onClose }: ProductEditorProps)
                 <ScheduleField
                   value={draft.availability.schedule}
                   onChange={(schedule) =>
-                    patch({ availability: { ...draft.availability, state: 'scheduled', schedule } })
+                    // `scheduled` is a FLAG on the API, not an availability
+                    // status — the status stays whatever it is (available /
+                    // out of stock) and the schedule decides when it applies.
+                    patch({ availability: { ...draft.availability, scheduled: true, schedule } })
                   }
                 />
               </TabsContent>

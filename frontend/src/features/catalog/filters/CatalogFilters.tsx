@@ -4,15 +4,18 @@ import { modals } from '@/platform/overlays';
 import type { AvailabilityState, CatalogStatus, Category, ProductFilters, VegClass } from '../types';
 import { savedViews, useSavedViews } from './saved-views';
 
+// Keys ARE the API's enum values — they go straight into the ?status= query, so
+// filtering on 'published'/'scheduled' could never match anything it returns.
 const STATUSES: { key: CatalogStatus; label: string }[] = [
-  { key: 'published', label: 'Published' },
+  { key: 'active', label: 'Live' },
   { key: 'draft', label: 'Draft' },
-  { key: 'scheduled', label: 'Scheduled' },
+  { key: 'inactive', label: 'Hidden' },
   { key: 'archived', label: 'Archived' },
 ];
 const AVAIL: { key: AvailabilityState; label: string }[] = [
   { key: 'available', label: 'Available' },
-  { key: 'unavailable', label: 'Unavailable' },
+  { key: 'out_of_stock', label: 'Out of stock' },
+  { key: 'temporarily_disabled', label: 'Paused' },
 ];
 const VEG: { key: VegClass; label: string }[] = [
   { key: 'veg', label: 'Veg' },

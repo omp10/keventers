@@ -3,16 +3,25 @@ import { cn } from '@/lib/cn';
 import type { Availability, AvailabilityState } from '../types';
 import { ScheduleField } from './ScheduleField';
 
+// The API's own three states. It distinguishes WHY an item is off — sold out vs
+// deliberately paused — which is exactly what a kitchen needs to tell apart, so
+// don't collapse them back into one "unavailable".
 const STATES: { key: AvailabilityState; label: string; tone: string }[] = [
   { key: 'available', label: 'Available', tone: 'data-[on=true]:bg-success data-[on=true]:text-success-foreground' },
-  { key: 'unavailable', label: 'Unavailable', tone: 'data-[on=true]:bg-danger data-[on=true]:text-danger-foreground' },
-  { key: 'scheduled', label: 'Scheduled', tone: 'data-[on=true]:bg-info data-[on=true]:text-info-foreground' },
+  { key: 'out_of_stock', label: 'Out of stock', tone: 'data-[on=true]:bg-danger data-[on=true]:text-danger-foreground' },
+  { key: 'temporarily_disabled', label: 'Paused', tone: 'data-[on=true]:bg-warning data-[on=true]:text-warning-foreground' },
 ];
 
+const OVERRIDE_TONE: Record<AvailabilityState, 'success' | 'danger' | 'warning'> = {
+  available: 'success',
+  out_of_stock: 'danger',
+  temporarily_disabled: 'warning',
+};
+
 /**
- * AvailabilityControl — edits an item's availability (available / unavailable /
- * scheduled) and its schedule. Branch overrides are shown read-only (managed per
- * branch). The backend resolves EFFECTIVE availability; the UI only expresses intent.
+ * AvailabilityControl — edits an item's availability and its schedule. Branch
+ * overrides are shown read-only (managed per branch). The backend resolves
+ * EFFECTIVE availability; the UI only expresses intent.
  */
 export function AvailabilityControl({ value, onChange }: { value: Availability; onChange: (a: Availability) => void }) {
   return (
@@ -22,8 +31,8 @@ export function AvailabilityControl({ value, onChange }: { value: Availability; 
           <button
             key={s.key}
             type="button"
-            data-on={value.state === s.key}
-            onClick={() => onChange({ ...value, state: s.key })}
+            data-on={value.status === s.key}
+            onClick={() => onChange({ ...value, status: s.key })}
             className={cn('rounded-md px-3 py-1.5 text-sm font-medium text-foreground-muted transition', s.tone)}
           >
             {s.label}
@@ -31,7 +40,7 @@ export function AvailabilityControl({ value, onChange }: { value: Availability; 
         ))}
       </div>
 
-      {value.state === 'scheduled' && (
+      {value.scheduled && (
         <div className="rounded-xl border border-border p-3">
           <ScheduleField value={value.schedule} onChange={(schedule) => onChange({ ...value, schedule })} />
         </div>
@@ -44,8 +53,8 @@ export function AvailabilityControl({ value, onChange }: { value: Availability; 
           </p>
           <div className="flex flex-wrap gap-2">
             {value.branchOverrides.map((o) => (
-              <Badge key={o.branchId} tone={o.state === 'available' ? 'success' : o.state === 'unavailable' ? 'danger' : 'info'} variant="soft">
-                {o.branchName ?? o.branchId}: {o.state}
+              <Badge key={o.branchId} tone={OVERRIDE_TONE[o.status] ?? 'info'} variant="soft">
+                {o.branchName ?? o.branchId}: {o.status.replace(/_/g, ' ')}
               </Badge>
             ))}
           </div>

@@ -22,7 +22,7 @@ export function catalogProductToOrdering(p: CatalogProduct): Product {
     prepTimeMinutes: p.prepTimeMinutes,
     veg: p.veg,
     popular: p.popular,
-    available: p.availability.state === 'available',
+    available: p.availability?.status === 'available',
     customizable: Boolean(p.variants?.length || p.modifierGroups?.length),
     variants: (p.variants ?? []).map((v, i) => ({
       id: v.id,

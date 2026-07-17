@@ -30,25 +30,23 @@ export function useProductMutations() {
 
   const create = useMutation<CatalogProduct, Partial<CatalogProduct>>((d) => productService.create(d), 'Product created');
   const update = useMutation<CatalogProduct, { id: string; patch: Partial<CatalogProduct> }>(({ id, patch }) => productService.update(id, patch), 'Saved');
-  const duplicate = useMutation<CatalogProduct, string>((id) => productService.duplicate(id), 'Duplicated');
   const archive = useMutation<CatalogProduct, string>((id) => productService.archive(id), 'Archived');
   const publish = useMutation<CatalogProduct, string>((id) => productService.publish(id), 'Published');
   const unpublish = useMutation<CatalogProduct, string>((id) => productService.unpublish(id), 'Unpublished');
   const availability = useMutation<CatalogProduct, { id: string; availability: Availability }>(({ id, availability }) => productService.setAvailability(id, availability), 'Availability updated');
-  const bulk = useMutationResource<{ ok: true; affected: number }, { action: BulkAction; ids: string[]; params?: Record<string, unknown> }>(
-    ({ action, ids, params }) => productService.bulk(action, ids, params),
+  const bulk = useMutationResource<{ affected: number }, { action: BulkAction; ids: string[] }>(
+    ({ action, ids }) => productService.bulk(action, ids),
     { onSuccess: (r) => { invalidateCatalog(); ok(`${r.affected} updated`); }, onError: fail },
   );
 
   return {
     create: (d: Partial<CatalogProduct>) => create.mutateAsync(d),
     update: (id: string, patch: Partial<CatalogProduct>) => update.mutateAsync({ id, patch }),
-    duplicate: (id: string) => duplicate.mutateAsync(id),
     archive: (id: string) => archive.mutateAsync(id),
     publish: (id: string) => publish.mutateAsync(id),
     unpublish: (id: string) => unpublish.mutateAsync(id),
     setAvailability: (id: string, a: Availability) => availability.mutateAsync({ id, availability: a }),
-    bulk: (action: BulkAction, ids: string[], params?: Record<string, unknown>) => bulk.mutateAsync({ action, ids, params }),
+    bulk: (action: BulkAction, ids: string[]) => bulk.mutateAsync({ action, ids }),
     saving: create.isPending || update.isPending,
     bulkPending: bulk.isPending,
   };
