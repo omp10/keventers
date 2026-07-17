@@ -64,6 +64,31 @@ type WireOrder = WireCart & {
   createdAt?: string;
 };
 
+/**
+ * The wire uses the ORDER module's payment vocabulary (`awaiting_payment`,
+ * `not_required`, …); the UI's PaymentStatus + presentation maps don't. Passing
+ * an unmapped value through crashed every `PAYMENT_STATUS_PRESENTATION[status]`
+ * lookup ("cannot read properties of undefined"). Normalize here — unknown
+ * values degrade to 'pending' instead of taking the page down.
+ */
+function mapPaymentStatus(raw?: string | null): Order['payment']['status'] {
+  switch (raw) {
+    case 'awaiting_payment':
+    case 'not_required':
+    case null:
+    case undefined:
+      return 'pending';
+    case 'processing':
+    case 'authorized':
+    case 'captured':
+    case 'failed':
+    case 'cancelled':
+      return raw;
+    default:
+      return 'pending';
+  }
+}
+
 const ZERO: Money = { amount: 0, currency: 'INR', major: 0 };
 const money = (m?: WireMoney | null): Money => m ?? ZERO;
 const positive = (m?: WireMoney | null): Money | null => (m && m.amount > 0 ? m : null);
@@ -159,7 +184,7 @@ export function mapOrder(raw: WireOrder): Order {
     items: (raw.items ?? []).map((it) => mapItem(it, currency)),
     pricing: mapPricing(raw.pricing),
     payment: {
-      status: (raw.payment?.status ?? 'pending') as Order['payment']['status'],
+      status: mapPaymentStatus(raw.payment?.status),
       provider: raw.payment?.provider as Order['payment']['provider'],
     },
     createdAt: raw.createdAt ?? raw.placedAt ?? new Date().toISOString(),
