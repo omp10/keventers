@@ -3,6 +3,7 @@ import {
   composeAnalytics,
   createClarityAnalytics,
   createConsoleAnalytics,
+  createJourneySink,
   noopAnalytics,
   setJourneyOutletResolver,
   type AnalyticsContract,
@@ -30,6 +31,9 @@ export function createAppAnalytics(): AnalyticsContract {
 
   const providers: AnalyticsContract[] = [];
   if (env.analytics.clarityProjectId) providers.push(createClarityAnalytics(env.analytics.clarityProjectId));
+  // The platform's OWN sink is unconditional — the dashboard's per-customer
+  // journey page reads from it, so without it the page has nothing to show.
+  providers.push(createJourneySink(env.api.baseUrl));
   if (env.isDev) providers.push(createConsoleAnalytics());
 
   if (providers.length === 0) return noopAnalytics;

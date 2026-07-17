@@ -1,5 +1,7 @@
+import { useEffect } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
+import { JOURNEY, useJourney } from '@/platform/analytics';
 import { Button, Spinner, ErrorState } from '@/design-system';
 import { PriceBreakdown } from '../cart';
 import { OrderStatusTimeline, OrderSuccess, OrderTrackingHero } from '../order';
@@ -21,6 +23,11 @@ export function OrderPage() {
 
   const q = useOrder(orderId);
   const order = q.data;
+  const journey = useJourney();
+
+  useEffect(() => {
+    if (orderId) journey(JOURNEY.ORDER_TRACKED, { orderId });
+  }, [orderId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (q.isLoading) {
     return (

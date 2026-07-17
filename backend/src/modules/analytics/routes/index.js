@@ -1,6 +1,7 @@
 import { Router } from 'express';
 
 import adminRoutes from './admin.routes.js';
+import publicJourneyRoutes from './public-journey.routes.js';
 import restaurantRoutes from './restaurant.routes.js';
 
 /**
@@ -14,5 +15,7 @@ const router = Router();
 
 router.use('/restaurant/analytics', restaurantRoutes);
 router.use('/admin/analytics', adminRoutes);
+// Customer-app sink — anonymous by design; the journey exists before login does.
+router.use('/public/journey', publicJourneyRoutes);
 
 export default router;

@@ -3,6 +3,7 @@ import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 
 import { Button, Input, toast } from '@/design-system';
 import { AuthLayout } from '@/layouts';
+import { JOURNEY, useJourney } from '@/platform/analytics';
 import { PhoneOtpForm, useAuth } from '@/platform/auth';
 import { sessionService } from '../services';
 
@@ -17,6 +18,7 @@ import { sessionService } from '../services';
 function NameStep({ onDone }: { onDone: () => void }) {
   const { updateName } = useAuth();
   const [name, setName] = useState('');
+  const [dob, setDob] = useState('');
   const [busy, setBusy] = useState(false);
 
   const submit = async (event: React.FormEvent) => {
@@ -27,8 +29,10 @@ function NameStep({ onDone }: { onDone: () => void }) {
     try {
       // Everything after the first space is the surname; one field is all this
       // moment deserves, and people write their name the way they write it.
+      // DOB rides the same request — the client wants phone + OTP + DOB
+      // collected ONCE at registration, never asked again later.
       const [firstName, ...rest] = trimmed.split(/\s+/);
-      await updateName({ firstName, lastName: rest.join(' ') || undefined });
+      await updateName({ firstName, lastName: rest.join(' ') || undefined, ...(dob ? { dateOfBirth: dob } : {}) });
       onDone();
     } catch (error) {
       toast.error('Could not save your name', { description: (error as Error).message });
@@ -56,6 +60,17 @@ function NameStep({ onDone }: { onDone: () => void }) {
           className="mt-1.5"
         />
       </label>
+      <label className="block text-sm font-medium text-foreground">
+        Date of birth <span className="font-normal text-foreground-subtle">(for birthday treats)</span>
+        <Input
+          type="date"
+          value={dob}
+          onChange={(e) => setDob(e.target.value)}
+          max={new Date().toISOString().slice(0, 10)}
+          autoComplete="bday"
+          className="mt-1.5"
+        />
+      </label>
       <Button type="submit" fullWidth loading={busy} disabled={!name.trim()}>
         Continue
       </Button>
@@ -75,6 +90,7 @@ export function CustomerLoginPage() {
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const journey = useJourney();
   const [needsName, setNeedsName] = useState(false);
 
   const fromState = (location.state as { from?: string } | null)?.from;
@@ -94,6 +110,7 @@ export function CustomerLoginPage() {
   };
 
   const afterSignIn = async ({ isNewUser }: { isNewUser: boolean }) => {
+    journey(isNewUser ? JOURNEY.REGISTRATION_COMPLETED : JOURNEY.CUSTOMER_RECOGNIZED, { isNewCustomer: isNewUser });
     if (isNewUser) {
       setNeedsName(true);
       return;

@@ -55,3 +55,28 @@ export const runsQuerySchema = z
     limit: z.coerce.number().int().positive().max(100).optional(),
   })
   .strict();
+
+/** Customer-journey sink: a small batch of vocabulary events from one visit. */
+export const journeyIngestSchema = z
+  .object({
+    events: z
+      .array(
+        z.object({
+          journeyId: z.string().min(8).max(64),
+          event: z.string().min(1).max(60),
+          at: z.coerce.date().optional(),
+          properties: z.record(z.unknown()).optional(),
+        }),
+      )
+      .min(1)
+      .max(50),
+  })
+  .strict();
+
+export const journeyListQuerySchema = z
+  .object({
+    branchId: objectId.optional(),
+    page: z.coerce.number().int().min(1).default(1),
+    limit: z.coerce.number().int().min(1).max(100).default(25),
+  })
+  .strict();

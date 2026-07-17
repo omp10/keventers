@@ -1,8 +1,10 @@
 import { Button, Icon, Spinner, Textarea, EmptyState } from '@/design-system';
 import { formatMinutes, formatMoney } from '../format';
-import { useCart } from '../hooks';
+import { useCart, useLoyalty } from '../hooks';
+import { useAuth } from '@/platform/auth';
 import { CartItemRow } from './CartItemRow';
 import { CouponInput } from './CouponInput';
+import { ImpulseStrip } from './ImpulseStrip';
 import { PriceBreakdown } from './PriceBreakdown';
 
 /**
@@ -21,6 +23,8 @@ export function CartView({
   onEditItem?: (productId: string) => void;
 }) {
   const cart = useCart();
+  const { isAuthenticated } = useAuth();
+  const loyalty = useLoyalty();
 
   if (cart.isLoading) {
     return (
@@ -64,6 +68,9 @@ export function CartView({
         </p>
       )}
 
+      {/* Small-value one-tap adds (client ask: items under ₹70 live in the cart). */}
+      <ImpulseStrip />
+
       {/* Coupon */}
       <CouponInput
         applied={cart.coupon}
@@ -87,6 +94,18 @@ export function CartView({
 
       {/* Pricing (read-only) */}
       {cart.pricing && <PriceBreakdown pricing={cart.pricing} />}
+
+      {/* Loyalty (client ask): repeat customers see their points; guests see
+          what they'd gain by signing in. */}
+      {isAuthenticated && loyalty.isLinked && loyalty.account ? (
+        <p className="flex items-center gap-1.5 rounded-xl bg-primary-soft px-3 py-2 text-sm text-primary">
+          <Icon name="star" className="h-4 w-4" /> You have {loyalty.account.balance} loyalty points — this order earns you more.
+        </p>
+      ) : (
+        <p className="flex items-center gap-1.5 rounded-xl bg-muted px-3 py-2 text-sm text-foreground-muted">
+          <Icon name="star" className="h-4 w-4" /> Sign in with your phone number to earn loyalty points on this order.
+        </p>
+      )}
 
       {/* Checkout CTA */}
       <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-surface/95 p-3 backdrop-blur" style={{ paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom))' }}>

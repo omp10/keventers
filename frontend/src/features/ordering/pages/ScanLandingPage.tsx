@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
 import { Button, Icon, Spinner } from '@/design-system';
+import { JOURNEY, useJourney } from '@/platform/analytics';
 import { sessionService } from '../services';
 
 /**
@@ -20,15 +21,18 @@ export function ScanLandingPage() {
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
   const started = useRef(false);
+  const journey = useJourney();
 
   useEffect(() => {
     if (!code || started.current) return;
     started.current = true;
 
     (async () => {
+      journey(JOURNEY.QR_SCANNED, { code });
       try {
         const result = await sessionService.scan(code);
         const slug = result.context?.branch?.slug;
+        if (slug) journey(JOURNEY.OUTLET_IDENTIFIED, { outletSlug: slug });
         if (!slug) {
           setError("This table's restaurant isn't reachable right now.");
           return;

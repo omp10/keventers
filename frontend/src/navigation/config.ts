@@ -49,6 +49,7 @@ export const restaurantNav: NavConfig = {
         { key: 'orders', label: 'Orders', icon: 'order', path: '/dashboard/orders', access: { anyPermission: ['order:read', 'order:manage'] } },
         { key: 'kitchen', label: 'Kitchen', icon: 'flame', path: '/kitchen', access: { anyPermission: ['kitchen:read'], requireFlags: ['kitchen'] } },
         { key: 'analytics', label: 'Analytics', icon: 'trend', path: '/dashboard/analytics', access: { anyPermission: ['analytics:read'], requireFlags: ['analytics'] } },
+        { key: 'journeys', label: 'Customer journeys', icon: 'users', path: '/dashboard/journeys', access: { anyPermission: ['analytics:read'] } },
       ],
     },
     {

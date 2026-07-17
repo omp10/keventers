@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
 import {
@@ -16,6 +16,7 @@ import {
   toast,
 } from '@/design-system';
 import { useBranchDetail } from '@/features/discovery';
+import { JOURNEY, useJourney } from '@/platform/analytics';
 import { ProductDetailDrawer } from '../components';
 import { MenuBoard, MenuHero, MenuSearch, ProductRail } from '../menu';
 import { FloatingCart } from '../cart';
@@ -36,6 +37,15 @@ export function MenuScreen() {
   const menu = useMenu(branchSlug);
   const cart = useCart();
   const prefetch = usePrefetchProduct(branchSlug);
+  const journey = useJourney();
+
+  // One journey step per menu visit / category hop — the funnel's browse leg.
+  useEffect(() => {
+    if (menu.data) journey(JOURNEY.MENU_LOADED, { outletSlug: branchSlug });
+  }, [Boolean(menu.data), branchSlug]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (categorySlug) journey(JOURNEY.CATEGORY_VIEWED, { outletSlug: branchSlug, categorySlug, ...(subSlug ? { subSlug } : {}) });
+  }, [categorySlug, subSlug]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [openSlug, setOpenSlug] = useState<string | undefined>();
   const [searchOpen, setSearchOpen] = useState(false);
@@ -58,6 +68,7 @@ export function MenuScreen() {
       return false;
     }
     await cart.add(selection);
+    journey(JOURNEY.ADDED_TO_CART, { outletSlug: branchSlug, productId: selection.productId, quantity: selection.quantity });
     return true;
   };
 
@@ -73,7 +84,10 @@ export function MenuScreen() {
     }
   };
 
-  const onOpen = (p: Product) => setOpenSlug(p.slug);
+  const onOpen = (p: Product) => {
+    journey(JOURNEY.PRODUCT_OPENED, { outletSlug: branchSlug, productId: p.id, productSlug: p.slug });
+    setOpenSlug(p.slug);
+  };
 
   const addFromDetail = async (selection: CartItemSelection) => {
     if (await addSelection(selection)) toast.success('Added to cart');

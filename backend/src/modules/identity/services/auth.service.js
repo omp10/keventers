@@ -201,12 +201,13 @@ export class AuthService extends BaseService {
    * phone and email are NOT settable here — those are privilege and identity
    * changes, and they belong to the admin/staff surfaces that already guard them.
    */
-  async updateMe(userId, { firstName, lastName }) {
+  async updateMe(userId, { firstName, lastName, dateOfBirth }) {
     const user = await this.users.findById(userId);
     if (!user) throw new NotFoundError(IDENTITY_ERRORS.USER_NOT_FOUND);
     const patch = {};
     if (firstName !== undefined) patch.firstName = firstName.trim();
     if (lastName !== undefined) patch.lastName = lastName.trim();
+    if (dateOfBirth !== undefined) patch.dateOfBirth = dateOfBirth;
     await this.users.updateById(String(user.id ?? user._id), patch);
     return this.me(userId);
   }

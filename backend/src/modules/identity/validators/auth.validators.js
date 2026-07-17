@@ -25,11 +25,14 @@ export const registerSchema = z.object({
   phone: z.string().trim().min(7).max(20).optional(),
 });
 
-/** Self-service identity edit — name only; see `authService.updateMe`. */
+/** Self-service identity edit — name + DOB; see `authService.updateMe`. */
 export const updateMeSchema = z
   .object({
     firstName: z.string().trim().min(1).max(80).optional(),
     lastName: z.string().trim().max(80).optional(),
+    // Collected once at registration (phone + OTP + DOB are the three the
+    // client wants up front); powers birthday offers later.
+    dateOfBirth: z.coerce.date().max(new Date()).optional(),
   })
   .strict()
   .refine((v) => Object.keys(v).length > 0, { message: 'No updatable fields provided' });

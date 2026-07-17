@@ -4,3 +4,4 @@ export type { AnalyticsProvider as AnalyticsContract, AnalyticsEvent, AnalyticsP
 export { JOURNEY, type JourneyEvent, type JourneyProperties } from './journey';
 export { useJourney, setJourneyOutletResolver } from './useJourney';
 export { createClarityAnalytics, createConsoleAnalytics, composeAnalytics } from './clarity';
+export { createJourneySink } from './sink';

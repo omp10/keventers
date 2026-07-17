@@ -6,10 +6,13 @@ import { useCart, useCheckout } from '../hooks';
 import { PriceBreakdown } from '../cart/PriceBreakdown';
 import type { Order, PaymentProvider } from '../types';
 
+// Per the client: UPI, debit/credit cards, and cash ONLY — no wallets,
+// netbanking or COD variants in the list. UPI rides PhonePe; cards ride
+// Razorpay (its checkout is card-first when opened this way).
 const PROVIDERS: { id: PaymentProvider; label: string; hint: string; icon: 'payment' | 'store' }[] = [
-  { id: 'razorpay', label: 'Cards, UPI & Wallets', hint: 'Razorpay secure checkout', icon: 'payment' },
-  { id: 'phonepe', label: 'PhonePe UPI', hint: 'Pay with any UPI app', icon: 'payment' },
-  { id: 'cash', label: 'Pay at counter', hint: 'Cash / card on pickup', icon: 'store' },
+  { id: 'phonepe', label: 'UPI', hint: 'Pay with any UPI app', icon: 'payment' },
+  { id: 'razorpay', label: 'Debit / credit card', hint: 'Secure card checkout', icon: 'payment' },
+  { id: 'cash', label: 'Cash', hint: 'Pay at the counter', icon: 'store' },
 ];
 
 /**

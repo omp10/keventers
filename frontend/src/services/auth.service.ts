@@ -50,7 +50,7 @@ class AuthServiceImpl extends BaseService {
     return session.tokens;
   }
   /** Set the signed-in user's own name (post-OTP onboarding, profile edit). */
-  updateMe(patch: { firstName?: string; lastName?: string }) {
+  updateMe(patch: { firstName?: string; lastName?: string; dateOfBirth?: string }) {
     return this.api.patch<AuthUser>('/identity/auth/me', patch);
   }
   me() {

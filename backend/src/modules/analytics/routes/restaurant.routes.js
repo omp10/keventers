@@ -3,8 +3,10 @@ import { Router } from 'express';
 import { validate } from '#core/validation/validate.middleware.js';
 
 import { RestaurantAnalyticsController } from '../controllers/restaurant-analytics.controller.js';
+import { JourneyController } from '../controllers/journey.controller.js';
 import {
   exportQuerySchema,
+  journeyListQuerySchema,
   rangeQuerySchema,
   reconcileBodySchema,
   runsQuerySchema,
@@ -50,6 +52,8 @@ router.get('/customers', validate({ query: rangeQuerySchema }), RestaurantAnalyt
 router.get('/kitchen', validate({ query: rangeQuerySchema }), RestaurantAnalyticsController.kitchen);
 router.get('/payments', validate({ query: rangeQuerySchema }), RestaurantAnalyticsController.payments);
 router.get('/qr', validate({ query: rangeQuerySchema }), RestaurantAnalyticsController.qr);
+router.get('/journeys', validate({ query: journeyListQuerySchema }), JourneyController.list);
+router.get('/journeys/:journeyId', JourneyController.get);
 router.get('/export', validate({ query: exportQuerySchema }), requireExport, RestaurantAnalyticsController.export);
 router.get('/runs', validate({ query: runsQuerySchema }), RestaurantAnalyticsController.listRuns);
 router.post('/rebuild', requireRebuild, RestaurantAnalyticsController.rebuild);

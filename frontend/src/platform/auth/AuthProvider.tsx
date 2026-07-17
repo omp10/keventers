@@ -180,7 +180,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
    * session state directly — no re-fetch, and no window where the UI still shows
    * the old name.
    */
-  const updateName = useCallback(async (name: { firstName: string; lastName?: string }) => {
+  const updateName = useCallback(async (name: { firstName: string; lastName?: string; dateOfBirth?: string }) => {
     const updated = await authService.updateMe(name);
     setUser(updated);
   }, []);
