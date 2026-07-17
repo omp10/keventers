@@ -124,6 +124,12 @@ export class UserService extends BaseService {
     return user ? toUserDTO(user) : null;
   }
 
+  /** Look up a user by phone (read-only). Returns a DTO or null. */
+  async getUserByPhone(phone) {
+    const user = await this.users.findByPhone(phone);
+    return user ? toUserDTO(user) : null;
+  }
+
   async listUsers(query = {}) {
     const filter = {};
     if (query.status) filter.status = query.status;

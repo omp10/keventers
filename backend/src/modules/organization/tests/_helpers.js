@@ -51,6 +51,7 @@ export class FakeMembershipRepository extends MockRepository {
 /** Identity UserService double backed by an in-memory map. */
 export function createFakeUserService() {
   const byEmail = new Map();
+  const byPhone = new Map();
   let seq = 0;
   return {
     created: [],
@@ -58,15 +59,20 @@ export function createFakeUserService() {
     async getUserByEmail(email) {
       return byEmail.get(String(email).toLowerCase()) ?? null;
     },
+    async getUserByPhone(phone) {
+      return byPhone.get(String(phone)) ?? null;
+    },
     async createUser(data) {
       seq += 1;
       const user = {
         id: `user-${seq}`,
         email: data.email.toLowerCase(),
+        phone: data.phone ?? null,
         roles: data.roles ?? [],
         type: data.type,
       };
       byEmail.set(user.email, user);
+      if (user.phone) byPhone.set(user.phone, user);
       this.created.push(user);
       return user;
     },
@@ -76,6 +82,7 @@ export function createFakeUserService() {
     },
     async deleteUser(id) {
       for (const [k, u] of byEmail) if (u.id === id) byEmail.delete(k);
+      for (const [k, u] of byPhone) if (u.id === id) byPhone.delete(k);
       return { id, deleted: true };
     },
     async requestPasswordReset(email) {
