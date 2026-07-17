@@ -25,7 +25,7 @@ export function OrderingLayout() {
   const showCustomerTabs = isMenu || tabs.some((t) => t.href === pathname);
 
   return (
-    <div className={cn('min-h-dvh bg-background', showCustomerTabs && 'pb-[calc(4.5rem+env(safe-area-inset-bottom))] lg:pb-0')}>
+    <div className={cn('min-h-dvh bg-background', showCustomerTabs && 'pb-[calc(4.5rem+max(env(safe-area-inset-bottom),0.625rem))] lg:pb-0')}>
       <ConnectionStatus />
       <main className="mx-auto w-full max-w-2xl px-4 py-5">
         <Suspense
@@ -42,25 +42,29 @@ export function OrderingLayout() {
       {showCustomerTabs && (
         <nav
           className={cn('fixed inset-x-0 bottom-0 z-[100] flex items-stretch border-t border-border lg:hidden', glass())}
-          style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+          // max(): see CustomerLayout — Android 15 edge-to-edge reports a 0
+          // inset while drawing under the gesture bar.
+          style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 0.625rem)' }}
           aria-label="Primary"
         >
           {tabs.map((tab) => {
             const emphasized = tab.emphasized;
             return (
+              // min-w-0 + truncate: five tabs must fit 320px-wide Androids and
+              // large system fonts without wrapping or stretching the bar.
               <button
                 key={tab.key}
                 type="button"
                 onClick={() => tab.href && navigate(tab.href)}
                 className={cn(
-                  'flex min-h-16 flex-1 touch-manipulation flex-col items-center justify-center gap-0.5 py-2 text-[0.6875rem] font-medium text-foreground-subtle',
+                  'flex min-h-14 min-w-0 flex-1 touch-manipulation select-none flex-col items-center justify-center gap-0.5 px-0.5 py-2 text-[0.625rem] font-medium text-foreground-subtle min-[400px]:text-[0.6875rem]',
                   emphasized && 'font-semibold text-primary',
                 )}
               >
-                <span className={cn('grid place-items-center', emphasized && 'h-10 w-10 rounded-full bg-primary text-primary-foreground shadow-brand')}>
+                <span className={cn('grid shrink-0 place-items-center', emphasized && 'h-10 w-10 rounded-full bg-primary text-primary-foreground shadow-brand')}>
                   {tab.icon && <Icon name={tab.icon} size={emphasized ? 'md' : 'sm'} />}
                 </span>
-                {tab.label}
+                <span className="w-full truncate text-center leading-tight">{tab.label}</span>
               </button>
             );
           })}

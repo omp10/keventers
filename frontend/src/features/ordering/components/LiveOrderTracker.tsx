@@ -76,7 +76,7 @@ export function LiveOrderTracker() {
         'fixed inset-x-3 z-[110] mx-auto flex w-auto max-w-xl items-center gap-3 rounded-2xl border border-border',
         'bg-surface/95 p-3 text-left shadow-xl backdrop-blur transition active:scale-[0.99] lg:hidden',
       )}
-      style={{ bottom: 'calc(4.5rem + env(safe-area-inset-bottom) + 0.625rem)' }}
+      style={{ bottom: 'calc(4.5rem + max(env(safe-area-inset-bottom), 0.625rem) + 0.625rem)' }}
     >
       {/* Pulsing live dot */}
       <span className="relative grid h-10 w-10 shrink-0 place-items-center rounded-full bg-primary/10">

@@ -34,7 +34,7 @@ export function CustomerLayout({ tabs, header, headerActions, renderLink = defau
   return (
     // The bottom padding reserves room for the FIXED tab bar so the last row of
     // content can scroll clear of it.
-    <div className={cn('relative flex min-h-dvh flex-col bg-background', hasTabs && 'pb-[calc(4.5rem+env(safe-area-inset-bottom))] lg:pb-0', className)}>
+    <div className={cn('relative flex min-h-dvh flex-col bg-background', hasTabs && 'pb-[calc(4.5rem+max(env(safe-area-inset-bottom),0.625rem))] lg:pb-0', className)}>
       {/* Ambient desktop backdrop. `overflow-hidden` belongs HERE (clipping the
           blurred blooms so they can't widen the page), not on the shell. */}
       <div aria-hidden className="pointer-events-none fixed inset-0 hidden overflow-hidden lg:block">
@@ -85,40 +85,47 @@ export function CustomerLayout({ tabs, header, headerActions, renderLink = defau
           // viewports (the bar rendered partly below the URL bar — "cut off"),
           // and the duck-away animation read as the nav randomly vanishing.
           className={cn('fixed inset-x-0 bottom-0 z-[100] flex items-stretch border-t border-border lg:hidden', glass())}
-          style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+          // max(): Android 15 edge-to-edge draws the page under the system
+          // gesture bar while Chrome reports the inset as 0 — env() alone left
+          // the bottom of the tabs behind the gesture strip ("cut off").
+          style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 0.625rem)' }}
           aria-label="Primary"
         >
           {tabs.map((tab) => {
             // Emphasized tab — the shell's raised primary action (e.g. Scan).
+            // Sized for real Android widths: every tab is min-h-14 (56px ≥ the
+            // 48dp minimum target), min-w-0 so five tabs always fit, and the
+            // label truncates rather than wrapping and stretching the bar on
+            // narrow phones (320–360px) or with large system font sizes.
             const content = tab.emphasized ? (
-              <span className="flex flex-1 flex-col items-center justify-end gap-0.5 pb-2 text-[0.6875rem] font-semibold text-primary outline-none">
+              <span className="flex min-h-14 min-w-0 flex-1 select-none flex-col items-center justify-end gap-0.5 pb-1.5 text-[0.625rem] font-semibold text-primary outline-none min-[400px]:text-[0.6875rem]">
                 <span
                   className={cn(
-                    '-mt-5 grid h-13 w-13 place-items-center rounded-full bg-primary text-primary-foreground shadow-brand ring-4 ring-background transition-transform active:scale-95 motion-reduce:transition-none',
+                    '-mt-5 grid h-12 w-12 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground shadow-brand ring-4 ring-background transition-transform active:scale-95 motion-reduce:transition-none min-[400px]:h-13 min-[400px]:w-13',
                     tab.active && 'ring-primary/25',
                   )}
                 >
                   {tab.icon && <Icon name={tab.icon} size="lg" />}
                 </span>
-                {tab.label}
+                <span className="w-full truncate text-center leading-tight">{tab.label}</span>
               </span>
             ) : (
               <span
                 className={cn(
-                  'flex flex-1 flex-col items-center justify-center gap-0.5 py-2.5 text-[0.6875rem] font-medium transition-colors outline-none',
+                  'flex min-h-14 min-w-0 flex-1 select-none flex-col items-center justify-center gap-0.5 px-0.5 py-2 text-[0.625rem] font-medium transition-colors outline-none min-[400px]:text-[0.6875rem]',
                   tab.active ? 'text-primary' : 'text-foreground-subtle hover:text-foreground',
                 )}
               >
-                <span className="relative">
+                <span className="relative shrink-0">
                   {tab.icon && <Icon name={tab.icon} size="md" />}
                   {tab.badge && <span className="absolute -right-2 -top-1.5">{tab.badge}</span>}
                 </span>
-                {tab.label}
+                <span className="w-full truncate text-center leading-tight">{tab.label}</span>
               </span>
             );
             return (
-              <div key={tab.key} className={cn('flex flex-1', tab.emphasized && 'overflow-visible')}>
-                {renderLink(tab, content, 'flex flex-1')}
+              <div key={tab.key} className={cn('flex min-w-0 flex-1 touch-manipulation', tab.emphasized && 'overflow-visible')}>
+                {renderLink(tab, content, 'flex min-w-0 flex-1')}
               </div>
             );
           })}
