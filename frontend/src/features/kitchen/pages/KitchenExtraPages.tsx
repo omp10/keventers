@@ -91,6 +91,7 @@ const menuKey = qk('kitchen', 'menu-products');
 
 export function KitchenMenuPage() {
   const [search, setSearch] = useState('');
+  const navigate = useNavigate();
   // limit is validator-capped at 100 — asking for more is a 422, not "extra".
   const query = useQueryResource(menuKey, async () => {
     const page = await api.paginate<MenuProduct>('/restaurant/products', { query: { page: 1, limit: 100, status: 'active' } });
@@ -121,14 +122,26 @@ export function KitchenMenuPage() {
   const outCount = (query.data ?? []).filter((p) => p.availability?.status && p.availability.status !== 'available').length;
 
   return (
-    <div className="mx-auto w-full max-w-4xl space-y-4 p-4">
+    <div className="mx-auto w-full max-w-4xl space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-xl font-bold text-foreground">Menu availability</h1>
-        {outCount > 0 && <Badge tone="warning" variant="soft">{outCount} out of stock</Badge>}
+        <div className="flex items-center gap-2">
+          <h1 className="text-xl font-bold text-foreground">Menu availability</h1>
+          {outCount > 0 && <Badge tone="warning" variant="soft">{outCount} out of stock</Badge>}
+        </div>
+        {/*
+          This screen is the 86 board — one tap to pull an item that's run out.
+          Creating products means variants, modifiers, pricing and media, which
+          the catalog editor already does properly; rebuilding a second editor
+          here would only drift from it. So the "add" affordance is a real
+          doorway to that editor rather than a dead end — the page used to just
+          TELL you edits lived elsewhere and leave you to find it.
+        */}
+        <Button size="sm" variant="secondary" leftIcon="add" onClick={() => navigate('/dashboard/catalog/products')}>
+          Add or edit items
+        </Button>
       </div>
       <p className="text-sm text-foreground-muted">
-        Flip items off as stock runs out — customers stop seeing them instantly. Pricing and menu edits live in the
-        manager dashboard.
+        Flip items off as stock runs out — customers stop seeing them instantly.
       </p>
 
       <Input type="search" leftIcon="search" placeholder="Search items…" value={search} onChange={(e) => setSearch(e.target.value)} />
@@ -141,7 +154,22 @@ export function KitchenMenuPage() {
         // that knows the board is down.
         <EmptyState icon={<Icon name="warning" className="mb-3 h-8 w-8 text-danger" />} title="Couldn't load the menu" description={query.error?.message ?? 'Please try again.'} action={<Button onClick={() => void query.refetch()}>Retry</Button>} />
       ) : items.length === 0 ? (
-        <EmptyState icon={<Icon name="utensils" className="mb-3 h-8 w-8 text-foreground-subtle" />} title="No products" description="This restaurant's catalog is empty." />
+        <EmptyState
+          icon={<Icon name="utensils" className="mb-3 h-8 w-8 text-foreground-subtle" />}
+          title={search ? 'No matching items' : 'No products yet'}
+          description={
+            search
+              ? `Nothing matches "${search}".`
+              : "This restaurant's catalog is empty — add your first item to start taking orders."
+          }
+          action={
+            search ? undefined : (
+              <Button leftIcon="add" onClick={() => navigate('/dashboard/catalog/products')}>
+                Add your first item
+              </Button>
+            )
+          }
+        />
       ) : (
         <div className="space-y-2">
           {items.map((p) => {

@@ -8,6 +8,7 @@
  */
 export { KitchenShell, KitchenBoardRoute, KitchenDashboardRoute, KitchenStationsRoute, KitchenHistoryRoute, KitchenMenuRoute, KitchenProfileRoute } from './routes';
 export { KitchenLoginPage } from './KitchenLoginPage';
+export { KitchenTabBar, KITCHEN_TABS, type KitchenTab } from './KitchenTabBar';
 export { KitchenOnboardingGate, KitchenOnboardingPage } from './KitchenOnboarding';
 export { KitchenRegisterPage } from './KitchenRegisterPage';
 

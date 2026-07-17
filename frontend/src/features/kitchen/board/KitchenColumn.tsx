@@ -25,8 +25,16 @@ export function KitchenColumn({
   onCancel: (e: KitchenEntry) => void;
   accent?: string;
 }) {
+  // Width is viewport-relative on phones so a column is READ, not glimpsed: at
+  // 375px a fixed 300px column left only a sliver of the next one, which is the
+  // clipped look on the board. 86vw shows one column plus a hint of the next —
+  // which is also the affordance that says "swipe". From `sm` up the original
+  // 300px floor applies and columns share the row.
   return (
-    <section className="flex min-w-[300px] flex-1 flex-col rounded-2xl bg-muted/40" aria-label={`${title} column`}>
+    <section
+      className="flex w-[86vw] shrink-0 snap-start flex-col rounded-2xl bg-muted/40 sm:w-auto sm:min-w-[300px] sm:flex-1 sm:shrink"
+      aria-label={`${title} column`}
+    >
       <header className={cn('sticky top-0 z-10 flex items-center justify-between rounded-t-2xl border-b-2 bg-background/95 px-4 py-3 backdrop-blur', accent ?? 'border-border')}>
         <h2 className="text-lg font-bold text-foreground">{title}</h2>
         <Badge tone="neutral" variant="solid" className="text-sm">{entries.length}</Badge>

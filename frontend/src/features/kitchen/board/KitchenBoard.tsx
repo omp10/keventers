@@ -44,7 +44,10 @@ export function KitchenBoard() {
 
   return (
     <>
-      <div className="flex gap-3 overflow-x-auto pb-2">
+      {/* Snap so a swipe lands squarely on the next column instead of halfway
+          between two. `-mx-3 px-3` lets columns bleed to the screen edge while
+          keeping the first and last aligned with the page gutter. */}
+      <div className="-mx-3 flex snap-x snap-mandatory gap-3 overflow-x-auto px-3 pb-2 sm:mx-0 sm:snap-none sm:px-0">
         {columns.map((c) => (
           <KitchenColumn
             key={c.key}
