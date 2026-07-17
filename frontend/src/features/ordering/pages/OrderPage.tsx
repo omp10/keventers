@@ -4,7 +4,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { JOURNEY, useJourney } from '@/platform/analytics';
 import { Button, Spinner, ErrorState } from '@/design-system';
 import { PriceBreakdown } from '../cart';
-import { OrderStatusTimeline, OrderSuccess, OrderTrackingHero } from '../order';
+import { OrderStatusTimeline, OrderTrackingHero } from '../order';
 import { PaymentPanel } from '../payment';
 import { useOrder } from '../hooks';
 import type { PaymentProvider } from '../types';
@@ -49,21 +49,17 @@ export function OrderPage() {
 
   return (
     <div className="mx-auto max-w-lg space-y-6 py-4">
-      {showPayment ? (
-        <>
-          {/* Payment first — the animated tracker takes over once it's settled. */}
-          <OrderSuccess order={order} />
-          <PaymentPanel order={order} provider={provider} onBack={() => navigate('/checkout')} />
-        </>
-      ) : (
-        <>
-          <OrderTrackingHero order={order} />
-          <section>
-            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-foreground-subtle">Order status</h2>
-            <OrderStatusTimeline order={order} />
-          </section>
-        </>
+      {/* Live tracking ALWAYS leads. It used to be hidden behind the payment
+          panel until payment was captured — which for pay-at-counter is the
+          order's whole life, so customers never saw the tracker at all. */}
+      <OrderTrackingHero order={order} />
+      {showPayment && (
+        <PaymentPanel order={order} provider={provider} onBack={() => navigate('/checkout')} />
       )}
+      <section>
+        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-foreground-subtle">Order status</h2>
+        <OrderStatusTimeline order={order} />
+      </section>
 
       {/* Items + totals */}
       <section>

@@ -49,7 +49,8 @@ export function LiveOrderTracker() {
 
   useRealtimeQuery({
     queryKey: qk('ordering', 'active-order'),
-    events: ['order:updated', 'order:status_changed', 'kitchen:order_updated', 'order:placed'],
+    // The backend's real socket vocabulary — one entry per status transition.
+    events: ['order:placed', 'order:confirmed', 'order:preparing', 'order:ready', 'order:served', 'order:completed', 'order:cancelled'],
   });
 
   const order = query.data;

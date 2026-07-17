@@ -28,7 +28,15 @@ export function useOrder(orderId: string | undefined) {
 
   useRealtimeQuery({
     queryKey: qk('ordering', 'order', orderId ?? null),
-    events: ['order:updated', 'order:status_changed', 'payment:updated', 'kitchen:order_updated'],
+    // These ARE the backend's socket event names (order + payment
+    // STATUS_SOCKET_EVENT maps). This used to listen for
+    // 'order:status_changed'/'order:updated' — events the backend has never
+    // emitted — so the tracker only ever moved on the slow resilience poll.
+    events: [
+      'order:placed', 'order:confirmed', 'order:preparing', 'order:ready',
+      'order:served', 'order:completed', 'order:cancelled',
+      'payment:pending', 'payment:authorized', 'payment:captured', 'payment:failed',
+    ],
     room: orderId ? `order:${orderId}` : undefined,
   });
 

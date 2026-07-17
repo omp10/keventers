@@ -106,8 +106,17 @@ export class ApiClient {
           // token afterwards. It stayed in localStorage and rode along on every
           // subsequent request, which is why "expired guest session" reappeared
           // on every single call until storage was wiped by hand.
-          if (this.credentialFor(config).kind === 'guest') this.auth.onGuestExpired();
-          else if (!didRefresh) {
+          if (this.credentialFor(config).kind === 'guest') {
+            this.auth.onGuestExpired();
+            // A signed-in customer whose TABLE session died still owns their
+            // account: with the dead guest token gone, retry once on the access
+            // token (the backend links session data to the account) instead of
+            // failing a request the user is authorised to make.
+            if (!didRefresh && this.auth.getAccessToken()) {
+              didRefresh = true;
+              continue;
+            }
+          } else if (!didRefresh) {
             didRefresh = true;
             if (await this.refreshOnce()) continue; // retry once with a fresh token
             this.auth.onUnauthorized();

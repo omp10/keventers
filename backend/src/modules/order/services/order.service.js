@@ -321,15 +321,35 @@ export class OrderService extends BaseService {
    * advanced the order by hand.
    */
   async syncFromKitchen(orderId, toStatus) {
+    // The kitchen may be AHEAD of the order: it enqueues on `placed`, so when
+    // the chef starts cooking a not-yet-confirmed order the target is two steps
+    // away (placed → confirmed → preparing) and a single jump is illegal — the
+    // catch swallowed it and the customer's tracker sat at "placed" while food
+    // cooked. Cooking IS acceptance: walk the progression one legal step at a
+    // time so every intermediate status (and its events/notifications) fires.
+    const path = [
+      ORDER_STATUS.PLACED,
+      ORDER_STATUS.CONFIRMED,
+      ORDER_STATUS.PREPARING,
+      ORDER_STATUS.READY,
+      ORDER_STATUS.SERVED,
+    ];
+    const target = path.indexOf(toStatus);
+    if (target === -1) return null; // non-progression states are not mirrored
+
     const order = await this.orders.findById(orderId);
-    if (!order || order.status === toStatus) return null;
-    try {
-      return await this.#transition(orderId, toStatus, { actorType: ACTOR_TYPE.SYSTEM, reason: 'kitchen' });
-    } catch {
-      // Not a legal move for the order right now — the kitchen stays authoritative
-      // for its own board, and staff can still drive the order explicitly.
-      return null;
+    if (!order) return null;
+    let result = null;
+    for (let current = path.indexOf(order.status); current !== -1 && current < target; current += 1) {
+      try {
+        result = await this.#transition(orderId, path[current + 1], { actorType: ACTOR_TYPE.SYSTEM, reason: 'kitchen' });
+      } catch {
+        // Not a legal move for the order right now — the kitchen stays
+        // authoritative for its own board; staff can still drive the order.
+        return result;
+      }
     }
+    return result;
   }
 
   /** Generic staff status change (PATCH). Legality enforced by the state machine. */

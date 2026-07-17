@@ -140,8 +140,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const expireGuest = useCallback(() => {
     if (!tokenStore.getGuest()) return; // already handled by a concurrent 401
     tokenStore.setGuest(null);
-    setStatus(tokenStore.hasSession() ? 'authenticated' : 'unauthenticated');
-    if (window.location.pathname !== '/') window.location.assign('/');
+    const signedIn = tokenStore.hasSession();
+    setStatus(signedIn ? 'authenticated' : 'unauthenticated');
+    // Only a pure guest gets sent back to the entry screen — a signed-in
+    // customer keeps their page; the API client retries on the account token.
+    if (!signedIn && window.location.pathname !== '/') window.location.assign('/');
   }, []);
 
   /* Wire the API client adapter ONCE (decoupled — API never imports auth). */
