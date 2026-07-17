@@ -23,15 +23,19 @@ export function Breadcrumbs({ app, home = 'Home', className }: { app: NavConfig[
   const navigate = useNavigate();
 
   const crumbs = useMemo<Crumb[]>(() => {
-    const nodes = flatten(navConfigs[app]);
+    const config = navConfigs[app];
+    const nodes = flatten(config);
     // Longest matching prefix wins, then build ancestry by path segments.
     const matches = nodes
       .filter((n) => n.path && (pathname === n.path || pathname.startsWith(n.path + '/')))
       .sort((a, b) => (a.path!.length - b.path!.length));
 
-    const list: Crumb[] = [{ label: home, href: '/', onClick: () => navigate('/') }];
+    // Home is THIS app's root. Hardcoding '/' threw dashboard/admin/kitchen
+    // users out into the customer storefront — a different app entirely.
+    const root = config.root;
+    const list: Crumb[] = [{ label: home, href: root, onClick: () => navigate(root) }];
     for (const n of matches) {
-      if (n.path === '/') continue;
+      if (n.path === root) continue;
       list.push({ label: n.label, href: n.path, onClick: () => navigate(n.path!) });
     }
     return list;

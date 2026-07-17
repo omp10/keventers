@@ -35,6 +35,12 @@ export type NavGroup = {
 /** A full app's navigation definition. */
 export type NavConfig = {
   app: 'customer' | 'restaurant' | 'admin' | 'kitchen';
+  /**
+   * Where "Home" means for THIS app. These are separate apps sharing one
+   * router, so a root of '/' is only correct for the customer one — everywhere
+   * else it ejects staff out of their app and into the storefront.
+   */
+  root: string;
   groups: NavGroup[];
   /** Bottom-tab items (customer PWA). */
   tabs?: NavNode[];

@@ -188,6 +188,7 @@ export const QR_ERRORS = Object.freeze({
   BRANCH_UNAVAILABLE: 'This branch is not currently accepting orders',
   BRANCH_CLOSED: 'This branch is closed right now',
   TABLE_UNAVAILABLE: 'This table is not available for ordering',
+  NO_TABLES_CONFIGURED: "This outlet hasn't set up any tables yet, so table ordering isn't available here",
   INVALID_SESSION_TOKEN: 'Invalid or expired guest session token',
   SESSION_NOT_LIVE: 'This session is no longer active',
   INVALID_TRANSITION: 'Invalid session state transition',

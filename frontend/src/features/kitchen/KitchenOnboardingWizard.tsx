@@ -47,6 +47,12 @@ export function KitchenOnboardingWizard({
     setSaving(true);
     try {
       const next = await kitchenOnboardingService.submitStep(step.key, step.toData(draft));
+      // The step stores a COUNT; the tables themselves have to exist or nobody
+      // can order at them. Best-effort — a table that won't create shouldn't
+      // block setup, and the Tables screen can fix it later.
+      if (step.key === 'table_count' && draft.tableCount > 0) {
+        await kitchenOnboardingService.createTables(draft.tableCount).catch(() => null);
+      }
       setCompleted(next.completedSteps);
       const nextPending = STEPS.findIndex((s) => !next.completedSteps.includes(s.key));
       if (nextPending !== -1) setIndex(nextPending);

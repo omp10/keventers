@@ -41,20 +41,25 @@ class ProductService {
     return api.patch<CatalogProduct>(`/restaurant/products/${id}`, patch);
   }
 
-  duplicate(id: string) {
-    return api.post<CatalogProduct>(`/restaurant/products/${id}/duplicate`);
-  }
-
-  archive(id: string) {
-    return api.post<CatalogProduct>(`/restaurant/products/${id}/archive`);
-  }
-
+  /**
+   * Publish / unpublish / archive are STATUS changes, not endpoints.
+   *
+   * A product's lifecycle is the plain `status` field (draft | active |
+   * inactive | archived) that `PATCH /:id` already sets — there is no product
+   * publish state machine (that exists for MENUS). These used to POST to
+   * /publish, /unpublish and /archive, none of which the backend ever served,
+   * so every one 404'd.
+   */
   publish(id: string) {
-    return api.post<CatalogProduct>(`/restaurant/products/${id}/publish`);
+    return this.update(id, { status: 'active' });
   }
 
   unpublish(id: string) {
-    return api.post<CatalogProduct>(`/restaurant/products/${id}/unpublish`);
+    return this.update(id, { status: 'inactive' });
+  }
+
+  archive(id: string) {
+    return this.update(id, { status: 'archived' });
   }
 
   setAvailability(id: string, availability: Availability) {

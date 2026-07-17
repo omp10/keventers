@@ -67,6 +67,34 @@ export const kitchenOnboardingService = {
    */
   complete: () => api.post<{ id: string; status: string }>('/restaurant/onboarding/complete'),
 
+  /**
+   * Create the tables the `table_count` step asked for.
+   *
+   * The wizard step only stores `settings.tableCount` — a NUMBER nothing acts
+   * on. Without real Table rows every ordering path dead-ends on "This table is
+   * not available for ordering", which sounds like the table is busy rather than
+   * absent. Numbers already taken are skipped (409), so re-running is safe.
+   */
+  async createTables(count: number): Promise<{ created: number }> {
+    const existing = await api
+      .paginate<{ number: string }>('/restaurant/tables', { query: { limit: 100 } })
+      .then((p) => new Set(p.items.map((t) => t.number)))
+      .catch(() => new Set<string>());
+
+    let created = 0;
+    for (let i = 1; i <= count; i += 1) {
+      const number = String(i);
+      if (existing.has(number)) continue;
+      try {
+        await api.post('/restaurant/tables', { number, name: `Table ${i}`, seatingCapacity: 4 });
+        created += 1;
+      } catch {
+        /* already there, or the branch rejects it — the wizard shouldn't die over one table */
+      }
+    }
+    return { created };
+  },
+
   /** Upload the restaurant logo via the Storage Platform (no provider keys client-side). */
   uploadLogo: (file: File, onProgress?: (pct: number) => void) => {
     const form = new FormData();

@@ -216,7 +216,13 @@ export class ScanService extends BaseService {
       number: String(tableNumber ?? '').trim(),
       deletedAt: { $in: [null, undefined] },
     });
-    if (!table) throw new NotFoundError(QR_ERRORS.TABLE_UNAVAILABLE);
+    if (!table) {
+      // "Not available" reads as "someone's sitting there". Distinguish the far
+      // more common cause — the outlet has no tables set up at all — so the
+      // diner stops re-typing a number that was never going to work.
+      const anyTable = await this.tables.findOne({ branchId, deletedAt: { $in: [null, undefined] } });
+      throw new NotFoundError(anyTable ? QR_ERRORS.TABLE_NOT_FOUND : QR_ERRORS.NO_TABLES_CONFIGURED);
+    }
     if (
       table.isOrderingEnabled === false ||
       table.isReserved === true ||

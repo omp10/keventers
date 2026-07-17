@@ -26,6 +26,7 @@ import type { NavConfig } from './types';
  */
 export const customerNav: NavConfig = {
   app: 'customer',
+  root: '/',
   groups: [],
   tabs: [
     { key: 'home', label: 'Home', icon: 'home', path: '/' },
@@ -38,6 +39,7 @@ export const customerNav: NavConfig = {
 
 export const restaurantNav: NavConfig = {
   app: 'restaurant',
+  root: '/dashboard',
   // The staff dashboard is namespaced under /dashboard so it coexists with the
   // customer app in one router. Changing nav = editing this config, never a component.
   groups: [
@@ -86,6 +88,7 @@ export const restaurantNav: NavConfig = {
 
 export const adminNav: NavConfig = {
   app: 'admin',
+  root: '/admin',
   groups: [
     {
       items: [
@@ -124,6 +127,7 @@ export const adminNav: NavConfig = {
 
 export const kitchenNav: NavConfig = {
   app: 'kitchen',
+  root: '/kitchen',
   groups: [
     {
       items: [
