@@ -184,6 +184,18 @@ export class KeventersMenuSeeder extends BaseSeeder {
       type: MENU_TYPE.REGULAR,
       status: ENTITY_STATUS.ACTIVE,
       isDefault: true,
+      /**
+       * REQUIRED for the menu to be orderable, and easy to miss: `status` and
+       * `isActive` are two different gates. The admin catalog lists menus by
+       * (status, visibility), but `getPublicActiveMenu` — the one the QR scan
+       * serves guests from — filters on (status, isActive), which the model
+       * defaults to false. Seeding straight through the model skips
+       * `publishMenu`/`#makeDefault`, the only places that would set it, so
+       * without this the menu shows in admin while guests who scan a table see
+       * nothing to order.
+       */
+      isActive: true,
+      publishedAt: new Date(),
     });
   }
 

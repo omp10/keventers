@@ -292,6 +292,9 @@ export class ScanService extends BaseService {
       branch: {
         id: branch.id,
         name: branch.name,
+        /** The guest app routes to the menu by branch slug (/r/:slug/menu), so a
+         *  scan can't land anywhere useful without it. */
+        slug: branch.slug ?? null,
         address: branch.address ?? null,
       },
       table: {

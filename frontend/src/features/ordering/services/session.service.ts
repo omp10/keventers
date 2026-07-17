@@ -25,7 +25,38 @@ export type OrderingSession = {
 
 const BASE = '/public/session';
 
+/** What `POST /public/qr/scan` returns: the session, its guest JWT, and the
+ *  ordering context (branch, table, menu) the app opens on. */
+export type ScanResult = {
+  session: { sessionId: string; branchId: string; tableId: string; status: string };
+  guestToken: string;
+  recoveryCode?: string;
+  context: {
+    restaurant: { id: string; name: string; slug: string };
+    branch: { id: string; name: string; slug: string | null };
+    table: { id: string; number: string; seatingCapacity?: number };
+    currency?: string;
+  };
+};
+
 class SessionService {
+  /**
+   * Scan a table QR — the real entry point for ordering.
+   *
+   * This is NOT the same as discovery's `qrService.resolveCode`, which only
+   * VALIDATES a code and tells you the branch. This opens a guest SESSION (the
+   * primary ordering identity: cart, orders and payments all reference it) and
+   * returns the branch/table/menu context to land on. Anonymous by design —
+   * `skipAuth` because a guest scanning a table has no account yet.
+   */
+  async scan(code: string): Promise<ScanResult> {
+    const result = await api.post<ScanResult>('/public/qr/scan', { code }, { skipAuth: true });
+    tokenStore.setGuest(result.guestToken);
+    if (result.context?.branch?.slug) setActiveBranchSlug(result.context.branch.slug);
+    rememberBranchName(result.context?.branch?.name);
+    return result;
+  }
+
   /** Open (or reuse) a guest ordering session for a branch. */
   async open(branchSlug: string, opts: { tableNumber: string }): Promise<OrderingSession> {
     const session = await api.post<OrderingSession>(`${BASE}/open`, { branchSlug, ...opts }, { skipAuth: true });

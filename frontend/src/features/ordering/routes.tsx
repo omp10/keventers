@@ -16,9 +16,14 @@ const OrdersPage = lazy(() => import('./pages/AccountPages').then((m) => ({ defa
 const LoyaltyPage = lazy(() => import('./pages/AccountPages').then((m) => ({ default: m.LoyaltyPage })));
 const NotificationsPage = lazy(() => import('./pages/AccountPages').then((m) => ({ default: m.NotificationsPage })));
 const CustomerLoginPage = lazy(() => import('./pages/CustomerLoginPage').then((m) => ({ default: m.CustomerLoginPage })));
+const ScanLandingPage = lazy(() => import('./pages/ScanLandingPage').then((m) => ({ default: m.ScanLandingPage })));
 
 export const orderingRoutes: OrderingRoute[] = [
   { path: '/login', element: <CustomerLoginPage /> },
+  // Where every printed table QR points (the backend bakes
+  // `QR_PUBLIC_BASE_URL/<code>` into the code itself). Opens the guest session
+  // and lands on the menu. Distinct from discovery's /qr, which is the camera.
+  { path: '/scan/:code', element: <ScanLandingPage /> },
   // Deep links address the menu by category → subcategory slug. Both segments
   // are OPTIONAL, so every existing /r/:slug/menu link keeps working.
   { path: '/r/:branchSlug/menu', element: <MenuScreen /> },

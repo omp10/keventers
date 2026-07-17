@@ -78,6 +78,9 @@ export function toBranchDTO(branch) {
     restaurantId: oid(branch.restaurantId),
     name: branch.name,
     code: branch.code ?? '',
+    /** The customer app addresses branches by slug (/r/:slug), so callers that
+     *  resolve a branch need it to build a link back to the storefront. */
+    slug: branch.slug ?? null,
     address: branch.address ?? null,
     businessHours: branch.businessHours ?? [],
     settings: branch.settings ?? null,
