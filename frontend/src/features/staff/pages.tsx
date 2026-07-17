@@ -119,7 +119,7 @@ export function StaffHomePage() {
           <CardListSkeleton />
         ) : nextUp.length === 0 ? (
           <EmptyState
-            icon="checkCircle"
+            icon={<Icon name="checkCircle" className="mb-3 h-8 w-8 text-success" />}
             title="All caught up"
             description="New orders assigned to you will appear here the moment they land."
           />
@@ -163,7 +163,7 @@ export function StaffOrdersPage() {
         <CardListSkeleton />
       ) : items.length === 0 ? (
         <EmptyState
-          icon="order"
+          icon={<Icon name="order" className="mb-3 h-8 w-8 text-foreground-subtle" />}
           title={search ? 'No matches' : 'Nothing assigned yet'}
           description={search ? 'Try a different search.' : 'Your manager assigns orders from the kitchen board — they appear here instantly.'}
         />
@@ -189,7 +189,7 @@ export function StaffHistoryPage() {
       {history.isLoading ? (
         <CardListSkeleton />
       ) : items.length === 0 ? (
-        <EmptyState icon="clock" title="No history yet" description="Orders you've served will show up here." />
+        <EmptyState icon={<Icon name="clock" className="mb-3 h-8 w-8 text-foreground-subtle" />} title="No history yet" description="Orders you've served will show up here." />
       ) : (
         <div className="space-y-3">{items.map((o) => <StaffOrderCard key={o.id} order={o} showAction={false} />)}</div>
       )}

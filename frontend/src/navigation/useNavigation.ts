@@ -38,7 +38,7 @@ export function useNavigation(app: NavConfig['app'] | NavConfig, activePath?: st
     const tabs = (config.tabs ?? [])
       .map(filterNode)
       .filter(Boolean)
-      .map((n) => ({ key: n!.key, label: n!.label, icon: n!.icon, href: n!.path, active: isActive(n!.path), badge: n!.badge }));
+      .map((n) => ({ key: n!.key, label: n!.label, icon: n!.icon, href: n!.path, active: isActive(n!.path), badge: n!.badge, emphasized: n!.emphasized }));
 
     return { sections, tabs, config };
   }, [config, can, activePath]);

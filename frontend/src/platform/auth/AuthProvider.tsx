@@ -152,6 +152,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  /**
+   * Set your own name. The response IS the updated user, so it becomes the new
+   * session state directly — no re-fetch, and no window where the UI still shows
+   * the old name.
+   */
+  const updateName = useCallback(async (name: { firstName: string; lastName?: string }) => {
+    const updated = await authService.updateMe(name);
+    setUser(updated);
+  }, []);
+
   const value = useMemo(
     () => ({
       status,
@@ -167,8 +177,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setGuestToken,
       refresh: performRefresh,
       reloadUser,
+      updateName,
     }),
-    [status, user, login, loginWithOtp, register, logout, setGuestToken, performRefresh, reloadUser],
+    [status, user, login, loginWithOtp, register, logout, setGuestToken, performRefresh, reloadUser, updateName],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

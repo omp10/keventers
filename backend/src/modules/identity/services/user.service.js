@@ -124,6 +124,12 @@ export class UserService extends BaseService {
     return user ? toUserDTO(user) : null;
   }
 
+  /** Look up a user by phone (read-only). Returns a DTO or null. */
+  async getUserByPhone(phone) {
+    const user = await this.users.findByPhone(phone);
+    return user ? toUserDTO(user) : null;
+  }
+
   /**
    * Batch read seam for other modules that hold user IDs and would otherwise
    * N+1 through `getUser` — e.g. Organization resolving the people behind a

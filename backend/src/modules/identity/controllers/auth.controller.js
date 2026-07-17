@@ -50,6 +50,12 @@ export const AuthController = {
     ApiResponse.success(res, { data });
   }),
 
+  /** PATCH /api/v1/identity/auth/me — the signed-in user edits their own name. */
+  updateMe: asyncHandler(async (req, res) => {
+    const data = await authService.updateMe(req.principal.id, req.body);
+    ApiResponse.success(res, { data });
+  }),
+
   changePassword: asyncHandler(async (req, res) => {
     const data = await userService.changePassword(
       req.principal.id,

@@ -75,6 +75,28 @@ describe('ProvisioningService', () => {
     expect(membership.role).toBe(ORG_ROLES.ORGANIZATION_ADMIN);
   });
 
+  it('links an existing phone owner when the application email is different', async () => {
+    const existing = await ctx.users.createUser({
+      email: 'customer@k.test',
+      phone: '9999999999',
+      roles: [],
+      type: 'customer',
+    });
+    const app = await seededApp(ctx.applications);
+
+    const result = await ctx.service.provisionFromApplication(app, {}, 'admin-1');
+
+    expect(result.createdUser).toBe(false);
+    expect(result.owner.id).toBe(existing.id);
+    expect(ctx.users.created).toHaveLength(1);
+    expect(result.owner.roles).toEqual(
+      expect.arrayContaining([ORG_ROLES.ORGANIZATION_ADMIN, ORG_ROLES.RESTAURANT_MANAGER]),
+    );
+    const membership = [...ctx.memberships.docs.values()][0];
+    expect(membership.userId).toBe(existing.id);
+    expect(membership.isOwner).toBe(true);
+  });
+
   it('compensates (rolls back) when a later step fails', async () => {
     const app = await seededApp(ctx.applications);
     // Force branch creation to fail after org + restaurant are created.

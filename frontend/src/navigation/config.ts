@@ -8,15 +8,31 @@ import type { NavConfig } from './types';
  * the exact items.)
  */
 
+/**
+ * The Customer PWA's bottom tab bar — the ONE definition, shared by the discovery
+ * shell and the ordering shell so the bar never changes shape as you move between
+ * them.
+ *
+ * ORDER IS THE DESIGN, and these five are deliberate:
+ *  - Scan sits dead CENTRE as the raised primary action: it's the easiest point
+ *    for a thumb to reach, and scanning a table QR is why most people open this
+ *    app at all.
+ *  - Profile sits RIGHTMOST, where every mainstream app trains people to look for
+ *    their account.
+ *  - There is no Discover tab. Browsing all restaurants is not what a customer
+ *    sitting at a table wants; search still lives in the home header, and /discover
+ *    remains routable for anyone who deep-links to it.
+ * Paths must be REAL routes — an unroutable tab is a 404 the user finds for us.
+ */
 export const customerNav: NavConfig = {
   app: 'customer',
   groups: [],
   tabs: [
     { key: 'home', label: 'Home', icon: 'home', path: '/' },
-    { key: 'discover', label: 'Discover', icon: 'search', path: '/discover', access: { requireFlags: ['discovery'] } },
-    { key: 'orders', label: 'Orders', icon: 'order', path: '/orders' },
-    { key: 'rewards', label: 'Rewards', icon: 'gift', path: '/rewards', access: { requireFlags: ['loyalty'] } },
-    { key: 'profile', label: 'Profile', icon: 'user', path: '/profile' },
+    { key: 'nearby', label: 'Nearby', icon: 'store', path: '/nearby' },
+    { key: 'scan', label: 'Scan', icon: 'qr', path: '/qr', emphasized: true },
+    { key: 'favorites', label: 'Saved', icon: 'star', path: '/favorites' },
+    { key: 'profile', label: 'Profile', icon: 'user', path: '/account' },
   ],
 };
 

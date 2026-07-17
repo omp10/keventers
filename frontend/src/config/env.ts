@@ -58,6 +58,11 @@ export const env = {
   analytics: {
     enabled: flag(import.meta.env.VITE_ANALYTICS_ENABLED as string, environment === 'production'),
     writeKey: (import.meta.env.VITE_ANALYTICS_WRITE_KEY as string) ?? '',
+    /**
+     * Microsoft Clarity project id. Empty = Clarity is simply not loaded, which
+     * is the correct default: no id means no third party receives session data.
+     */
+    clarityProjectId: (import.meta.env.VITE_CLARITY_PROJECT_ID as string) ?? '',
   },
   /** Build-time feature-flag defaults; the flag platform can override at runtime. */
   featureDefaults: {

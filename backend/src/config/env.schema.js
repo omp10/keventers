@@ -9,14 +9,25 @@ export const envSchema = z.object({
   // --- Server ---
   NODE_ENV: z.enum(['development', 'test', 'staging', 'production']).default('development'),
   /**
-   * When true, OTP responses ECHO the code (`devCode`) so the flow is testable
-   * without an SMS provider; the frontend surfaces it in a dev toast. Defaults
-   * to "not production" and is FORCED off in production regardless of value.
+   * When true, phone sign-in uses MOCK_OTP_CODE instead of a random code, and
+   * OTP responses ECHO it (`devCode`) so the flow is testable without an SMS
+   * provider. Defaults to "not production" and is FORCED off in production
+   * regardless of value.
    */
   MOCK_OTP: z
     .string()
     .optional()
     .transform((v) => (v == null ? null : v === 'true')),
+  /**
+   * The fixed code every panel (customer, kitchen, staff) accepts while MOCK_OTP
+   * is on — one number to remember instead of hunting for a fresh random one on
+   * each sign-in. Must be 6 digits to match the real code length; ignored (and
+   * unreachable) whenever MOCK_OTP is off, which production forces.
+   */
+  MOCK_OTP_CODE: z
+    .string()
+    .regex(/^\d{6}$/, 'MOCK_OTP_CODE must be exactly 6 digits')
+    .default('000000'),
   PORT: z.coerce.number().int().positive().default(4000),
   HOST: z.string().default('0.0.0.0'),
   API_PREFIX: z.string().startsWith('/').default('/api'),

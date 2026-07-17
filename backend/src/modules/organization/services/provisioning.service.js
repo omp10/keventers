@@ -68,6 +68,9 @@ export class ProvisioningService extends BaseService {
       // 1. Owner IAM user — create or link, then ensure roles.
       const roles = [ORG_ROLES.ORGANIZATION_ADMIN, ORG_ROLES.RESTAURANT_MANAGER];
       let owner = await this.users.getUserByEmail(application.email);
+      if (!owner && application.phone && typeof this.users.getUserByPhone === 'function') {
+        owner = await this.users.getUserByPhone(application.phone);
+      }
       if (!owner) {
         const { firstName, lastName } = splitOwnerName(application.ownerName);
         owner = await this.users.createUser(

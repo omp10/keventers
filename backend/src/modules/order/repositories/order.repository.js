@@ -135,6 +135,20 @@ export class OrderRepository extends BaseRepository {
   }
 
   /**
+   * A signed-in customer's orders across every visit and every table — what "your
+   * orders" means to the person reading it. Session-scoped listing answers a
+   * different question ("this visit"), which is only the right one while they're
+   * sitting at the table. Served by the `{ customerUserId, createdAt }` index.
+   */
+  paginateForCustomer(customerUserId, params = {}) {
+    return this.paginate({
+      ...params,
+      filter: { ...(params.filter ?? {}), customerUserId },
+      allowedFilterFields: ['customerUserId', 'status', 'orderType', 'restaurantId'],
+    });
+  }
+
+  /**
    * Apply a status transition atomically: only if the stored version matches,
    * setting fields, PUSHING an immutable timeline entry, and bumping the version.
    * Returns the updated order, or null on a version conflict.

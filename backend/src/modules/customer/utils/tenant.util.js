@@ -33,6 +33,36 @@ export function buildCustomerScope(guest) {
   };
 }
 
+/**
+ * Build a customer scope from a signed-in account, with NO guest session.
+ *
+ * Someone opening their profile at home is a first-class case: they are properly
+ * authenticated, they are just not sitting at a table. There is no guest token to
+ * name a restaurant, so we scope to the customer record they used most recently.
+ *
+ * Returns `null` when the account has no customer record at all (signed up, never
+ * ordered). That is NOT an error — it means "nothing to show yet", and callers
+ * render an empty state rather than failing. Their identity still comes from the
+ * identity module, which needs no restaurant.
+ *
+ * @param {string} userId authenticated principal id
+ * @param {object} customers customer repository
+ */
+export async function buildAccountCustomerScope(userId, customers) {
+  const records = await customers.findAllForUser(userId);
+  const latest = records[0];
+  if (!latest) return null;
+  return {
+    organizationId: String(latest.organizationId),
+    restaurantId: String(latest.restaurantId),
+    branchId: null,
+    // No table session — anything that genuinely needs one must say so, rather
+    // than silently accepting an id that points at nothing.
+    sessionId: null,
+    userId: String(userId),
+  };
+}
+
 /** Resolve an org+restaurant scope for staff/admin (no branch). */
 export async function resolveRestaurantScope(tenant, restaurantId, deps = {}) {
   const restaurants = deps.restaurantService ?? restaurantService;

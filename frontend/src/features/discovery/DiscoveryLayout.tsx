@@ -2,9 +2,9 @@ import { Suspense } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 
 import { CustomerLayout } from '@/layouts';
-import { Icon, Spinner, ThemeToggleButton } from '@/design-system';
+import { Spinner, ThemeToggleButton } from '@/design-system';
 import { NotificationCenter } from '@/platform/notifications';
-import { discoveryTabs } from './routes';
+import { useNavigation } from '@/navigation';
 
 function RouteFallback() {
   return (
@@ -16,33 +16,23 @@ function RouteFallback() {
 
 /**
  * DiscoveryTabsLayout — the Customer PWA shell for browse surfaces. Reuses the F1
- * CustomerLayout (frosted brand bar + bottom tabs). Tabs come from the route config
- * (`discoveryTabs`), so navigation stays configuration-driven. Active state is
- * derived from the current path.
+ * CustomerLayout (frosted brand bar + bottom tabs). Tabs come from the navigation
+ * config (`customerNav`), which the ordering shell reads too, so the bar is
+ * identical on both and changing it means editing config, never a component.
  */
 export function DiscoveryTabsLayout() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
-
-  const tabs = discoveryTabs.map((t) => ({
-    ...t,
-    active: t.href === '/' ? pathname === '/' : pathname.startsWith(t.href),
-  }));
+  const { tabs } = useNavigation('customer', pathname);
 
   return (
     <CustomerLayout
       tabs={tabs}
       headerActions={
         <>
+          {/* No account button here — Profile is a bottom tab now, and two ways
+              to reach the same page in one frame is just clutter. */}
           <NotificationCenter />
-          <button
-            type="button"
-            aria-label="Account"
-            onClick={() => navigate('/account')}
-            className="grid h-9 w-9 place-items-center rounded-md text-foreground-muted hover:bg-muted hover:text-foreground"
-          >
-            <Icon name="user" className="h-5 w-5" />
-          </button>
           <ThemeToggleButton />
         </>
       }

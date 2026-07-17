@@ -11,6 +11,7 @@ import { PromoCarousel } from './PromoCarousel';
 import { CategoryChips, deriveTopCuisines } from './CategoryChips';
 import { ContinueOrderingCard } from './ContinueOrderingCard';
 import { LoyaltyTeaser } from './LoyaltyTeaser';
+import { SignInPrompt } from './SignInPrompt';
 import { FavoritesRail, NearbyRail, PopularRail, RecentRail, FeaturedRail } from './HomeRails';
 import type { PlaceSuggestion } from '../types';
 
@@ -71,7 +72,12 @@ export function HomeScreen() {
         }
       />
 
-      {/* Act 2 — quick paths + admin-curated offers */}
+      {/* Act 2 — quick paths + admin-curated offers. The sign-in invitation sits
+          here, after the hero has done its job: high enough to be seen on the
+          first screen, but never in front of the reason they came. */}
+      <Reveal>
+        <SignInPrompt />
+      </Reveal>
       <CategoryChips branches={loadedBranches} />
       <Reveal>
         <PromoCarousel />
