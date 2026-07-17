@@ -128,10 +128,22 @@ export class ProvisioningService extends BaseService {
       const restaurantId = entityId(restaurant);
 
       // 4. Primary branch
+      //
+      // The slug is NOT optional decoration: the customer app addresses a branch
+      // as /r/:slug, so a branch without one is unreachable — no storefront, no
+      // menu link, and nothing a table QR could point at. The org and restaurant
+      // above already slug themselves; the branch being missed meant every
+      // restaurant provisioned through approval came out invisible to diners.
+      // Slugged from the CITY when we have one, since a brand's branches are
+      // told apart by place ("raddison-mumbai"), falling back to the name.
+      const branchName = `${restName} - Main`;
+      const branchSlugBase = application.address?.city ? `${restName}-${application.address.city}` : branchName;
+      const branchSlug = await uniqueSlug(branchSlugBase, async (s) => Boolean(await this.branches.findOne({ slug: s })));
       const branch = await this.branches.create({
         organizationId: orgId,
         restaurantId,
-        name: `${restName} - Main`,
+        name: branchName,
+        slug: branchSlug,
         address: application.address ?? {},
         isPrimary: true,
         status: BRANCH_STATUS.ACTIVE,
