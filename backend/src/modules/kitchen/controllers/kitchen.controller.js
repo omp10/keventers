@@ -11,6 +11,12 @@ export const KitchenController = {
     ApiResponse.success(res, { data });
   }),
 
+  /** The roster an order can be assigned to at this outlet, with live workload. */
+  chefs: asyncHandler(async (req, res) => {
+    const data = await kitchenService.listChefs(req.tenant, restaurantIdOf(req), branchIdOf(req));
+    ApiResponse.success(res, { data });
+  }),
+
   /* ── Staff "my work" (chef id always from the principal, never a param) ── */
 
   myQueue: asyncHandler(async (req, res) => {

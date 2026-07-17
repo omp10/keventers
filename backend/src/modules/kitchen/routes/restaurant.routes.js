@@ -31,6 +31,17 @@ router.use(...managementGuards);
 router.get('/queue', validate({ query: listQueueQuerySchema }), KitchenController.queue);
 
 /**
+ * The assignable roster for an outlet. A chef IS a user with a membership here
+ * (`assignment.currentChefId` is a User ref), so this reads the Organization
+ * module's staff seam and attaches each person's live active-ticket count.
+ *
+ * @openapi
+ * /api/v1/restaurant/kitchen/chefs:
+ *   get: { tags: [Kitchen], security: [{ bearerAuth: [] }], summary: Assignable staff for this outlet (?restaurantId=&branchId=) with live workload, responses: { 200: { description: Chefs } } }
+ */
+router.get('/chefs', KitchenController.chefs);
+
+/**
  * @openapi
  * /api/v1/restaurant/kitchen/stations:
  *   get: { tags: [Kitchen/Stations], security: [{ bearerAuth: [] }], summary: List stations, responses: { 200: { description: Stations } } }

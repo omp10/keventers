@@ -31,6 +31,13 @@ export class StaffService extends BaseService {
     this.tenants = tenants;
   }
 
+  /**
+   * Staff of a restaurant, with the PERSON attached.
+   *
+   * A membership on its own is a pile of ids — a roster that says
+   * "6a59cbdd…: staff" is unusable in a UI. The user behind each one is
+   * batch-loaded in a single read (never per-row) and merged in.
+   */
   async listStaff(tenant, restaurantId, query = {}) {
     const restaurant = await this.restaurants.resolveForTenant(tenant, restaurantId);
     const page = await this.memberships.paginate({
@@ -38,7 +45,39 @@ export class StaffService extends BaseService {
       sort: query.sort,
       pagination: { page: query.page, limit: query.limit },
     });
-    return this.paginated(page, toMembershipDTO);
+    const byId = await this.users.getUsersByIds(page.items.map((m) => String(m.userId)));
+    return this.paginated(page, (m) => this.#withUser(m, byId));
+  }
+
+  /** Merge a membership DTO with its user's identity fields. */
+  #withUser(membership, byId) {
+    const dto = toMembershipDTO(membership);
+    const user = byId.get(String(membership.userId)) ?? null;
+    return {
+      ...dto,
+      name: user?.fullName || user?.email || 'Unknown user',
+      email: user?.email ?? null,
+      phone: user?.phone ?? null,
+      avatarUrl: user?.profile?.avatarUrl ?? null,
+      userStatus: user?.status ?? null,
+    };
+  }
+
+  /**
+   * TRUSTED read seam: everyone whose membership reaches a branch, with names.
+   * For other modules that need an assignable roster for one outlet — the
+   * Kitchen's chef picker, for one — without reaching into this module's
+   * repositories or re-deriving what "reaches this branch" means (see
+   * `findReachingBranch`: branch-scoped rows plus the brand/org managers above
+   * them). Scope is already authorized by the caller.
+   */
+  async listForBranchSystem({ organizationId, restaurantId, branchId }) {
+    const memberships = await this.memberships.findReachingBranch(
+      { organizationId, restaurantId, branchId },
+      { limit: 200, sort: '-isOwner' },
+    );
+    const byId = await this.users.getUsersByIds(memberships.map((m) => String(m.userId)));
+    return memberships.map((m) => this.#withUser(m, byId));
   }
 
   async inviteStaff(tenant, restaurantId, { email, role, branchId, firstName }, actorId = null) {

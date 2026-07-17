@@ -28,19 +28,18 @@ export class MembershipRepository extends BaseRepository {
    * org-scoped rows (owners/org admins) cover the whole organization. Matching
    * only on `branchId` would report an outlet as unstaffed while its owner and
    * brand managers plainly run it.
+   *
+   * `branchId` is OPTIONAL: callers resolve scope from the tenant context, which
+   * only pins a branch when one was asked for. Without it the question widens to
+   * "everyone who reaches this RESTAURANT" — every branch's staff included.
+   * Treating a missing branch as `branchId: null` instead would silently match
+   * only the org admins and report a fully staffed restaurant as empty.
    */
   findReachingBranch({ organizationId, restaurantId, branchId }, options = {}) {
-    return this.find(
-      {
-        organizationId,
-        $or: [
-          { branchId },
-          { restaurantId, branchId: null },
-          { restaurantId: null, branchId: null },
-        ],
-      },
-      options,
-    );
+    const reaches = branchId
+      ? [{ branchId }, { restaurantId, branchId: null }, { restaurantId: null, branchId: null }]
+      : [{ restaurantId }, { restaurantId: null, branchId: null }];
+    return this.find({ organizationId, $or: reaches }, options);
   }
 }
 

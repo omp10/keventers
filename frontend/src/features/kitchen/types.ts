@@ -62,7 +62,10 @@ export type KitchenEntry = {
   status: KitchenStatus;
   priority: OrderPriority;
   station?: KitchenStationRef | null;
+  /** Resolved for display by `useKitchenQueue`, which joins the roster. */
   chef?: KitchenChefRef | null;
+  /** What the board wire actually sends — an id, with no name attached. */
+  currentChefId?: string | null;
   tableLabel?: string;
   channel?: string;
   items: KitchenItem[];

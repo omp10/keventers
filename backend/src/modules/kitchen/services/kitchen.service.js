@@ -2,6 +2,7 @@ import { BaseService } from '#core/service/base.service.js';
 import { BadRequestError, ConflictError, ForbiddenError, NotFoundError } from '#core/errors/app-error.js';
 import { distributedLock } from '#core/cache/distributed-lock.js';
 import { orderService } from '#modules/order/index.js';
+import { staffService } from '#modules/organization/index.js';
 
 import {
   ACTIVE_KITCHEN_STATUSES,
@@ -51,6 +52,8 @@ export class KitchenService extends BaseService {
     realtime = kitchenRealtimeService,
     store = kitchenQueueStore,
     orders = orderService,
+    /** Organization's staff seam — the roster an order can be assigned to. */
+    staff = staffService,
     resolveScope = resolveBranchScope,
     lock = distributedLock,
     eventBus,
@@ -64,6 +67,7 @@ export class KitchenService extends BaseService {
     this.realtime = realtime;
     this.store = store;
     this.orders = orders;
+    this.staff = staff;
     this.resolveScope = resolveScope;
     this.lock = lock;
   }
@@ -418,6 +422,50 @@ export class KitchenService extends BaseService {
       { sort: '-priorityWeight timers.queuedAt' },
     );
     return entries.map((e) => toKitchenBoardRowDTO(e));
+  }
+
+  /**
+   * The ROSTER an order can be assigned to at this outlet, with live workload.
+   *
+   * This is the "chef-roster source" the auto-assignment strategy was always
+   * waiting on. There is no separate chef record: a chef is a USER who holds a
+   * membership reaching this branch (`assignment.currentChefId` is a User ref,
+   * and the staff app's own queue filters on it), so the roster comes from the
+   * Organization module's staff seam rather than being re-derived here.
+   *
+   * `activeCount` is what each person is already holding, so the picker can
+   * show who's buried before you hand them another ticket. `workload` is that
+   * count normalised against the busiest person — a relative load, not a
+   * capacity promise, since a kitchen has no per-chef limit to divide by.
+   */
+  async listChefs(tenant, restaurantId, branchId) {
+    const scope = await this.resolveScope(tenant, restaurantId, branchId);
+    const staff = await this.staff.listForBranchSystem(scope);
+
+    const active = await this.queue.findActiveForBranch(scope);
+    const activeByChef = new Map();
+    for (const e of active) {
+      const chefId = e.assignment?.currentChefId ? String(e.assignment.currentChefId) : null;
+      if (chefId) activeByChef.set(chefId, (activeByChef.get(chefId) ?? 0) + 1);
+    }
+    const busiest = Math.max(1, ...activeByChef.values());
+
+    return staff
+      // Owners and org admins hold a membership here but don't work the line;
+      // they'd otherwise clutter every assign dialog.
+      .filter((s) => !s.isOwner)
+      .map((s) => {
+        const activeCount = activeByChef.get(String(s.userId)) ?? 0;
+        return {
+          // The id an assignment stores IS the user id, not the membership's.
+          id: String(s.userId),
+          name: s.name,
+          role: s.role,
+          avatarUrl: s.avatarUrl ?? null,
+          activeCount,
+          workload: Number((activeCount / busiest).toFixed(2)),
+        };
+      });
   }
 }
 

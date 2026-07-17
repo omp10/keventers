@@ -12,9 +12,10 @@ export type KitchenTab = { to: string; label: string; icon: IconName; end?: bool
 export const KITCHEN_TABS: KitchenTab[] = [
   { to: '/kitchen', label: 'Board', icon: 'grid', end: true },
   { to: '/kitchen/dashboard', label: 'Dashboard', icon: 'dashboard' },
+  { to: '/kitchen/staff', label: 'Staff', icon: 'users' },
   { to: '/kitchen/stations', label: 'Stations', icon: 'flame' },
-  { to: '/kitchen/history', label: 'History', icon: 'clock' },
   { to: '/kitchen/menu', label: 'Menu', icon: 'utensils' },
+  { to: '/kitchen/history', label: 'History', icon: 'clock' },
   { to: '/kitchen/profile', label: 'Profile', icon: 'user' },
 ];
 
@@ -26,8 +27,9 @@ export const KITCHEN_TABS: KitchenTab[] = [
  * and a bar that ducks away is a bar you have to chase. It also respects the
  * home-indicator inset so the last row of tabs stays tappable.
  *
- * Six tabs is the practical ceiling for a 375px screen — at ~62px each they stay
- * above the 44px touch-target minimum.
+ * Seven tabs is the ceiling here: at 375px that's ~53px each, still clear of the
+ * 44px touch-target minimum but with no room left. An eighth belongs behind an
+ * overflow rather than squeezed in.
  */
 export function KitchenTabBar({ className }: { className?: string }) {
   return (
