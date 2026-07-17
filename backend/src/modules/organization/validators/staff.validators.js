@@ -15,6 +15,13 @@ const assignableRoles = [
 
 export const inviteStaffSchema = z.object({
   email: z.string().email().toLowerCase(),
+  /**
+   * How floor staff actually sign in: the staff and kitchen apps are phone-OTP
+   * only, so inviting someone without a phone creates an account that can never
+   * log in to see the orders assigned to it. Optional, because managers work
+   * from the email/password dashboard instead.
+   */
+  phone: z.string().trim().min(7).max(20).optional(),
   firstName: z.string().trim().max(80).optional(),
   role: z.enum(assignableRoles),
   restaurantId: objectId.optional(),

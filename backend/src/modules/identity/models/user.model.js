@@ -80,7 +80,13 @@ userSchema.virtual('fullName').get(function fullName() {
 });
 
 // Indexes (including compound).
-userSchema.index({ phone: 1 }, { unique: true, sparse: true });
+//
+// PARTIAL, not sparse: `phone` defaults to null, so the field is PRESENT on
+// every phone-less user — and sparse only skips MISSING fields. The unique
+// constraint therefore applied to null itself, so exactly one account could
+// exist without a phone and the next staff invite (which sets no phone) died on
+// a raw E11000. Only real string phones take part. Same lesson as Branch.slug.
+userSchema.index({ phone: 1 }, { unique: true, partialFilterExpression: { phone: { $type: 'string' } } });
 userSchema.index({ status: 1, type: 1 });
 userSchema.index({ roles: 1 });
 userSchema.index({ createdAt: -1 });

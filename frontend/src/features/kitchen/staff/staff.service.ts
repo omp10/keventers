@@ -44,10 +44,13 @@ export const kitchenStaffService = {
   },
 
   /**
-   * Add someone. Creates or links their IAM user and binds a membership, so
-   * they can sign in to the staff app by phone and be assigned orders.
+   * Add someone. Creates or links their IAM user and binds a membership.
+   *
+   * The PHONE is what makes them usable: the staff app signs in by OTP, so
+   * someone invited with only an email ends up with an account that can never
+   * open the app to see the orders you assign them.
    */
-  invite: (body: { email: string; firstName?: string; role: AssignableRole }) =>
+  invite: (body: { email: string; phone?: string; firstName?: string; role: AssignableRole }) =>
     api.post<StaffMember>(BASE, body),
 
   /** Remove a membership (revokes access; the user account survives). */

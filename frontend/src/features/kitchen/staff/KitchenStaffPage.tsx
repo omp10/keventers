@@ -152,18 +152,32 @@ export function KitchenStaffPage() {
 
 function InviteDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [firstName, setFirstName] = useState('');
   const [role, setRole] = useState<AssignableRole>('staff');
   const [saving, setSaving] = useState(false);
 
   const submit = async () => {
     if (!email.trim()) return toast.error('An email is required to invite someone.');
+    // Floor staff sign in by phone OTP. Inviting one without a number creates
+    // an account that can never open the app the invite was for.
+    if (!phone.trim() && role === 'staff') {
+      return toast.error('A phone number is required for staff', {
+        description: "They sign in to the staff app with it — without one they can't see their orders.",
+      });
+    }
     setSaving(true);
     try {
-      await kitchenStaffService.invite({ email: email.trim(), firstName: firstName.trim() || undefined, role });
+      await kitchenStaffService.invite({
+        email: email.trim(),
+        phone: phone.trim() || undefined,
+        firstName: firstName.trim() || undefined,
+        role,
+      });
       toast.success(`${firstName || email} added`, { description: 'They can sign in to the staff app with their phone.' });
       await queryClient.invalidateQueries({ queryKey: KEY });
       setEmail('');
+      setPhone('');
       setFirstName('');
       onClose();
     } catch (err) {
@@ -182,6 +196,13 @@ function InviteDialog({ open, onClose }: { open: boolean; onClose: () => void })
         <div className="space-y-4">
           <Field label="Email" required description="They'll get a link to set a password.">
             <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="ravi@yourrestaurant.com" />
+          </Field>
+          <Field
+            label="Phone"
+            required={role === 'staff'}
+            description="How they sign in to the staff app to pick up orders."
+          >
+            <Input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+919800000201" />
           </Field>
           <Field label="Name">
             <Input value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="Ravi" />

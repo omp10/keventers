@@ -80,7 +80,13 @@ const menuSchema = new Schema(
 );
 
 // Tenant-scoped uniqueness + hot query paths.
-menuSchema.index({ organizationId: 1, restaurantId: 1, slug: 1 }, { unique: true });
+// Unique among LIVE menus only — see the note on Category's slug index: the
+// availability check can't see soft-deleted rows, so an unfiltered unique index
+// makes a deleted menu's name unusable forever.
+menuSchema.index(
+  { organizationId: 1, restaurantId: 1, slug: 1 },
+  { unique: true, partialFilterExpression: { deletedAt: null } },
+);
 menuSchema.index({ restaurantId: 1, status: 1, displayOrder: 1 });
 menuSchema.index({ restaurantId: 1, isActive: 1 });
 menuSchema.index({ restaurantId: 1, type: 1 });

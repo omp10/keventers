@@ -52,7 +52,16 @@ const categorySchema = new Schema(
 );
 
 // Tenant-scoped uniqueness + query paths (list mains, list a parent's children).
-categorySchema.index({ organizationId: 1, restaurantId: 1, slug: 1 }, { unique: true });
+//
+// Unique among LIVE categories only. The service checks a slug's availability
+// with `existsBySlug`, which on a soft-delete repo cannot see deleted rows — so
+// without this filter the check says "free" while the index says "taken", and
+// deleting a category burned its name forever: re-creating it died on a raw
+// E11000 surfaced as a 500.
+categorySchema.index(
+  { organizationId: 1, restaurantId: 1, slug: 1 },
+  { unique: true, partialFilterExpression: { deletedAt: null } },
+);
 categorySchema.index({ restaurantId: 1, parentId: 1, displayOrder: 1 });
 categorySchema.index({ restaurantId: 1, menuId: 1, status: 1 });
 categorySchema.index({ restaurantId: 1, status: 1 });

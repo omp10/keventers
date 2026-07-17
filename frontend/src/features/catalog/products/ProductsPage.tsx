@@ -78,7 +78,6 @@ export function ProductsPage() {
     { key: 'unpublish', label: 'Unpublish', icon: 'eyeOff' as const, onClick: () => runBulk('unpublish') },
     { key: 'available', label: 'Available', icon: 'check' as const, onClick: () => runBulk('available') },
     { key: 'unavailable', label: 'Unavailable', icon: 'close' as const, onClick: () => runBulk('unavailable') },
-    { key: 'duplicate', label: 'Duplicate', icon: 'copy' as const, onClick: () => runBulk('duplicate') },
     {
       key: 'archive',
       label: 'Archive',

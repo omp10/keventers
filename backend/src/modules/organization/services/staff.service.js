@@ -80,7 +80,7 @@ export class StaffService extends BaseService {
     return memberships.map((m) => this.#withUser(m, byId));
   }
 
-  async inviteStaff(tenant, restaurantId, { email, role, branchId, firstName }, actorId = null) {
+  async inviteStaff(tenant, restaurantId, { email, phone, role, branchId, firstName }, actorId = null) {
     const restaurant = await this.restaurants.resolveForTenant(tenant, restaurantId);
     const orgId = String(restaurant.organizationId);
 
@@ -89,6 +89,10 @@ export class StaffService extends BaseService {
       user = await this.users.createUser(
         {
           email,
+          // Carried through so floor staff can actually sign in: the staff and
+          // kitchen apps authenticate by phone OTP, so an invite without one
+          // created an account that could never open the app it was made for.
+          phone: phone || null,
           firstName: firstName || email.split('@')[0],
           type: USER_TYPE.STAFF,
           roles: [role],

@@ -158,7 +158,13 @@ const productSchema = new Schema(
 );
 
 // --- indexes: tenant-scoped uniqueness, hot listing paths, text search ---
-productSchema.index({ organizationId: 1, restaurantId: 1, slug: 1 }, { unique: true });
+// Unique among LIVE products only — see the note on Category's slug index: the
+// availability check can't see soft-deleted rows, so an unfiltered unique index
+// makes a deleted product's name unusable forever.
+productSchema.index(
+  { organizationId: 1, restaurantId: 1, slug: 1 },
+  { unique: true, partialFilterExpression: { deletedAt: null } },
+);
 productSchema.index(
   { restaurantId: 1, sku: 1 },
   { unique: true, partialFilterExpression: { sku: { $type: 'string' } } },

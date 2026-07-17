@@ -4,10 +4,16 @@ import type { Availability, CatalogProduct, ProductFilters } from '../types';
 /**
  * PRODUCT SERVICE — the ONLY place the catalog app talks to the backend Catalog
  * module for products. Components go hooks → this → API Platform. The backend owns
- * all rules (pricing, availability resolution, publish state machine); we send
- * drafts and render results. Bulk ops are one endpoint, reused by the bulk bar.
+ * all rules (pricing, availability resolution); we send drafts and render
+ * results.
  */
-export type BulkAction = 'archive' | 'unarchive' | 'delete' | 'duplicate' | 'publish' | 'unpublish' | 'available' | 'unavailable' | 'move';
+
+/**
+ * What the bulk bar can actually do. Every one maps to a single-product
+ * endpoint that exists — `duplicate` and `move` used to be listed here with no
+ * backend behind them, so offering them only produced a 404.
+ */
+export type BulkAction = 'publish' | 'unpublish' | 'archive' | 'unarchive' | 'available' | 'unavailable' | 'delete';
 
 function toParams(f: ProductFilters, page: number, limit: number) {
   return {
@@ -66,13 +72,48 @@ class ProductService {
     return api.patch<CatalogProduct>(`/restaurant/products/${id}/availability`, availability);
   }
 
-  reorder(categoryId: string, orderedIds: string[]) {
-    return api.post<{ ok: true }>('/restaurant/products/reorder', { categoryId, orderedIds });
+  remove(id: string) {
+    return api.delete<{ id: string }>(`/restaurant/products/${id}`);
   }
 
-  /** One bulk endpoint, reused by the bulk action bar. */
-  bulk(action: BulkAction, ids: string[], params?: Record<string, unknown>) {
-    return api.post<{ ok: true; affected: number }>('/restaurant/products/bulk', { action, ids, params });
+  /**
+   * Bulk actions, fanned out one product at a time.
+   *
+   * There is no bulk endpoint: this used to POST /restaurant/products/bulk,
+   * which the backend never served, so every button in the bulk bar 404'd. Each
+   * action is just the single-product call that already exists, so fan them out
+   * rather than invent a batch API for a bar that acts on a few selected rows.
+   *
+   * ponytail: N requests for N selections — fine for a selection bar; add a real
+   * bulk endpoint if anyone starts selecting hundreds.
+   */
+  async bulk(action: BulkAction, ids: string[]): Promise<{ affected: number }> {
+    const run = (id: string) => {
+      switch (action) {
+        case 'publish':
+          return this.publish(id);
+        case 'unpublish':
+          return this.unpublish(id);
+        case 'archive':
+          return this.archive(id);
+        case 'unarchive':
+          return this.update(id, { status: 'active' });
+        case 'available':
+          return this.setAvailability(id, { status: 'available' } as Availability);
+        case 'unavailable':
+          return this.setAvailability(id, { status: 'out_of_stock' } as Availability);
+        case 'delete':
+          return this.remove(id);
+      }
+    };
+
+    const results = await Promise.allSettled(ids.map(run));
+    const failures = results.filter((r) => r.status === 'rejected');
+    // All failed → surface the real error instead of a silent "0 updated".
+    if (ids.length > 0 && failures.length === ids.length) {
+      throw (failures[0] as PromiseRejectedResult).reason;
+    }
+    return { affected: results.length - failures.length };
   }
 }
 
