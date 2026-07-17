@@ -4,6 +4,7 @@ import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { Icon, Spinner } from '@/design-system';
 import { useNavigation } from '@/navigation';
 import { ConnectionStatus } from '@/shell';
+import { LiveOrderTracker } from './components';
 import { cn } from '@/lib/cn';
 import { glass } from '@/utils/style';
 
@@ -37,6 +38,7 @@ export function OrderingLayout() {
           <Outlet />
         </Suspense>
       </main>
+      {showCustomerTabs && <LiveOrderTracker />}
       {showCustomerTabs && (
         <nav
           className={cn('fixed inset-x-0 bottom-0 z-[100] flex items-stretch border-t border-border lg:hidden', glass())}

@@ -2,6 +2,9 @@ import { Suspense } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 
 import { CustomerLayout } from '@/layouts';
+// Deep import, not the ordering barrel — ordering's barrel imports discovery
+// (MenuScreen → useBranchDetail), so going through it here would be a cycle.
+import { LiveOrderTracker } from '@/features/ordering/components/LiveOrderTracker';
 import { Spinner, ThemeToggleButton } from '@/design-system';
 import { NotificationCenter } from '@/platform/notifications';
 import { useNavigation } from '@/navigation';
@@ -45,6 +48,7 @@ export function DiscoveryTabsLayout() {
       <Suspense fallback={<RouteFallback />}>
         <Outlet />
       </Suspense>
+      <LiveOrderTracker />
     </CustomerLayout>
   );
 }

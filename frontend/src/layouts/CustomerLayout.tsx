@@ -1,11 +1,8 @@
 import type { ReactNode } from 'react';
-import { motion, useReducedMotion } from 'framer-motion';
 
 import { cn } from '@/lib/cn';
 import { Icon } from '@/design-system';
 import { Logo } from '@/assets';
-import { transitions } from '@/animations';
-import { useHideOnScroll } from '@/hooks';
 import { glass } from '@/utils/style';
 import { defaultRenderLink, type NavItem, type RenderLink } from './types';
 
@@ -33,14 +30,11 @@ export type CustomerLayoutProps = {
  * (`useScroll`) and the scroll-reveal observers.
  */
 export function CustomerLayout({ tabs, header, headerActions, renderLink = defaultRenderLink, children, className }: CustomerLayoutProps) {
-  // The tab bar ducks away while reading and returns the moment the user
-  // scrolls up. Under reduced motion it stays pinned open — a bar that jumps in
-  // and out without transition is worse than one that simply stays.
-  const reduced = Boolean(useReducedMotion());
-  const tabsHidden = useHideOnScroll({ enabled: !reduced });
-
+  const hasTabs = Boolean(tabs && tabs.length > 0);
   return (
-    <div className={cn('relative flex min-h-dvh flex-col bg-background', className)}>
+    // The bottom padding reserves room for the FIXED tab bar so the last row of
+    // content can scroll clear of it.
+    <div className={cn('relative flex min-h-dvh flex-col bg-background', hasTabs && 'pb-[calc(4.5rem+env(safe-area-inset-bottom))] lg:pb-0', className)}>
       {/* Ambient desktop backdrop. `overflow-hidden` belongs HERE (clipping the
           blurred blooms so they can't widen the page), not on the shell. */}
       <div aria-hidden className="pointer-events-none fixed inset-0 hidden overflow-hidden lg:block">
@@ -85,17 +79,14 @@ export function CustomerLayout({ tabs, header, headerActions, renderLink = defau
       </main>
 
       {tabs && tabs.length > 0 && (
-        <motion.nav
-          // Slides fully out of view (its own height + the safe-area inset) —
-          // `sticky` keeps its slot in flow, so nothing below shifts.
-          animate={{ y: tabsHidden ? '100%' : '0%' }}
-          initial={false}
-          transition={transitions.default}
-          className={cn('sticky bottom-0 z-[100] flex items-stretch border-t border-border lg:hidden', glass())}
+        <nav
+          // FIXED and permanent. It used to be `sticky bottom-0` with a
+          // hide-on-scroll animation: sticky mis-pins against mobile dynamic
+          // viewports (the bar rendered partly below the URL bar — "cut off"),
+          // and the duck-away animation read as the nav randomly vanishing.
+          className={cn('fixed inset-x-0 bottom-0 z-[100] flex items-stretch border-t border-border lg:hidden', glass())}
           style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
           aria-label="Primary"
-          // Hidden from the a11y tree only while it's actually off-screen.
-          aria-hidden={tabsHidden || undefined}
         >
           {tabs.map((tab) => {
             // Emphasized tab — the shell's raised primary action (e.g. Scan).
@@ -131,7 +122,7 @@ export function CustomerLayout({ tabs, header, headerActions, renderLink = defau
               </div>
             );
           })}
-        </motion.nav>
+        </nav>
       )}
     </div>
   );
