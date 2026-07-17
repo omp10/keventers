@@ -14,6 +14,9 @@ const TABS: { to: string; label: string; icon: IconName; end?: boolean }[] = [
   { to: '/kitchen', label: 'Board', icon: 'grid', end: true },
   { to: '/kitchen/dashboard', label: 'Dashboard', icon: 'dashboard' },
   { to: '/kitchen/stations', label: 'Stations', icon: 'flame' },
+  { to: '/kitchen/history', label: 'History', icon: 'clock' },
+  { to: '/kitchen/menu', label: 'Menu', icon: 'utensils' },
+  { to: '/kitchen/profile', label: 'Profile', icon: 'user' },
 ];
 
 /**

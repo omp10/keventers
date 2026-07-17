@@ -172,7 +172,9 @@ export class ApiClient {
     if (!config.skipAuth) {
       const access = this.auth.getAccessToken();
       const guest = this.auth.getGuestToken();
-      const token = access ?? guest;
+      // 'guest' = session-scoped endpoints (cart/orders): the table session
+      // stays the credential even after the customer signs into an account.
+      const token = config.auth === 'guest' ? (guest ?? access) : (access ?? guest);
       if (token) headers.authorization = `Bearer ${token}`;
     }
     return headers;

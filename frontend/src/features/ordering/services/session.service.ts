@@ -37,12 +37,30 @@ class SessionService {
 
   /** Current session for the stored guest token (resume). */
   current() {
-    return api.get<OrderingSession>(`${BASE}/current`);
+    return api.get<OrderingSession>(`${BASE}/current`, { auth: 'guest' });
   }
 
   /** Whether a guest ordering session token is present. */
   has() {
     return Boolean(tokenStore.getGuest());
+  }
+
+  /**
+   * Attach the signed-in customer's account to the current guest session
+   * (guest → account conversion). Sends the ACCOUNT token in the header and the
+   * guest token in the body as proof of session ownership; the backend then
+   * backfills past session orders onto the account. Best-effort by design —
+   * failing to link must never block a sign-in.
+   */
+  async linkToAccount(): Promise<boolean> {
+    const guestToken = tokenStore.getGuest();
+    if (!guestToken) return false;
+    try {
+      await api.post(`${BASE}/link`, { guestToken });
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   /** End the local session (does not delete server data). */

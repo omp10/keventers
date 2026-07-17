@@ -1,5 +1,5 @@
 import { BaseService } from '#core/service/base.service.js';
-import { ConflictError, NotFoundError } from '#core/errors/app-error.js';
+import { BadRequestError, ConflictError, ForbiddenError, NotFoundError } from '#core/errors/app-error.js';
 import { distributedLock } from '#core/cache/distributed-lock.js';
 import { orderService } from '#modules/order/index.js';
 
@@ -13,6 +13,7 @@ import {
   REDIS_KEYS,
   SOCKET_EVENTS,
   STATUS_SOCKET_EVENT,
+  TERMINAL_KITCHEN_STATUSES,
 } from '../constants/kitchen.constants.js';
 import { toKitchenBoardRowDTO, toKitchenEntryDTO } from '../dto/kitchen.dto.js';
 import {
@@ -350,6 +351,63 @@ export class KitchenService extends BaseService {
   async getEntry(tenant, orderId) {
     const entry = await this.#loadByOrder(tenant, orderId);
     return toKitchenEntryDTO(entry);
+  }
+
+  /* ─────────────────── STAFF ("my work") surface ───────────────────
+   * The floor-staff app shows each person ONLY the orders assigned to them and
+   * lets them advance ONLY those. Same queue, same state machine — the chef id
+   * comes from the AUTHENTICATED principal, never from a query param, so one
+   * staff member can't browse or drive a colleague's orders. */
+
+  /** Orders currently assigned to this user (their live worklist). */
+  async getMyQueue(tenant, userId, query = {}) {
+    const scope = await this.resolveScope(tenant, query.restaurantId, query.branchId);
+    const page = await this.queue.paginateForBranch(scope, {
+      filter: {
+        'assignment.currentChefId': userId,
+        status: query.status ? query.status : { $in: ACTIVE_KITCHEN_STATUSES },
+      },
+      search: query.search,
+      sort: '-priorityWeight timers.queuedAt',
+      pagination: { page: query.page, limit: query.limit },
+    });
+    return this.paginated(page, (e) => toKitchenEntryDTO(e));
+  }
+
+  /** This user's finished work (served/cancelled), newest first. */
+  async getMyHistory(tenant, userId, query = {}) {
+    const scope = await this.resolveScope(tenant, query.restaurantId, query.branchId);
+    const page = await this.queue.paginateForBranch(scope, {
+      filter: {
+        'assignment.currentChefId': userId,
+        status: { $in: TERMINAL_KITCHEN_STATUSES },
+      },
+      search: query.search,
+      sort: '-timers.servedAt -updatedAt',
+      pagination: { page: query.page, limit: query.limit },
+    });
+    return this.paginated(page, (e) => toKitchenEntryDTO(e));
+  }
+
+  /**
+   * Advance an order AS ITS ASSIGNED CHEF. Managers use the unrestricted
+   * endpoints; this one refuses unless the caller is the assignee.
+   */
+  async transitionAsChef(tenant, orderId, action, actorId) {
+    const entry = await this.#loadByOrder(tenant, orderId);
+    if (String(entry.assignment?.currentChefId ?? '') !== String(actorId)) {
+      throw new ForbiddenError(KITCHEN_ERRORS.NOT_ASSIGNED_TO_YOU);
+    }
+    switch (action) {
+      case 'preparing':
+        return this.startPreparing(tenant, orderId, actorId);
+      case 'ready':
+        return this.markReady(tenant, orderId, actorId);
+      case 'served':
+        return this.markServed(tenant, orderId, actorId);
+      default:
+        throw new BadRequestError(KITCHEN_ERRORS.INVALID_TRANSITION);
+    }
   }
 
   async getStationBoard(tenant, restaurantId, branchId, stationId) {

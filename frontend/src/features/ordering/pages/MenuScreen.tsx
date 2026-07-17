@@ -30,7 +30,7 @@ import type { CartItemSelection, Product } from '../types';
  * quick-add; customizable ones open the drawer. Prices/cart come from the backend.
  */
 export function MenuScreen() {
-  const { branchSlug } = useParams<{ branchSlug: string }>();
+  const { branchSlug, categorySlug, subSlug } = useParams<{ branchSlug: string; categorySlug?: string; subSlug?: string }>();
   const navigate = useNavigate();
   const branch = useBranchDetail(branchSlug);
   const menu = useMenu(branchSlug);
@@ -127,7 +127,21 @@ export function MenuScreen() {
       <ProductRail title="Popular" icon="trend" products={data.popular ?? []} onAdd={onAdd} onOpen={onOpen} onPrefetch={prefetch} />
       <ProductRail title="Recommended" icon="star" products={data.recommended ?? []} onAdd={onAdd} onOpen={onOpen} onPrefetch={prefetch} />
 
-      <MenuBoard menu={data} onAdd={onAdd} onOpen={onOpen} onPrefetch={prefetch} cartQuantities={cartQuantities} />
+      <MenuBoard
+        menu={data}
+        selection={{ categorySlug, subSlug }}
+        // Browsing rewrites the URL so the view is shareable/refreshable, but
+        // `replace` keeps Back meaning "leave the menu" rather than replaying
+        // every chip tap.
+        onSelect={({ categorySlug: c, subSlug: s }) => {
+          const path = [`/r/${branchSlug}/menu`, c, c && s].filter(Boolean).join('/');
+          navigate(path, { replace: true });
+        }}
+        onAdd={onAdd}
+        onOpen={onOpen}
+        onPrefetch={prefetch}
+        cartQuantities={cartQuantities}
+      />
 
       <FloatingCart
         itemCount={cart.itemCount}

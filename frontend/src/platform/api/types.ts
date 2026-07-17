@@ -67,6 +67,13 @@ export type RequestConfig = {
   signal?: AbortSignal;
   /** Skip the Authorization header (public endpoints). */
   skipAuth?: boolean;
+  /**
+   * Which credential to send when BOTH exist. Ordering endpoints (cart/orders/
+   * session) authenticate by the GUEST session token even after the customer
+   * signs in — their ordering identity IS the table session — so those services
+   * pass 'guest'. Default 'auto' prefers the account access token.
+   */
+  auth?: 'auto' | 'guest';
   /** Retry policy override. */
   retries?: number;
   /** Treat this as an idempotent mutation that may be queued while offline. */

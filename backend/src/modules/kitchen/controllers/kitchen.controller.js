@@ -11,6 +11,23 @@ export const KitchenController = {
     ApiResponse.success(res, { data });
   }),
 
+  /* ── Staff "my work" (chef id always from the principal, never a param) ── */
+
+  myQueue: asyncHandler(async (req, res) => {
+    const data = await kitchenService.getMyQueue(req.tenant, req.principal.id, req.validatedQuery ?? {});
+    ApiResponse.success(res, { data });
+  }),
+
+  myHistory: asyncHandler(async (req, res) => {
+    const data = await kitchenService.getMyHistory(req.tenant, req.principal.id, req.validatedQuery ?? {});
+    ApiResponse.success(res, { data });
+  }),
+
+  myTransition: asyncHandler(async (req, res) => {
+    const data = await kitchenService.transitionAsChef(req.tenant, req.params.id, req.params.action, actor(req));
+    ApiResponse.success(res, { data });
+  }),
+
   getEntry: asyncHandler(async (req, res) => {
     const data = await kitchenService.getEntry(req.tenant, req.params.id);
     ApiResponse.success(res, { data });

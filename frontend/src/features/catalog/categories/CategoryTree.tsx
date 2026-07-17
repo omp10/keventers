@@ -3,7 +3,7 @@ import { useMemo, useState } from 'react';
 import { Button, Checkbox, Icon, Input, Switch } from '@/design-system';
 import { cn } from '@/lib/cn';
 import { BulkActionBar, useBulkSelection } from '../bulk';
-import { SortableList, StatusBadge, AvailabilityBadge } from '../components';
+import { SortableList } from '../components';
 import { useCategoryMutations, useCategoryTree } from '../hooks';
 import type { Category } from '../types';
 
@@ -39,10 +39,13 @@ export function CategoryTree({ onEdit }: { onEdit: (category: Category) => void 
       return next;
     });
 
+  // Show/hide/delete — the only things the category API can actually do to a
+  // selection. Categories have no availability schedule of their own; a
+  // product's availability is the product's.
   const bulkActions = [
-    { key: 'available', label: 'Available', icon: 'check' as const, onClick: () => void cm.bulk('available', selection.ids) },
-    { key: 'unavailable', label: 'Unavailable', icon: 'close' as const, onClick: () => void cm.bulk('unavailable', selection.ids) },
-    { key: 'archive', label: 'Archive', icon: 'delete' as const, tone: 'danger' as const, onClick: () => void cm.bulk('archive', selection.ids) },
+    { key: 'show', label: 'Show', icon: 'check' as const, onClick: () => void cm.bulk('show', selection.ids).then(selection.clear) },
+    { key: 'hide', label: 'Hide', icon: 'close' as const, onClick: () => void cm.bulk('hide', selection.ids).then(selection.clear) },
+    { key: 'delete', label: 'Delete', icon: 'delete' as const, tone: 'danger' as const, onClick: () => void cm.bulk('delete', selection.ids).then(selection.clear) },
   ];
 
   /** A single category row (shared by tree + flat views). */
@@ -82,13 +85,11 @@ export function CategoryTree({ onEdit }: { onEdit: (category: Category) => void 
 
         <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">{cat.name}</span>
 
-        <div className="hidden shrink-0 items-center gap-2 sm:flex">
-          <StatusBadge status={cat.status} />
-          <AvailabilityBadge availability={cat.availability} />
-          <span className="inline-flex items-center gap-1 text-xs text-foreground-subtle">
-            <Icon name="package" size="sm" /> {cat.productCount ?? 0}
+        {hasChildren && (
+          <span className="hidden shrink-0 items-center gap-1 text-xs text-foreground-subtle sm:inline-flex">
+            <Icon name="grid" size="sm" /> {cat.children!.length}
           </span>
-        </div>
+        )}
 
         <Switch
           checked={cat.visible}

@@ -3,6 +3,7 @@ import { ForbiddenError } from '#core/errors/app-error.js';
 import { ApiResponse } from '#core/http/api-response.js';
 
 import { QR_ERRORS } from '../constants/qr.constants.js';
+import { guestTokenService } from '../services/guest-token.service.js';
 import { scanService } from '../services/scan.service.js';
 import { sessionService } from '../services/session.service.js';
 
@@ -55,6 +56,19 @@ export const PublicSessionController = {
       data: toOrderingSession(result, { branchSlug, tableNumber }),
       statusCode: 201,
     });
+  }),
+
+  /**
+   * POST /public/session/link — attach the caller's ACCOUNT to a guest session
+   * (guest → customer conversion after sign-in). The Authorization header
+   * carries the account access token; possession of the guest token in the
+   * body proves ownership of the session. Past orders backfill via the
+   * `session.linked_account` event.
+   */
+  link: asyncHandler(async (req, res) => {
+    const guest = guestTokenService.toGuest(guestTokenService.verify(req.body.guestToken));
+    const data = await sessionService.linkAccount(guest.sessionId, req.principal.id);
+    ApiResponse.success(res, { data });
   }),
 
   /** GET /public/session/current — resume from the caller's guest token. */

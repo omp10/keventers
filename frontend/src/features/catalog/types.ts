@@ -46,6 +46,13 @@ export type Menu = {
 };
 
 // ---- Category ---------------------------------------------------------------
+/**
+ * A menu category, in the vocabulary the UI uses. `category.service` maps this
+ * to and from the API's DTO — see the note there before adding a field. Notably
+ * there is NO per-category availability or status enum: the API models a
+ * category as simply active or inactive, which `visible` represents. Categories
+ * nest one level (`children`), and the backend enforces that cap.
+ */
 export type Category = {
   id: string;
   name: string;
@@ -56,9 +63,7 @@ export type Category = {
   image?: MediaImage | null;
   icon?: string;
   visible: boolean;
-  availability?: Availability;
-  status: CatalogStatus;
-  productCount?: number;
+  featured?: boolean;
   children?: Category[];
   updatedAt?: string;
 };

@@ -15,3 +15,21 @@ export const managementGuards = [
 ];
 
 export const adminGuards = [requireAuth, resolveTenant, requireRole(ORG_ROLES.SUPER_ADMIN)];
+
+/**
+ * Floor staff (waiters/runners/chefs on their own phones). They reach ONLY the
+ * "my work" endpoints — the service further restricts every read/transition to
+ * orders assigned to the authenticated user, so the role gate here is the outer
+ * fence, not the whole protection.
+ */
+export const staffGuards = [
+  requireAuth,
+  resolveTenant,
+  requireTenant,
+  requireRole(
+    ORG_ROLES.STAFF,
+    ORG_ROLES.BRANCH_MANAGER,
+    ORG_ROLES.RESTAURANT_MANAGER,
+    ORG_ROLES.ORGANIZATION_ADMIN,
+  ),
+];

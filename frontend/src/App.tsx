@@ -6,7 +6,8 @@ import { discoveryRoutes, DiscoveryMinimalLayout, DiscoveryTabsLayout } from '@/
 import { orderingRoutes, OrderingLayout } from '@/features/ordering';
 import { restaurantRoutes, RestaurantLayout, RestaurantLoginPage } from '@/features/restaurant';
 import { catalogRoutes, CatalogLayout } from '@/features/catalog';
-import { KitchenShell, KitchenBoardRoute, KitchenDashboardRoute, KitchenStationsRoute, KitchenLoginPage, KitchenOnboardingGate, KitchenOnboardingPage, KitchenRegisterPage } from '@/features/kitchen';
+import { KitchenShell, KitchenBoardRoute, KitchenDashboardRoute, KitchenStationsRoute, KitchenHistoryRoute, KitchenMenuRoute, KitchenProfileRoute, KitchenLoginPage, KitchenOnboardingGate, KitchenOnboardingPage, KitchenRegisterPage } from '@/features/kitchen';
+import { StaffShell, StaffLoginPage, StaffHomePage, StaffOrdersPage, StaffHistoryPage, StaffNotificationsPage, StaffProfilePage } from '@/features/staff';
 import { Showcase } from '@/app/Showcase';
 import { AdminLayout, AdminLoginPage, adminRoutes } from '@/features/admin';
 
@@ -45,6 +46,24 @@ export function App() {
       <Route path="/kitchen/onboarding" element={<RequireAuth redirectTo="/kitchen/login"><KitchenOnboardingPage /></RequireAuth>} />
       <Route path="/kitchen/onboarding/register" element={<RequireAuth redirectTo="/kitchen/login"><KitchenRegisterPage /></RequireAuth>} />
       <Route path="/admin/login" element={<AdminLoginPage />} />
+      {/* Staff phone app (F9) — assigned-order worklist behind phone-OTP sign-in. */}
+      <Route path="/staff/login" element={<StaffLoginPage />} />
+      <Route
+        element={
+          <RequireRole
+            roles={['staff', 'branch_manager', 'restaurant_manager', 'organization_admin']}
+            redirectTo="/staff/login"
+          >
+            <StaffShell />
+          </RequireRole>
+        }
+      >
+        <Route path="/staff" element={<StaffHomePage />} />
+        <Route path="/staff/orders" element={<StaffOrdersPage />} />
+        <Route path="/staff/history" element={<StaffHistoryPage />} />
+        <Route path="/staff/notifications" element={<StaffNotificationsPage />} />
+        <Route path="/staff/profile" element={<StaffProfilePage />} />
+      </Route>
       <Route
         element={
           <RequireAuth redirectTo="/dashboard/login">
@@ -74,6 +93,9 @@ export function App() {
         <Route index element={<KitchenBoardRoute />} />
         <Route path="dashboard" element={<KitchenDashboardRoute />} />
         <Route path="stations" element={<KitchenStationsRoute />} />
+        <Route path="history" element={<KitchenHistoryRoute />} />
+        <Route path="menu" element={<KitchenMenuRoute />} />
+        <Route path="profile" element={<KitchenProfileRoute />} />
       </Route>
       <Route element={<RequireRole roles={['super_admin']} redirectTo="/admin/login"><AdminLayout /></RequireRole>}>
         {adminRoutes.map((r) => <Route key={r.path} path={r.path} element={r.element} />)}

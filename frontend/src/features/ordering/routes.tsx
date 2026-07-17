@@ -15,9 +15,15 @@ const AccountPage = lazy(() => import('./pages/AccountPages').then((m) => ({ def
 const OrdersPage = lazy(() => import('./pages/AccountPages').then((m) => ({ default: m.OrdersPage })));
 const LoyaltyPage = lazy(() => import('./pages/AccountPages').then((m) => ({ default: m.LoyaltyPage })));
 const NotificationsPage = lazy(() => import('./pages/AccountPages').then((m) => ({ default: m.NotificationsPage })));
+const CustomerLoginPage = lazy(() => import('./pages/CustomerLoginPage').then((m) => ({ default: m.CustomerLoginPage })));
 
 export const orderingRoutes: OrderingRoute[] = [
+  { path: '/login', element: <CustomerLoginPage /> },
+  // Deep links address the menu by category → subcategory slug. Both segments
+  // are OPTIONAL, so every existing /r/:slug/menu link keeps working.
   { path: '/r/:branchSlug/menu', element: <MenuScreen /> },
+  { path: '/r/:branchSlug/menu/:categorySlug', element: <MenuScreen /> },
+  { path: '/r/:branchSlug/menu/:categorySlug/:subSlug', element: <MenuScreen /> },
   { path: '/cart', element: <CartPage /> },
   { path: '/checkout', element: <CheckoutPage /> },
   { path: '/order/:orderId', element: <OrderPage /> },

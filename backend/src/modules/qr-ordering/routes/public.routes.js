@@ -1,6 +1,7 @@
 import { Router } from 'express';
 
 import { validate } from '#core/validation/validate.middleware.js';
+import { requireAuth } from '#platform/auth/index.js';
 
 import { PublicScanController } from '../controllers/public-scan.controller.js';
 import { PublicSessionController } from '../controllers/public-session.controller.js';
@@ -9,6 +10,7 @@ import { scanRateLimit } from '../middleware/scan-rate-limit.middleware.js';
 import { sessionIdParamSchema } from '../validators/common.validators.js';
 import {
   endSessionSchema,
+  linkSessionSchema,
   openSessionSchema,
   recoverSchema,
   scanSchema,
@@ -57,6 +59,9 @@ publicSessionRouter.use(resolveGuest);
 publicSessionRouter.post('/open', scanRateLimit(), validate({ body: openSessionSchema }), PublicSessionController.open);
 // Static paths BEFORE the :sessionId wildcard so they're never swallowed.
 publicSessionRouter.get('/current', PublicSessionController.current);
+// Guest → account conversion: account access token in the header, guest token
+// in the body as proof of session ownership.
+publicSessionRouter.post('/link', requireAuth, validate({ body: linkSessionSchema }), PublicSessionController.link);
 publicSessionRouter.post('/recover', validate({ body: recoverSchema }), PublicSessionController.recover);
 publicSessionRouter.post('/end', validate({ body: endSessionSchema }), PublicSessionController.end);
 publicSessionRouter.get('/:sessionId', validate({ params: sessionIdParamSchema }), PublicSessionController.get);

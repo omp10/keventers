@@ -3,6 +3,11 @@ import { BaseService } from './base.service';
 export type AuthTokens = { accessToken: string; refreshToken: string };
 export type AuthUser = {
   id: string;
+  /** Backend identity DTO fields (see toUserDTO). */
+  firstName?: string;
+  lastName?: string;
+  fullName?: string;
+  /** @deprecated never sent by the backend — use `fullName`. */
   displayName?: string;
   email?: string;
   phone?: string;

@@ -13,10 +13,9 @@ import {
   Textarea,
 } from '@/design-system';
 import { cn } from '@/lib/cn';
-import { AvailabilityControl } from '../components';
 import { useCategories, useCategoryMutations, useCategoryTree } from '../hooks';
 import { MediaManager } from '../media';
-import type { Availability, Category } from '../types';
+import type { Category } from '../types';
 
 type CategoryDraft = {
   name: string;
@@ -26,8 +25,6 @@ type CategoryDraft = {
   icon?: string;
   image?: Category['image'];
   visible: boolean;
-  availability: Availability;
-  status: Category['status'];
 };
 
 /** Flatten the nested category tree to a lookup-friendly list. */
@@ -47,8 +44,6 @@ const blankDraft = (parentId?: string | null): CategoryDraft => ({
   icon: '',
   image: null,
   visible: true,
-  availability: { state: 'available' },
-  status: 'draft',
 });
 
 const fromCategory = (c: Category): CategoryDraft => ({
@@ -59,8 +54,6 @@ const fromCategory = (c: Category): CategoryDraft => ({
   icon: c.icon ?? '',
   image: c.image ?? null,
   visible: c.visible,
-  availability: c.availability ?? { state: 'available' },
-  status: c.status,
 });
 
 /** Right-side drawer to create or edit a category. */
@@ -94,7 +87,14 @@ export function CategoryEditor({
 
   const patch = (p: Partial<CategoryDraft>) => setDraft((d) => ({ ...d, ...p }));
 
-  const parentOptions = allCategories.filter((c) => c.id !== categoryId);
+  /**
+   * The menu is two levels deep, so only a MAIN category can be a parent — and a
+   * category that already has subcategories can't become one itself (that would
+   * push its children to level 3). The service rejects both; we don't offer them,
+   * because a dropdown that lists a choice the save will refuse is a trap.
+   */
+  const hasChildren = Boolean(seed?.children?.length);
+  const parentOptions = allCategories.filter((c) => c.id !== categoryId && !c.parentId);
 
   const save = async () => {
     if (!draft.name.trim()) return;
@@ -134,9 +134,11 @@ export function CategoryEditor({
             <select
               value={draft.parentId ?? ''}
               onChange={(e) => patch({ parentId: e.target.value || null })}
+              disabled={hasChildren}
               className={cn(
                 'mt-1.5 h-10 w-full rounded-lg border border-border bg-surface px-3 text-sm text-foreground outline-none transition',
                 'focus-visible:ring-2 focus-visible:ring-primary/40',
+                hasChildren && 'cursor-not-allowed opacity-60',
               )}
             >
               <option value="">None (top level)</option>
@@ -144,6 +146,11 @@ export function CategoryEditor({
                 <option key={c.id} value={c.id}>{c.name}</option>
               ))}
             </select>
+            <p className="mt-1.5 text-xs font-normal text-foreground-subtle">
+              {hasChildren
+                ? 'This category has subcategories of its own, so it has to stay top level.'
+                : 'Leave as top level, or nest this under a main category to make it a subcategory.'}
+            </p>
           </label>
 
           <label className="block text-sm font-medium text-foreground">
@@ -165,11 +172,6 @@ export function CategoryEditor({
               <p className="text-xs text-foreground-muted">Show this category to customers.</p>
             </div>
             <Switch checked={draft.visible} onCheckedChange={(v) => patch({ visible: v })} />
-          </div>
-
-          <div>
-            <p className="mb-2 text-sm font-medium text-foreground">Availability</p>
-            <AvailabilityControl value={draft.availability} onChange={(a) => patch({ availability: a })} />
           </div>
         </DrawerBody>
 

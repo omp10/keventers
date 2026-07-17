@@ -28,7 +28,7 @@ const versioned = (version?: number) => (version != null ? { 'If-Match': String(
 class CartService {
   /** The current cart (creates an empty one server-side if none). */
   async get(): Promise<Cart> {
-    return mapCart(await api.get('/cart'));
+    return mapCart(await api.get('/cart', { auth: 'guest' }));
   }
 
   async addItem(selection: CartItemSelection, idempotencyKey = newIdempotencyKey()): Promise<Cart> {
@@ -36,13 +36,14 @@ class CartService {
       await api.post('/cart/items', selection, {
         headers: { 'Idempotency-Key': idempotencyKey },
         offlineQueueable: true,
+        auth: 'guest',
       }),
     );
   }
 
   async updateItem(itemId: string, patch: Partial<CartItemSelection>, version?: number): Promise<Cart> {
     return mapCart(
-      await api.patch(`/cart/items/${itemId}`, { ...patch, version }, { headers: versioned(version), offlineQueueable: true }),
+      await api.patch(`/cart/items/${itemId}`, { ...patch, version }, { headers: versioned(version), offlineQueueable: true, auth: 'guest' }),
     );
   }
 
@@ -51,28 +52,28 @@ class CartService {
   }
 
   async removeItem(itemId: string, version?: number): Promise<Cart> {
-    return mapCart(await api.delete(`/cart/items/${itemId}`, { headers: versioned(version), offlineQueueable: true }));
+    return mapCart(await api.delete(`/cart/items/${itemId}`, { headers: versioned(version), offlineQueueable: true, auth: 'guest' }));
   }
 
   async applyCoupon(code: string, version?: number): Promise<Cart> {
-    return mapCart(await api.post('/cart/apply-coupon', { code, version }, { headers: versioned(version) }));
+    return mapCart(await api.post('/cart/apply-coupon', { code, version }, { headers: versioned(version), auth: 'guest' }));
   }
 
   async removeCoupon(version?: number): Promise<Cart> {
-    return mapCart(await api.delete('/cart/remove-coupon', { headers: versioned(version) }));
+    return mapCart(await api.delete('/cart/remove-coupon', { headers: versioned(version), auth: 'guest' }));
   }
 
   async setNotes(notes: string, version?: number): Promise<Cart> {
-    return mapCart(await api.patch('/cart', { notes, version }, { headers: versioned(version) }));
+    return mapCart(await api.patch('/cart', { notes, version }, { headers: versioned(version), auth: 'guest' }));
   }
 
   clear() {
-    return api.delete<{ abandoned: boolean; id?: string }>('/cart');
+    return api.delete<{ abandoned: boolean; id?: string }>('/cart', { auth: 'guest' });
   }
 
   /** Lock the cart for checkout (freezes pricing). Order module converts it. */
   async lockForCheckout(): Promise<Cart> {
-    return mapCart(await api.post('/cart/checkout', {}));
+    return mapCart(await api.post('/cart/checkout', {}, { auth: 'guest' }));
   }
 }
 

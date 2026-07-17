@@ -1,5 +1,6 @@
 import { api } from '@/platform/api';
 import type { Menu, Schedule } from '../types';
+import { fetchAll } from './fetch-all';
 
 /**
  * MENU SERVICE — manage the restaurant's menus (multiple menus, active menu,
@@ -7,7 +8,7 @@ import type { Menu, Schedule } from '../types';
  */
 class MenuService {
   list() {
-    return api.get<Menu[]>('/restaurant/menus');
+    return fetchAll<Menu>('/restaurant/menus');
   }
 
   get(id: string) {

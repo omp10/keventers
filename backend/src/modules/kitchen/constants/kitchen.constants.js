@@ -153,6 +153,7 @@ export const KITCHEN_ERRORS = Object.freeze({
   INVALID_TRANSITION: 'Illegal kitchen workflow transition',
   ALREADY_QUEUED: 'This order is already in the kitchen queue',
   CHEF_REQUIRED: 'A chef must be assigned',
+  NOT_ASSIGNED_TO_YOU: 'This order is not assigned to you',
   CROSS_TENANT: 'Access to this kitchen resource is not allowed',
   VERSION_CONFLICT: 'The kitchen order was modified concurrently — reload and retry',
   STATION_HAS_ENTRIES: 'Cannot delete a station with active kitchen orders',

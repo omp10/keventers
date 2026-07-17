@@ -45,9 +45,13 @@ export class OtpService extends BaseService {
     this.log = logger ?? null;
   }
 
-  /** Outside production the code is returned to the caller so the flow is usable. */
+  /**
+   * Echo the code in the response (`devCode`) so the flow is testable without
+   * an SMS provider. Controlled by MOCK_OTP (see auth.config) — defaults on
+   * outside production, and production forces it off no matter what.
+   */
   get #echoCode() {
-    return config.server.env !== 'production';
+    return Boolean(config.auth.mockOtp);
   }
 
   /**

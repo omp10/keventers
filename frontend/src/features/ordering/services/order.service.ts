@@ -19,20 +19,20 @@ export type CheckoutInput = {
 
 class OrderService {
   async checkout(input: CheckoutInput, idempotencyKey = newIdempotencyKey()): Promise<Order> {
-    return mapOrder(await api.post('/orders', input, { headers: { 'Idempotency-Key': idempotencyKey } }));
+    return mapOrder(await api.post('/orders', input, { headers: { 'Idempotency-Key': idempotencyKey }, auth: 'guest' }));
   }
 
   async get(orderId: string): Promise<Order> {
-    return mapOrder(await api.get(`/orders/${orderId}`));
+    return mapOrder(await api.get(`/orders/${orderId}`, { auth: 'guest' }));
   }
 
   async list(page = 1, limit = 20): Promise<Paginated<Order>> {
-    const raw = await api.paginate<Parameters<typeof mapOrder>[0]>('/orders', { query: { page, limit } });
+    const raw = await api.paginate<Parameters<typeof mapOrder>[0]>('/orders', { query: { page, limit }, auth: 'guest' });
     return { ...raw, items: raw.items.map(mapOrder) };
   }
 
   async cancel(orderId: string, reason?: string): Promise<Order> {
-    return mapOrder(await api.post(`/orders/${orderId}/cancel`, { reason }));
+    return mapOrder(await api.post(`/orders/${orderId}/cancel`, { reason }, { auth: 'guest' }));
   }
 }
 

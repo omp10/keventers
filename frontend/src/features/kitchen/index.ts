@@ -6,7 +6,7 @@
  * Engine + Order Engine + Analytics + Notifications via the Socket Platform (no
  * polling). No business rules on the frontend.
  */
-export { KitchenShell, KitchenBoardRoute, KitchenDashboardRoute, KitchenStationsRoute } from './routes';
+export { KitchenShell, KitchenBoardRoute, KitchenDashboardRoute, KitchenStationsRoute, KitchenHistoryRoute, KitchenMenuRoute, KitchenProfileRoute } from './routes';
 export { KitchenLoginPage } from './KitchenLoginPage';
 export { KitchenOnboardingGate, KitchenOnboardingPage } from './KitchenOnboarding';
 export { KitchenRegisterPage } from './KitchenRegisterPage';

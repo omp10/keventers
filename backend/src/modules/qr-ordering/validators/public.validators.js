@@ -23,6 +23,11 @@ export const openSessionSchema = z.object({
   guestCount: z.coerce.number().int().min(1).max(50).optional(),
 });
 
+/** POST /public/session/link — guest → account conversion. */
+export const linkSessionSchema = z.object({
+  guestToken: z.string().min(20).max(2000),
+});
+
 /** POST /public/session/recover — recover by sessionId or recoveryCode. */
 export const recoverSchema = z
   .object({

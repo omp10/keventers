@@ -12,6 +12,7 @@ import { discoveryDemoSeeder } from '#modules/organization/seeds/discovery-demo.
 import { organizationSeeder } from '#modules/organization/seeds/organization.seeder.js';
 import { paymentSeeder } from '#modules/payment/seeds/payment.seeder.js';
 import { pricingSeeder } from '#modules/pricing/seeds/pricing.seeder.js';
+import { keventersStaffSeeder } from '#modules/organization/seeds/keventers-staff.seeder.js';
 import { keventersTablesSeeder } from '#modules/qr-ordering/seeds/keventers-tables.seeder.js';
 import { qrSeeder } from '#modules/qr-ordering/seeds/qr.seeder.js';
 
@@ -42,6 +43,7 @@ export const seedRegistry = [
   // These run after discovery-demo, which creates the Keventers restaurant/branches.
   keventersMenuSeeder,
   keventersTablesSeeder,
+  keventersStaffSeeder,
 ];
 
 export default seedRegistry;

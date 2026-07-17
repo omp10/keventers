@@ -7,6 +7,7 @@ import {
   modifierGroupService,
   productService,
   type BulkAction,
+  type CategoryBulkAction,
 } from '../services';
 import type { AddonDraft, Availability, CatalogProduct, Category, Menu, ModifierGroupDraft, Schedule } from '../types';
 import { CK } from './keys';
@@ -83,18 +84,16 @@ export function useCategoryMutations() {
   const update = useMutation<{ id: string; patch: Partial<Category> }>(({ id, patch }) => categoryService.update(id, patch), 'Saved');
   const reorder = useMutation<{ id: string; parentId: string | null; order: number }[]>((items) => categoryService.reorder(items));
   const visibility = useMutation<{ id: string; visible: boolean }>(({ id, visible }) => categoryService.setVisibility(id, visible));
-  const availability = useMutation<{ id: string; availability: Availability }>(({ id, availability }) => categoryService.setAvailability(id, availability), 'Availability updated');
-  const archive = useMutation<string>((id) => categoryService.archive(id), 'Archived');
-  const bulk = useMutation<{ action: BulkAction; ids: string[]; params?: Record<string, unknown> }>(({ action, ids, params }) => categoryService.bulk(action, ids, params), 'Updated');
+  const remove = useMutation<string>((id) => categoryService.remove(id), 'Category deleted');
+  const bulk = useMutation<{ action: CategoryBulkAction; ids: string[] }>(({ action, ids }) => categoryService.bulk(action, ids), 'Updated');
   return {
     create: (d: Partial<Category>) => create.mutateAsync(d),
     update: (id: string, patch: Partial<Category>) => update.mutateAsync({ id, patch }),
     reorder: (items: { id: string; parentId: string | null; order: number }[]) => reorder.mutateAsync(items),
     setVisibility: (id: string, visible: boolean) => visibility.mutateAsync({ id, visible }),
-    setAvailability: (id: string, a: Availability) => availability.mutateAsync({ id, availability: a }),
-    archive: (id: string) => archive.mutateAsync(id),
-    bulk: (action: BulkAction, ids: string[], params?: Record<string, unknown>) => bulk.mutateAsync({ action, ids, params }),
-    saving: create.isPending || update.isPending,
+    remove: (id: string) => remove.mutateAsync(id),
+    bulk: (action: CategoryBulkAction, ids: string[]) => bulk.mutateAsync({ action, ids }),
+    saving: create.isPending || update.isPending || bulk.isPending || remove.isPending,
   };
 }
 

@@ -1,8 +1,11 @@
 import type { ReactNode } from 'react';
+import { motion, useReducedMotion } from 'framer-motion';
 
 import { cn } from '@/lib/cn';
 import { Icon } from '@/design-system';
 import { Logo } from '@/assets';
+import { transitions } from '@/animations';
+import { useHideOnScroll } from '@/hooks';
 import { glass } from '@/utils/style';
 import { defaultRenderLink, type NavItem, type RenderLink } from './types';
 
@@ -19,13 +22,28 @@ export type CustomerLayoutProps = {
 
 /**
  * CustomerLayout — the mobile-first Customer PWA shell: a frosted top brand bar,
- * a scrollable content area (safe-area aware), and a bottom tab bar. Designed for
- * one-hand phone use with generous touch targets; scales gracefully to tablet.
+ * the page content, and a bottom tab bar (phone) / header pill nav (desktop).
+ * Designed for one-hand phone use with generous touch targets.
+ *
+ * SCROLLING MODEL — the DOCUMENT scrolls; this shell must never become a scroll
+ * container. `position: sticky` resolves against the nearest scrolling ancestor,
+ * so an `overflow` here (or on <main>) would silently pin the bottom tabs and the
+ * menu's category nav to a box that never scrolls — i.e. they'd vanish off the
+ * bottom of the page. The window scroll is also what drives the hero parallax
+ * (`useScroll`) and the scroll-reveal observers.
  */
 export function CustomerLayout({ tabs, header, headerActions, renderLink = defaultRenderLink, children, className }: CustomerLayoutProps) {
+  // The tab bar ducks away while reading and returns the moment the user
+  // scrolls up. Under reduced motion it stays pinned open — a bar that jumps in
+  // and out without transition is worse than one that simply stays.
+  const reduced = Boolean(useReducedMotion());
+  const tabsHidden = useHideOnScroll({ enabled: !reduced });
+
   return (
-    <div className={cn('relative flex min-h-dvh flex-col overflow-hidden bg-background', className)}>
-      <div aria-hidden className="pointer-events-none fixed inset-0 hidden lg:block">
+    <div className={cn('relative flex min-h-dvh flex-col bg-background', className)}>
+      {/* Ambient desktop backdrop. `overflow-hidden` belongs HERE (clipping the
+          blurred blooms so they can't widen the page), not on the shell. */}
+      <div aria-hidden className="pointer-events-none fixed inset-0 hidden overflow-hidden lg:block">
         <div className="absolute -right-40 top-24 h-[32rem] w-[32rem] rounded-full bg-primary-soft blur-3xl" />
         <div className="absolute -left-52 top-[38rem] h-[28rem] w-[28rem] rounded-full bg-accent-soft blur-3xl" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,color-mix(in_oklab,var(--kv-color-foreground)_7%,transparent)_1px,transparent_0)] bg-[size:28px_28px] opacity-35" />
@@ -61,15 +79,23 @@ export function CustomerLayout({ tabs, header, headerActions, renderLink = defau
         </div>
       </header>
 
-      <main className="relative z-10 flex-1 overflow-y-auto">
+      {/* No `overflow` here — see the scrolling-model note above. */}
+      <main className="relative z-10 flex-1">
         <div className="mx-auto w-full max-w-2xl px-4 py-5 sm:px-6 lg:max-w-7xl lg:px-8 lg:py-8 xl:py-10">{children}</div>
       </main>
 
       {tabs && tabs.length > 0 && (
-        <nav
+        <motion.nav
+          // Slides fully out of view (its own height + the safe-area inset) —
+          // `sticky` keeps its slot in flow, so nothing below shifts.
+          animate={{ y: tabsHidden ? '100%' : '0%' }}
+          initial={false}
+          transition={transitions.default}
           className={cn('sticky bottom-0 z-[100] flex items-stretch border-t border-border lg:hidden', glass())}
           style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
           aria-label="Primary"
+          // Hidden from the a11y tree only while it's actually off-screen.
+          aria-hidden={tabsHidden || undefined}
         >
           {tabs.map((tab) => {
             // Emphasized tab — the shell's raised primary action (e.g. Scan).
@@ -105,7 +131,7 @@ export function CustomerLayout({ tabs, header, headerActions, renderLink = defau
               </div>
             );
           })}
-        </nav>
+        </motion.nav>
       )}
     </div>
   );

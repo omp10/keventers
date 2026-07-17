@@ -1,33 +1,35 @@
 import { api } from '@/platform/api';
 import type { AddonDraft, ModifierGroupDraft, VariantDraft } from '../types';
 import type { BulkAction } from './product.service';
+import { fetchAll } from './fetch-all';
 
 /** MODIFIER GROUP SERVICE — reusable modifier groups (required/optional, min/max). */
 class ModifierGroupService {
+  /** Complete list — the product editor attaches from it, so it must be whole. */
   list() {
-    return api.get<ModifierGroupDraft[]>('/restaurant/modifier-groups');
+    return fetchAll<ModifierGroupDraft>('/restaurant/modifiers');
   }
   get(id: string) {
-    return api.get<ModifierGroupDraft>(`/restaurant/modifier-groups/${id}`);
+    return api.get<ModifierGroupDraft>(`/restaurant/modifiers/${id}`);
   }
   create(draft: Partial<ModifierGroupDraft>) {
-    return api.post<ModifierGroupDraft>('/restaurant/modifier-groups', draft);
+    return api.post<ModifierGroupDraft>('/restaurant/modifiers', draft);
   }
   update(id: string, patch: Partial<ModifierGroupDraft>) {
-    return api.patch<ModifierGroupDraft>(`/restaurant/modifier-groups/${id}`, patch);
+    return api.patch<ModifierGroupDraft>(`/restaurant/modifiers/${id}`, patch);
   }
   reorder(orderedIds: string[]) {
-    return api.post<{ ok: true }>('/restaurant/modifier-groups/reorder', { orderedIds });
+    return api.post<{ ok: true }>('/restaurant/modifiers/reorder', { orderedIds });
   }
   bulk(action: BulkAction, ids: string[], params?: Record<string, unknown>) {
-    return api.post<{ ok: true; affected: number }>('/restaurant/modifier-groups/bulk', { action, ids, params });
+    return api.post<{ ok: true; affected: number }>('/restaurant/modifiers/bulk', { action, ids, params });
   }
 }
 
 /** ADD-ON SERVICE — standalone add-ons (pricing, availability, grouping). */
 class AddonService {
   list() {
-    return api.get<AddonDraft[]>('/restaurant/addons');
+    return fetchAll<AddonDraft>('/restaurant/addons');
   }
   create(draft: Partial<AddonDraft>) {
     return api.post<AddonDraft>('/restaurant/addons', draft);

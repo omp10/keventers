@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import {
   Badge,
@@ -26,6 +26,7 @@ import { cn } from '@/lib/cn';
 import { formatMoney, ProductCard, type Product } from '@/features/ordering';
 
 import { useProduct, useCategories, useModifierGroups, useAddons, useProductMutations } from '../hooks';
+import { resolveCategorySelection } from './category-selection';
 import {
   StatusBadge,
   PriceInput,
@@ -111,6 +112,22 @@ export function ProductEditor({ productId, isNew, onClose }: ProductEditorProps)
 
   const patch = (p: Partial<CatalogProduct>) => setDraft((d) => ({ ...d, ...p }));
 
+  // ---- Category → Subcategory (see `resolveCategorySelection`) ------------
+  const { mains, current, mainId, subs, subMissing } = useMemo(
+    () => resolveCategorySelection(categories ?? [], draft.categoryId),
+    [categories, draft.categoryId],
+  );
+
+  const selectMain = (id: string | undefined) => {
+    const main = (categories ?? []).find((c) => c.id === id);
+    patch({ categoryId: main?.id, categoryName: main?.name });
+  };
+  const selectSub = (id: string) => {
+    // Clearing the sub falls back to the main, which re-raises the requirement.
+    const next = (categories ?? []).find((c) => c.id === id) ?? (categories ?? []).find((c) => c.id === mainId);
+    patch({ categoryId: next?.id, categoryName: next?.name });
+  };
+
   // ---- Variants ----
   const variants = draft.variants ?? [];
   const addVariant = () =>
@@ -170,6 +187,14 @@ export function ProductEditor({ productId, isNew, onClose }: ProductEditorProps)
   };
 
   const handlePublish = async () => {
+    // Draft saves stay open — a draft is unfinished by definition. Publishing is
+    // the gate, because a product filed on a subdivided main is one customers
+    // would never reach.
+    if (subMissing) {
+      setTab('General');
+      toast.error('Choose a subcategory', { description: `${current?.name} is split into subcategories.` });
+      return;
+    }
     const saved = await save();
     if (!saved) return;
     try {
@@ -251,22 +276,44 @@ export function ProductEditor({ productId, isNew, onClose }: ProductEditorProps)
                 </Section>
                 <Section label="Category">
                   <select
-                    value={draft.categoryId ?? ''}
-                    onChange={(e) => {
-                      const id = e.target.value || undefined;
-                      const name = categories?.find((c) => c.id === id)?.name;
-                      patch({ categoryId: id, categoryName: name });
-                    }}
+                    value={mainId ?? ''}
+                    onChange={(e) => selectMain(e.target.value || undefined)}
                     className="h-10 w-full rounded-lg border border-border bg-surface px-3 text-sm text-foreground outline-none focus:border-border-strong"
                   >
                     <option value="">Uncategorised</option>
-                    {(categories ?? []).map((c) => (
+                    {mains.map((c) => (
                       <option key={c.id} value={c.id}>
                         {c.name}
                       </option>
                     ))}
                   </select>
                 </Section>
+                {/* Only asked for when the chosen category actually has subcategories. */}
+                {subs.length > 0 && (
+                  <Section label="Subcategory">
+                    <select
+                      value={current?.parentId ? current.id : ''}
+                      onChange={(e) => selectSub(e.target.value)}
+                      aria-invalid={subMissing || undefined}
+                      className={cn(
+                        'h-10 w-full rounded-lg border bg-surface px-3 text-sm text-foreground outline-none focus:border-border-strong',
+                        subMissing ? 'border-danger' : 'border-border',
+                      )}
+                    >
+                      <option value="">Choose a subcategory…</option>
+                      {subs.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name}
+                        </option>
+                      ))}
+                    </select>
+                    {subMissing && (
+                      <p className="mt-1.5 text-xs text-danger">
+                        {current?.name} is split into subcategories, so pick the one this belongs in.
+                      </p>
+                    )}
+                  </Section>
+                )}
                 <Section label="Food type">
                   <VegSelect value={draft.veg} onChange={(veg) => patch({ veg })} />
                 </Section>
