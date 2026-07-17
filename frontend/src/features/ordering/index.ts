@@ -21,7 +21,6 @@ export {
   newIdempotencyKey,
   type OrderingSession,
   type CheckoutInput,
-  type NotificationPreferences,
 } from './services';
 export * from './components';
 export * from './menu';

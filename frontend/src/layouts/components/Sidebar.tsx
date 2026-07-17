@@ -32,7 +32,10 @@ export function Sidebar({ sections, footer, renderLink = defaultRenderLink, clas
         <Logo variant={collapsed ? 'mark' : 'full'} size={28} />
       </div>
 
-      <nav className="flex-1 overflow-y-auto px-3 py-2">
+      {/* The nav is its OWN scroll container: a long nav (admin has ~17 items)
+          scrolls here, independently of the page, and `overscroll-contain` stops
+          that scroll from chaining out to the page when it bottoms out. */}
+      <nav className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-2">
         {sections.map((section, si) => (
           <div key={si} className="mb-4 last:mb-0">
             {section.title && !collapsed && (

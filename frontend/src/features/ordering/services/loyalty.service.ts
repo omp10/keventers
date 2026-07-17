@@ -6,9 +6,17 @@ import type { LoyaltyAccount, LoyaltyLedgerEntry, LoyaltyReward, RedemptionPrevi
  * The BACKEND owns all points math (earn/redeem/tier); the frontend only displays
  * and previews. Requires a linked customer account.
  */
+/** `/customer/loyalty` answers with the account AND its points ledger. */
+type LoyaltyWire = { account: LoyaltyAccount; ledger?: { items?: LoyaltyLedgerEntry[] } | LoyaltyLedgerEntry[] };
+
 class LoyaltyService {
-  account() {
-    return api.get<LoyaltyAccount>('/customer/loyalty');
+  /**
+   * The points account. The endpoint returns `{ account, ledger }` — reading it
+   * as a bare account (as the types used to claim) left every balance `undefined`
+   * and the panel silently showed nothing.
+   */
+  async account(): Promise<LoyaltyAccount> {
+    return (await api.get<LoyaltyWire>('/customer/loyalty')).account;
   }
 
   rewards() {

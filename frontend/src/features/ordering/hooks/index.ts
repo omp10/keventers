@@ -5,4 +5,4 @@ export { useCheckout } from './useCheckout';
 export { usePayment } from './usePayment';
 export { useOrder, useOrders } from './useOrder';
 export { useLoyalty, useRedemptionPreview, useLoyaltyLedger } from './useLoyalty';
-export { useProfile, useNotificationPreferences } from './useProfile';
+export { useProfile, useCustomerPreferences, useAddresses } from './useProfile';

@@ -32,7 +32,14 @@ const userSchema = new Schema(
     },
     phone: { type: String, trim: true, default: null },
     passwordHash: { type: String, required: true, select: false },
-    firstName: { type: String, required: true, trim: true },
+    /**
+     * Not required: a phone-first signup has no name until onboarding asks for
+     * one, and the honest representation of "we haven't asked yet" is empty — not
+     * a placeholder like "New User", which reads as a real name forever. Paths
+     * that DO know the name (register, staff invite) still enforce it at their
+     * API validators, which is where that rule belongs.
+     */
+    firstName: { type: String, trim: true, default: '' },
     lastName: { type: String, trim: true, default: '' },
 
     roles: { type: [String], default: [] },

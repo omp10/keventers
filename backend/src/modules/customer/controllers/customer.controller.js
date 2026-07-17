@@ -27,9 +27,16 @@ export const CustomerController = {
     ApiResponse.success(res, { data });
   }),
 
-  /** GET /api/v1/customer/orders — the guest session's order history. */
+  /**
+   * GET /api/v1/customer/orders — the customer's own order history.
+   *
+   * Scoped by identity, not by table session: "your orders" means every order
+   * this person has placed, which is what they came to the page to see. The id is
+   * taken from the resolved scope (a signed guest token or the authenticated
+   * principal), never from the client.
+   */
   getOrders: asyncHandler(async (req, res) => {
-    const data = await orderService.listForGuest(req.guest, queryOf(req));
+    const data = await orderService.listForCustomer(customerScopeOf(req).userId, queryOf(req));
     ApiResponse.success(res, { data });
   }),
 

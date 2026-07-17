@@ -26,13 +26,23 @@ const WIDTH = { default: 'max-w-[80rem]', wide: 'max-w-[96rem]', full: 'max-w-no
  * content) that Restaurant + Admin layouts are built on. The sidebar collapses on
  * desktop and becomes a drawer on mobile. One shell = one consistent chrome
  * across every management surface.
+ *
+ * SCROLLING MODEL: this shell FILLS its parent (`h-full`) — it must never claim
+ * viewport height itself. Whatever mounts it owns that, and may spend some of the
+ * viewport on chrome above (the environment banner, the connection status bar).
+ * An `h-dvh` here would re-claim the FULL viewport from inside a slot that is
+ * already shorter than one, pushing the shell past the bottom of the screen. The
+ * document would then scroll — dragging the sidebar up with the page, since the
+ * sidebar scrolls only because the whole shell is moving. The page and the
+ * sidebar are separate scroll containers (`main` and the sidebar's own `nav`),
+ * and that only holds while the shell itself never overflows.
  */
 export function AppShell({ sections, sidebarFooter, title, actions, renderLink, children, contentWidth = 'default', className }: AppShellProps) {
   const mobileNavOpen = useUIStore((s) => s.mobileNavOpen);
   const setMobileNavOpen = useUIStore((s) => s.setMobileNavOpen);
 
   return (
-    <div className={cn('flex h-dvh overflow-hidden bg-background', className)}>
+    <div className={cn('flex h-full min-h-0 overflow-hidden bg-background', className)}>
       {/* Desktop sidebar */}
       <div className="hidden md:block">
         <Sidebar sections={sections} footer={sidebarFooter} renderLink={renderLink} />
@@ -46,9 +56,11 @@ export function AppShell({ sections, sidebarFooter, title, actions, renderLink, 
       </Drawer>
 
       {/* Main column */}
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <Topbar title={title} actions={actions} />
-        <main className="flex-1 overflow-y-auto">
+        {/* `overscroll-contain`: hitting the end of the page must not hand the
+            scroll on to anything behind it. */}
+        <main className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
           <div className={cn('mx-auto w-full px-4 py-6 sm:px-6 lg:px-8', WIDTH[contentWidth])}>{children}</div>
         </main>
       </div>

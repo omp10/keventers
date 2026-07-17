@@ -46,12 +46,23 @@ export class OtpService extends BaseService {
   }
 
   /**
-   * Echo the code in the response (`devCode`) so the flow is testable without
-   * an SMS provider. Controlled by MOCK_OTP (see auth.config) — defaults on
-   * outside production, and production forces it off no matter what.
+   * MOCK mode: use the FIXED code from MOCK_OTP_CODE and echo it in the response
+   * (`devCode`), so every panel — customer, kitchen, staff — accepts one known
+   * number and the flow is testable without an SMS provider.
+   *
+   * Controlled by MOCK_OTP (see auth.config): defaults on outside production, and
+   * production forces it off no matter what the env says. That override is the
+   * whole safety story here — a fixed code in production would mean anyone who
+   * knows a phone number owns the account.
    */
-  get #echoCode() {
+  get #mock() {
     return Boolean(config.auth.mockOtp);
+  }
+
+  /** The code to issue: fixed in mock mode, cryptographically random otherwise. */
+  #generateCode() {
+    if (this.#mock) return config.auth.mockOtpCode;
+    return String(randomInt(0, 10 ** CODE_LENGTH)).padStart(CODE_LENGTH, '0');
   }
 
   /**
@@ -75,7 +86,7 @@ export class OtpService extends BaseService {
       }
     }
 
-    const code = String(randomInt(0, 10 ** CODE_LENGTH)).padStart(CODE_LENGTH, '0');
+    const code = this.#generateCode();
     const expiresAt = new Date(now.getTime() + TTL_SECONDS * 1000);
     // A fresh code resets attempts; sendCount keeps climbing inside the window.
     const sendCount = existing && existing.expiresAt > now ? (existing.sendCount ?? 0) + 1 : 1;
@@ -101,7 +112,7 @@ export class OtpService extends BaseService {
       phone,
       expiresInSeconds: TTL_SECONDS,
       resendInSeconds: RESEND_COOLDOWN_SECONDS,
-      ...(this.#echoCode ? { devCode: code } : {}),
+      ...(this.#mock ? { devCode: code } : {}),
     };
   }
 
@@ -140,7 +151,7 @@ export class OtpService extends BaseService {
    */
   async #deliver(phone, code) {
     this.log?.info?.({ phone }, 'OTP issued');
-    if (this.#echoCode) {
+    if (this.#mock) {
       // eslint-disable-next-line no-console
       console.info(`[otp] ${phone} → ${code}`);
     }

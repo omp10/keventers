@@ -23,6 +23,8 @@ export type AuthContextValue = {
   refresh: () => Promise<boolean>;
   /** Re-fetch the current user (roles/permissions). */
   reloadUser: () => Promise<void>;
+  /** Set your own name — onboarding after a phone signup, or a profile edit. */
+  updateName: (name: { firstName: string; lastName?: string }) => Promise<void>;
 };
 
 export const AuthContext = createContext<AuthContextValue | null>(null);

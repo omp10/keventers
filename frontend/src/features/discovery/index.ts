@@ -8,7 +8,7 @@
  * into these abstractions (services, hooks, cards, filters, entry engine) without
  * redesign.
  */
-export { discoveryRoutes, discoveryTabs, type DiscoveryRoute } from './routes';
+export { discoveryRoutes, type DiscoveryRoute } from './routes';
 export { DiscoveryTabsLayout, DiscoveryMinimalLayout } from './DiscoveryLayout';
 
 export * from './types';

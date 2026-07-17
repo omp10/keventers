@@ -25,6 +25,15 @@ export const registerSchema = z.object({
   phone: z.string().trim().min(7).max(20).optional(),
 });
 
+/** Self-service identity edit — name only; see `authService.updateMe`. */
+export const updateMeSchema = z
+  .object({
+    firstName: z.string().trim().min(1).max(80).optional(),
+    lastName: z.string().trim().max(80).optional(),
+  })
+  .strict()
+  .refine((v) => Object.keys(v).length > 0, { message: 'No updatable fields provided' });
+
 export const refreshSchema = z.object({
   refreshToken: z.string().min(10),
 });

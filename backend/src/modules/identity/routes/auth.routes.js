@@ -11,6 +11,7 @@ import {
   otpVerifySchema,
   refreshSchema,
   registerSchema,
+  updateMeSchema,
 } from '../validators/auth.validators.js';
 import {
   changePasswordSchema,
@@ -160,6 +161,19 @@ router.post(
  *       401: { description: Unauthenticated }
  */
 router.get('/me', requireAuth, AuthController.me);
+
+/**
+ * @openapi
+ * /api/v1/identity/auth/me:
+ *   patch:
+ *     tags: [Identity/Auth]
+ *     security: [{ bearerAuth: [] }]
+ *     summary: Update your own name (post-OTP onboarding, profile edit)
+ *     responses:
+ *       200: { description: Updated user }
+ *       401: { description: Unauthenticated }
+ */
+router.patch('/me', requireAuth, validate({ body: updateMeSchema }), AuthController.updateMe);
 
 /**
  * @openapi

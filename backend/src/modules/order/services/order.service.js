@@ -381,6 +381,20 @@ export class OrderService extends BaseService {
     return this.paginated(page, (o) => toOrderSummaryDTO(o, { forStaff: false }));
   }
 
+  /**
+   * A signed-in customer's order history, across sessions and restaurants. The
+   * caller must have already established that `customerUserId` is the requester's
+   * own id (never a client-supplied one).
+   */
+  async listForCustomer(customerUserId, query = {}) {
+    const page = await this.orders.paginateForCustomer(customerUserId, {
+      filter: query.status ? { status: query.status } : {},
+      sort: query.sort ?? '-createdAt',
+      pagination: { page: query.page, limit: query.limit },
+    });
+    return this.paginated(page, (o) => toOrderSummaryDTO(o, { forStaff: false }));
+  }
+
   // ==================== STAFF READS ====================
 
   async getForStaff(tenant, id) {

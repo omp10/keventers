@@ -18,6 +18,8 @@ export type NavNode = {
   access?: AccessRule;
   /** Optional badge (e.g. a live count) resolved by the app. */
   badge?: ReactNode;
+  /** Render as the raised primary action in the customer tab bar (Scan). */
+  emphasized?: boolean;
   /** Nested items (sidebar groups). */
   children?: NavNode[];
   /** Exclude from the command palette / search surfacing. */

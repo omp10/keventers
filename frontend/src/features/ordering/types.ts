@@ -211,12 +211,16 @@ export type PaymentIntent = {
 };
 
 // ---- Loyalty ----------------------------------------------------------------
-export type LoyaltyTier = { name: string; level?: number };
+/** The API sends the tier as a bare name ("bronze"), not an object. */
+export type LoyaltyTier = string;
 
 export type LoyaltyAccount = {
   balance: number;
   lifetimePoints: number;
+  redeemedPoints?: number;
   tier: LoyaltyTier;
+  tierUpdatedAt?: string | null;
+  lastEarnedAt?: string | null;
   nextTier?: { name: string; pointsNeeded: number } | null;
 };
 
@@ -244,12 +248,53 @@ export type LoyaltyLedgerEntry = {
 };
 
 // ---- Profile ----------------------------------------------------------------
+/**
+ * The customer's record at ONE restaurant (loyalty and history are per-brand on a
+ * white-label platform). `profile.service` maps this from the API — read the note
+ * there before adding a field. Identity (name to greet, phone to sign in with)
+ * lives on the ACCOUNT and comes from the Auth Platform; `name` here is the name
+ * this restaurant knows them by.
+ */
 export type CustomerProfile = {
   id?: string;
   name?: string;
   phone?: string;
+  /** Absent for phone-first accounts — see `realEmail` in the service. */
   email?: string;
-  isGuest: boolean;
-  preferences?: { defaultVeg?: boolean };
-  marketing?: { email?: boolean; sms?: boolean; whatsapp?: boolean };
+  marketingOptIn: boolean;
+  preferences: CustomerPreferences;
+  stats: CustomerStats;
+  memberSince?: string;
+};
+
+/** Order/visit projection maintained by the backend. Money is in MINOR units. */
+export type CustomerStats = {
+  totalOrders: number;
+  completedOrders: number;
+  lifetimeSpend: number;
+  avgOrderValue: number;
+  visitCount: number;
+  lastVisitAt?: string;
+};
+
+export type CustomerPreferences = {
+  dietary: string[];
+  allergies: string[];
+  language: string;
+  notifications: { orderUpdates: boolean; promotions: boolean; loyalty: boolean };
+};
+
+export type CustomerAddress = {
+  id: string;
+  type?: 'home' | 'work' | 'other';
+  label?: string;
+  contactName?: string;
+  contactPhone?: string;
+  line1: string;
+  line2?: string;
+  landmark?: string;
+  city?: string;
+  state?: string;
+  postalCode?: string;
+  isDefault?: boolean;
 };

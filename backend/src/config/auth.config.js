@@ -14,8 +14,11 @@ export function buildAuthConfig(env) {
       max: env.AUTH_RATE_LIMIT_MAX,
       windowSeconds: env.AUTH_RATE_LIMIT_WINDOW_SECONDS,
     },
-    // Echo OTP codes in responses (dev/test tooling). NEVER in production —
-    // the env flag cannot override that.
+    // Use a FIXED, echoed OTP code (dev/test tooling). NEVER in production — the
+    // env flag cannot override that, which is the only thing standing between a
+    // hardcoded code and every phone account on the platform.
     mockOtp: env.NODE_ENV === 'production' ? false : (env.MOCK_OTP ?? env.NODE_ENV !== 'production'),
+    /** The fixed code, when mockOtp is on. Meaningless otherwise. */
+    mockOtpCode: env.MOCK_OTP_CODE,
   };
 }

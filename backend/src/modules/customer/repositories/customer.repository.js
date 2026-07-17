@@ -18,6 +18,23 @@ export class CustomerRepository extends CustomerScopedRepository {
   }
 
   /**
+   * Every customer record this identity has, newest visit first.
+   *
+   * A customer is one-per-(organization, restaurant), so a person who has ordered
+   * at two brands has two records. When someone opens their profile away from a
+   * table there is no guest token to name a restaurant, so we answer with the one
+   * they used most recently — the only defensible default, and the one they're
+   * thinking of. Backed by the `userId` index.
+   */
+  findAllForUser(userId) {
+    return this.model
+      .find({ userId, deletedAt: null })
+      .sort({ 'stats.lastVisitAt': -1, updatedAt: -1 })
+      .lean()
+      .then((docs) => docs.map((d) => this.toDomain(d)));
+  }
+
+  /**
    * Atomic find-or-create for (org, restaurant, userId). Returns
    * `{ customer, created }`. Fields in `onInsert` are applied ONLY on creation,
    * preserving an existing customer's data (idempotent merge).

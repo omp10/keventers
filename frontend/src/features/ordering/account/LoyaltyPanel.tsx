@@ -55,7 +55,7 @@ export function LoyaltyPanel() {
             <p className="text-3xl font-bold">{account.balance.toLocaleString()}</p>
           </div>
           <Badge tone="neutral" variant="solid" className="bg-white/20">
-            <Icon name="star" className="mr-1 h-3 w-3" /> {account.tier.name}
+            <Icon name="star" className="mr-1 h-3 w-3" /> <span className="capitalize">{account.tier}</span>
           </Badge>
         </div>
         {account.nextTier && (

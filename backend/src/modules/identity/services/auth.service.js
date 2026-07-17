@@ -86,9 +86,16 @@ export class AuthService extends BaseService {
         phone,
         // Random, never shared: password login is impossible for these accounts.
         passwordHash: await this.passwords.hash(randomUUID()),
-        firstName: 'New',
-        lastName: 'User',
-        type: USER_TYPE.STAFF,
+        // Deliberately blank, NOT a placeholder: onboarding asks for the real
+        // name, and "New User" would masquerade as one — it reads as their name
+        // everywhere and nothing would ever prompt them to correct it.
+        firstName: '',
+        lastName: '',
+        // Phone-first signup is the CUSTOMER path. `/register` already types
+        // these accounts as customers; typing them staff here was inconsistent
+        // (nothing authorizes on `type` — roles do — but it feeds analytics and
+        // anyone reading the record).
+        type: USER_TYPE.CUSTOMER,
         status: USER_STATUS.ACTIVE,
         emailVerified: false,
         roles: [],
@@ -185,6 +192,23 @@ export class AuthService extends BaseService {
     const user = await this.users.findById(userId);
     if (!user) throw new NotFoundError(IDENTITY_ERRORS.USER_NOT_FOUND);
     return toUserDTO(user);
+  }
+
+  /**
+   * Update the signed-in user's OWN identity. Deliberately narrow: name only.
+   * This is what onboarding calls after a phone signup to replace the blank name
+   * with a real one, and what the profile's "edit name" uses later. Roles, status,
+   * phone and email are NOT settable here — those are privilege and identity
+   * changes, and they belong to the admin/staff surfaces that already guard them.
+   */
+  async updateMe(userId, { firstName, lastName }) {
+    const user = await this.users.findById(userId);
+    if (!user) throw new NotFoundError(IDENTITY_ERRORS.USER_NOT_FOUND);
+    const patch = {};
+    if (firstName !== undefined) patch.firstName = firstName.trim();
+    if (lastName !== undefined) patch.lastName = lastName.trim();
+    await this.users.updateById(String(user.id ?? user._id), patch);
+    return this.me(userId);
   }
 }
 

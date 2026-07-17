@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import { Badge, Button, Card, EmptyState, Input, Skeleton, Switch, ThemeToggleButton, toast } from '@/design-system';
+import { Badge, Button, Card, EmptyState, Icon, Input, Skeleton, Switch, ThemeToggleButton, toast } from '@/design-system';
 import { api } from '@/platform/api';
 import { useAuth } from '@/platform/auth';
 import { qk, queryClient, useMutationResource, useQueryResource } from '@/platform/query';
@@ -52,7 +52,7 @@ export function KitchenHistoryPage() {
       {query.isLoading ? (
         <div className="space-y-2">{[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-16 w-full rounded-xl" />)}</div>
       ) : items.length === 0 ? (
-        <EmptyState icon="clock" title={`No ${status} orders`} description="Finished orders appear here as the day goes on." />
+        <EmptyState icon={<Icon name="clock" className="mb-3 h-8 w-8 text-foreground-subtle" />} title={`No ${status} orders`} description="Finished orders appear here as the day goes on." />
       ) : (
         <div className="space-y-2">
           {items.map((e) => (
@@ -139,9 +139,9 @@ export function KitchenMenuPage() {
         // An error must never masquerade as an empty catalog — a kitchen that
         // believes everything is delisted behaves very differently from one
         // that knows the board is down.
-        <EmptyState icon="warning" title="Couldn't load the menu" description={query.error?.message ?? 'Please try again.'} action={<Button onClick={() => void query.refetch()}>Retry</Button>} />
+        <EmptyState icon={<Icon name="warning" className="mb-3 h-8 w-8 text-danger" />} title="Couldn't load the menu" description={query.error?.message ?? 'Please try again.'} action={<Button onClick={() => void query.refetch()}>Retry</Button>} />
       ) : items.length === 0 ? (
-        <EmptyState icon="utensils" title="No products" description="This restaurant's catalog is empty." />
+        <EmptyState icon={<Icon name="utensils" className="mb-3 h-8 w-8 text-foreground-subtle" />} title="No products" description="This restaurant's catalog is empty." />
       ) : (
         <div className="space-y-2">
           {items.map((p) => {
