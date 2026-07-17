@@ -8,3 +8,4 @@ export { BannersPage } from './BannersPage';
 export { CategoriesPage } from './CategoriesPage';
 export { ZonesPage } from './ZonesPage';
 export { KitchensPage } from './KitchensPage';
+export { KitchenDetailPage } from './kitchen-detail';

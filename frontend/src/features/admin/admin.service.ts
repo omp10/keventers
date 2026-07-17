@@ -1,7 +1,13 @@
 import { api, type Paginated } from '@/platform/api';
-import type { AdminBanner, AdminCategory, AdminKitchen, AdminZone, BannerPayload, CategoryPayload, NotificationRecord, OnboardingApplication, OnboardingFieldDefinition, OnboardingFormConfig, Organization, PlatformKpis, PlatformPayment, PlatformUser, RestaurantOption, UploadedMedia } from './types';
+import type { AdminBanner, AdminCategory, AdminKitchen, AdminZone, BannerPayload, CatalogCategory, CatalogCategoryPayload, CatalogProduct, CatalogProductPayload, CatalogStats, CategoryPayload, KitchenCatalog, KitchenOrder, KitchenQrCode, KitchenStaffResponse, KitchenTable, NotificationRecord, OnboardingApplication, OnboardingFieldDefinition, OnboardingFormConfig, Organization, PlatformKpis, PlatformPayment, PlatformUser, RestaurantOption, UploadedMedia } from './types';
 
 export type AdminFilters = { search?: string; status?: string; type?: string; provider?: string; from?: string; to?: string };
+
+/**
+ * Progressive scope for admin analytics. A super admin has no primary tenant, so
+ * each level is explicit; `branchId` reads a single outlet's projections.
+ */
+export type AdminAnalyticsScope = { organizationId?: string; restaurantId?: string; branchId?: string; from?: string; to?: string };
 const page = (filters: AdminFilters, pageNumber: number, limit: number) => ({ ...filters, page: pageNumber, limit });
 
 export const adminService = {
@@ -56,4 +62,39 @@ export const adminService = {
   updateKitchen: (id: string, body: Record<string, unknown>) => api.patch<AdminKitchen>(`/admin/kitchens/${id}`, body),
   deleteKitchen: (id: string) => api.delete<{ id: string }>(`/admin/kitchens/${id}`),
   kitchenRestaurants: () => api.get<RestaurantOption[]>('/admin/kitchens/restaurants'),
+
+  /* ── One kitchen, every angle (the kitchen detail page) ──
+     Catalog is RESTAURANT-scoped — every outlet of a brand serves the same menu.
+     Tables, QR codes and orders are BRANCH-scoped to this one outlet. */
+
+  kitchenCatalog: (restaurantId: string) => api.get<KitchenCatalog>('/admin/catalog', { query: { restaurantId } }),
+  kitchenCatalogStats: (restaurantId: string) => api.get<CatalogStats>('/admin/catalog/stats', { query: { restaurantId } }),
+  kitchenTables: (restaurantId: string, branchId: string, limit = 100): Promise<Paginated<KitchenTable>> =>
+    api.paginate('/admin/tables', { query: { restaurantId, branchId, page: 1, limit } }),
+  /** QR codes for one table. Returns [] when none have been generated yet. */
+  tableQrCodes: (tableId: string) => api.get<KitchenQrCode[]>(`/admin/qr/table/${tableId}`),
+  /** Troubleshooting actions on a QR. `rotate`/`regenerate` invalidate printed copies. */
+  qrAction: (id: string, action: 'regenerate' | 'rotate' | 'disable') => api.post<KitchenQrCode>(`/admin/qr/${id}/${action}`),
+  kitchenOrders: (restaurantId: string, branchId: string, p = 1, limit = 10): Promise<Paginated<KitchenOrder>> =>
+    api.paginate('/admin/orders', { query: { restaurantId, branchId, page: p, limit } }),
+  /** Staff reaching this outlet (branch + brand + org memberships), with role counts. */
+  kitchenStaff: (id: string) => api.get<KitchenStaffResponse>(`/admin/kitchens/${id}/staff`),
+  /**
+   * One outlet's KPIs, read through the same projection path as the platform
+   * dashboard but narrowed to a branch. All money is MINOR units (paise).
+   */
+  kitchenAnalytics: (scope: AdminAnalyticsScope) => api.get<PlatformKpis>('/admin/analytics/platform', { query: scope }),
+
+  /* ── Catalog WRITES ──
+     These go through the restaurant-facing routes (`/restaurant/*`), not
+     `/admin/catalog` which is read-only inspection. A super admin has no primary
+     restaurant, so `restaurantId` must be passed explicitly — the backend has
+     nothing to default to and will 403 without it.
+
+     Editing here changes the menu for EVERY outlet of the brand. */
+
+  updateCatalogCategory: (id: string, restaurantId: string, body: CatalogCategoryPayload) =>
+    api.patch<CatalogCategory>(`/restaurant/categories/${id}`, body, { query: { restaurantId } }),
+  updateCatalogProduct: (id: string, restaurantId: string, body: CatalogProductPayload) =>
+    api.patch<CatalogProduct>(`/restaurant/products/${id}`, body, { query: { restaurantId } }),
 };

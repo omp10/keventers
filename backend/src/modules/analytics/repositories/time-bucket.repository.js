@@ -110,11 +110,18 @@ export class TimeBucketRepository extends AnalyticsScopedRepository {
 
   /**
    * PLATFORM aggregate (super-admin only): sum a domain's metrics across ALL
-   * tenants for a period range, optionally within one organization.
+   * tenants for a period range, optionally narrowed to one organization,
+   * restaurant or branch.
+   *
+   * Buckets are keyed per (org, restaurant, branch, domain, period) — a branch's
+   * rows are its own, so narrowing by `branchId` reads one outlet's figures
+   * without double-counting a parent aggregate.
    */
-  async sumPlatform(domain, period, fromKey, toKey, { organizationId = null } = {}) {
+  async sumPlatform(domain, period, fromKey, toKey, { organizationId = null, restaurantId = null, branchId = null } = {}) {
     const match = { domain, period, periodKey: { $gte: fromKey, $lte: toKey } };
     if (organizationId) match.organizationId = this.#oid(organizationId);
+    if (restaurantId) match.restaurantId = this.#oid(restaurantId);
+    if (branchId) match.branchId = this.#oid(branchId);
     const rows = await this.model.aggregate([{ $match: match }, { $group: { _id: null, docs: { $push: '$metrics' } } }], { allowDiskUse: true });
     const summed = {};
     for (const m of rows[0]?.docs ?? []) for (const [k, v] of Object.entries(m)) summed[k] = (summed[k] ?? 0) + (Number(v) || 0);

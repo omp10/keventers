@@ -20,6 +20,28 @@ export class MembershipRepository extends BaseRepository {
   findByOrganization(organizationId, options = {}) {
     return this.find({ organizationId }, options);
   }
+
+  /**
+   * Everyone whose membership REACHES a given branch — not just those pinned to
+   * it. A membership narrows scope by what it sets: branch-scoped rows name the
+   * branch, restaurant-scoped rows cover every branch of that restaurant, and
+   * org-scoped rows (owners/org admins) cover the whole organization. Matching
+   * only on `branchId` would report an outlet as unstaffed while its owner and
+   * brand managers plainly run it.
+   */
+  findReachingBranch({ organizationId, restaurantId, branchId }, options = {}) {
+    return this.find(
+      {
+        organizationId,
+        $or: [
+          { branchId },
+          { restaurantId, branchId: null },
+          { restaurantId: null, branchId: null },
+        ],
+      },
+      options,
+    );
+  }
 }
 
 export const membershipRepository = new MembershipRepository();

@@ -1,8 +1,10 @@
 import { BaseService } from '#core/service/base.service.js';
 import { NotFoundError, ValidationError } from '#core/errors/app-error.js';
+import { userService } from '#modules/identity/index.js';
 
-import { BRANCH_STATUS } from '../constants/organization.constants.js';
+import { BRANCH_STATUS, MEMBERSHIP_SCOPE } from '../constants/organization.constants.js';
 import { branchRepository } from '../repositories/branch.repository.js';
+import { membershipRepository } from '../repositories/membership.repository.js';
 import { restaurantRepository } from '../repositories/restaurant.repository.js';
 import { entityId } from '../utils/id.util.js';
 import { slugify, uniqueSlug } from '../utils/slug.util.js';
@@ -77,12 +79,16 @@ export class AdminKitchenService extends BaseService {
   constructor({
     branches = branchRepository,
     restaurants = restaurantRepository,
+    memberships = membershipRepository,
+    users = userService,
     discovery = publicDiscoveryService,
     eventBus,
   } = {}) {
     super({ name: 'org.admin-kitchen', eventBus });
     this.branches = branches;
     this.restaurants = restaurants;
+    this.memberships = memberships;
+    this.users = users;
     this.discovery = discovery;
   }
 
@@ -202,6 +208,61 @@ export class AdminKitchenService extends BaseService {
     this.discovery.invalidate();
     this.audit.success('kitchen.deleted', { actorId, targetId: id });
     return { id };
+  }
+
+  /**
+   * ADMIN: the people who run one outlet, derived from MEMBERSHIPS.
+   *
+   * Staff are memberships, not rows in a `staff` collection — a membership is
+   * what grants a person access to an org/restaurant/branch and with what role.
+   * The list therefore spans three scopes (see `findReachingBranch`): people
+   * pinned to this outlet, brand-wide managers, and organization owners. Each
+   * entry says which, and `counts.byRole` totals them for the header.
+   */
+  async staff(id) {
+    const branch = await this.#getOrThrow(id);
+    const memberships = await this.memberships.findReachingBranch(
+      {
+        organizationId: branch.organizationId,
+        restaurantId: branch.restaurantId,
+        branchId: entityId(branch),
+      },
+      { limit: 200, sort: '-isOwner' },
+    );
+
+    const byId = await this.users.getUsersByIds(memberships.map((m) => String(m.userId)));
+
+    const items = memberships.map((m) => {
+      const user = byId.get(String(m.userId)) ?? null;
+      return {
+        id: entityId(m),
+        userId: String(m.userId),
+        name: user?.fullName || user?.email || 'Unknown user',
+        email: user?.email ?? null,
+        phone: user?.phone ?? null,
+        avatarUrl: user?.profile?.avatarUrl ?? null,
+        role: m.role,
+        scope: m.scope,
+        /** True only for people assigned to THIS outlet rather than inheriting it. */
+        atThisKitchen: m.scope === MEMBERSHIP_SCOPE.BRANCH,
+        isOwner: Boolean(m.isOwner),
+        status: m.status,
+        userStatus: user?.status ?? null,
+        lastLoginAt: user?.lastLoginAt ?? null,
+      };
+    });
+
+    const byRole = {};
+    for (const s of items) byRole[s.role] = (byRole[s.role] ?? 0) + 1;
+
+    return {
+      items,
+      counts: {
+        total: items.length,
+        atThisKitchen: items.filter((s) => s.atThisKitchen).length,
+        byRole,
+      },
+    };
   }
 
   /** Restaurant options for the kitchen form's owner picker. */

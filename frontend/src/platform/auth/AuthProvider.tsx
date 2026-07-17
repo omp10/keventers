@@ -18,19 +18,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const refreshTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const loggingOut = useRef(false);
+  const inFlightRefresh = useRef<Promise<boolean> | null>(null);
 
-  /* Perform a token refresh (used by session recovery + the API adapter). */
+  /**
+   * Perform a token refresh (used by session recovery + the API adapter).
+   *
+   * SINGLE-FLIGHT: concurrent callers share one request. Without this, React
+   * StrictMode's double-invoked mount effect spent two refreshes per page load,
+   * and a burst of 401s could fire one per request — all racing to rotate the
+   * same token and burning the endpoint's budget.
+   */
   const performRefresh = useCallback(async (): Promise<boolean> => {
     const rt = tokenStore.getRefresh();
     if (!rt) return false;
-    try {
-      const tokens = await authService.refresh(rt);
-      tokenStore.setSession(tokens.accessToken, tokens.refreshToken);
-      scheduleRefresh(tokens.accessToken);
-      return true;
-    } catch {
-      return false;
-    }
+    if (inFlightRefresh.current) return inFlightRefresh.current;
+
+    inFlightRefresh.current = (async () => {
+      try {
+        const tokens = await authService.refresh(rt);
+        tokenStore.setSession(tokens.accessToken, tokens.refreshToken);
+        scheduleRefresh(tokens.accessToken);
+        return true;
+      } catch {
+        return false;
+      } finally {
+        inFlightRefresh.current = null;
+      }
+    })();
+    return inFlightRefresh.current;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

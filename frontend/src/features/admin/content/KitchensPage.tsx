@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 import { Badge, Button, Card, Field, Icon, Input, Switch, Textarea, toast } from '@/design-system';
 import { EntityDrawer, ImageUploadField, ManagementPage, ManagementTable, StatusPill, type Column } from '@/features/management/components';
@@ -58,6 +59,7 @@ const emptyKitchen = (restaurantId = ''): KitchenDraft => ({
  * customers immediately.
  */
 export function KitchensPage() {
+  const navigate = useNavigate();
   const q = usePaginatedResource<AdminKitchen>(KEY, (p, l) => adminService.kitchens({}, p, l));
   const restaurants = useQueryResource<RestaurantOption[]>(qk('admin', 'kitchen-restaurants'), () => adminService.kitchenRestaurants());
   const [draft, setDraft] = useState<KitchenDraft | null>(null);
@@ -163,7 +165,15 @@ export function KitchensPage() {
       key: 'actions',
       header: '',
       align: 'right',
-      render: (k) => <Button size="sm" variant="ghost" leftIcon="delete" aria-label={`Delete ${k.name}`} onClick={(e) => { e.stopPropagation(); void remove(k); }} />,
+      render: (k) => (
+        <div className="flex items-center justify-end gap-1">
+          <Button size="sm" variant="secondary" leftIcon="eye" onClick={(e) => { e.stopPropagation(); navigate(`/admin/kitchens/${k.id}`); }}>
+            View details
+          </Button>
+          <Button size="sm" variant="ghost" leftIcon="edit" aria-label={`Edit ${k.name}`} onClick={(e) => { e.stopPropagation(); setDraft({ ...k }); }} />
+          <Button size="sm" variant="ghost" leftIcon="delete" aria-label={`Delete ${k.name}`} onClick={(e) => { e.stopPropagation(); void remove(k); }} />
+        </div>
+      ),
     },
   ];
 
@@ -180,7 +190,7 @@ export function KitchensPage() {
         columns={columns}
         getId={(k) => k.id}
         loading={q.isLoading}
-        onRowClick={(k) => setDraft({ ...k })}
+        onRowClick={(k) => navigate(`/admin/kitchens/${k.id}`)}
         emptyTitle="No kitchens yet"
         emptyDescription="Add an outlet to make it discoverable in the customer app."
         emptyIcon="store"

@@ -30,18 +30,26 @@ export class AdminAnalyticsService extends BaseService {
     return periodKeys(date)[period];
   }
 
-  async #platformSum(domain, range, organizationId) {
-    return this.buckets.sumPlatform(domain, PERIOD.DAY, this.#key(range.from), this.#key(range.to), { organizationId });
+  async #platformSum(domain, range, scope) {
+    return this.buckets.sumPlatform(domain, PERIOD.DAY, this.#key(range.from), this.#key(range.to), scope);
   }
 
-  /** Platform-wide KPIs (revenue, orders, customers, provider mix, notif health). */
-  async platform(range, { organizationId = null } = {}) {
+  /**
+   * Platform-wide KPIs (revenue, orders, customers, provider mix, notif health).
+   *
+   * `scope` narrows the same projections progressively — organization, then
+   * restaurant, then a single branch — so the kitchen detail page reads one
+   * outlet's numbers through the same path the platform dashboard uses, rather
+   * than a parallel implementation that could drift from it.
+   */
+  async platform(range, { organizationId = null, restaurantId = null, branchId = null } = {}) {
+    const scope = { organizationId, restaurantId, branchId };
     const [sales, orders, customers, payments, notifications, providers] = await Promise.all([
-      this.#platformSum(DOMAIN.SALES, range, organizationId),
-      this.#platformSum(DOMAIN.ORDERS, range, organizationId),
-      this.#platformSum(DOMAIN.CUSTOMERS, range, organizationId),
-      this.#platformSum(DOMAIN.PAYMENTS, range, organizationId),
-      this.#platformSum(DOMAIN.NOTIFICATIONS, range, organizationId),
+      this.#platformSum(DOMAIN.SALES, range, scope),
+      this.#platformSum(DOMAIN.ORDERS, range, scope),
+      this.#platformSum(DOMAIN.CUSTOMERS, range, scope),
+      this.#platformSum(DOMAIN.PAYMENTS, range, scope),
+      this.#platformSum(DOMAIN.NOTIFICATIONS, range, scope),
       this.entities.aggregatePlatform(DOMAIN.PAYMENTS, ENTITY_TYPE.PROVIDER, { organizationId }),
     ]);
     return {
@@ -54,8 +62,8 @@ export class AdminAnalyticsService extends BaseService {
     };
   }
 
-  async revenue(range, { organizationId = null } = {}) {
-    const sales = await this.#platformSum(DOMAIN.SALES, range, organizationId);
+  async revenue(range, { organizationId = null, restaurantId = null, branchId = null } = {}) {
+    const sales = await this.#platformSum(DOMAIN.SALES, range, { organizationId, restaurantId, branchId });
     return { summary: toSalesDTO(sales) };
   }
 

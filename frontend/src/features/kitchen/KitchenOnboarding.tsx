@@ -1,9 +1,10 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 
-import { Button, Card, Icon, Spinner } from '@/design-system';
+import { Button, Card, Spinner } from '@/design-system';
 import { ApiError } from '@/platform/api';
 import { useAuth } from '@/platform/auth';
+import { KitchenOnboardingWizard } from './KitchenOnboardingWizard';
 import { kitchenOnboardingService, type KitchenOnboardingState } from './onboarding';
 
 /**
@@ -75,6 +76,15 @@ export function KitchenOnboardingPage() {
   }
   if (outcome.kind === 'ready') return <Navigate to="/kitchen" replace />;
 
+  /**
+   * A restaurant that exists but isn't set up yet gets the actual wizard. It
+   * used to get a read-only list of what was outstanding and a reload button,
+   * which was a dead end — there was no way to complete a single step.
+   */
+  if (outcome.kind === 'incomplete') {
+    return <KitchenOnboardingWizard state={outcome.state} onCompleted={() => navigate('/kitchen', { replace: true })} />;
+  }
+
   const noKitchen = outcome.kind === 'no-kitchen';
 
   return (
@@ -117,27 +127,14 @@ export function KitchenOnboardingPage() {
                 </Button>
               </div>
             </>
-          ) : outcome.kind === 'error' ? (
-            <>
-              <h2 className="text-lg font-semibold">We couldn't load your setup</h2>
-              <p className="mt-3 text-sm text-danger">{outcome.message}</p>
-              <Button className="mt-6" leftIcon="refresh" onClick={() => window.location.reload()}>
-                Try again
-              </Button>
-            </>
           ) : (
             <>
-              <h2 className="text-lg font-semibold">Remaining setup</h2>
-              <div className="mt-4 grid gap-2 sm:grid-cols-2">
-                {outcome.state.pendingSteps.map((step) => (
-                  <div key={step} className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm capitalize">
-                    <Icon name="circle" className="h-3.5 w-3.5 text-foreground-subtle" />
-                    {step.replaceAll('_', ' ')}
-                  </div>
-                ))}
-              </div>
+              <h2 className="text-lg font-semibold">We couldn't load your setup</h2>
+              <p className="mt-3 text-sm text-danger">
+                {outcome.kind === 'error' ? outcome.message : 'Unknown error'}
+              </p>
               <Button className="mt-6" leftIcon="refresh" onClick={() => window.location.reload()}>
-                Check setup again
+                Try again
               </Button>
             </>
           )}

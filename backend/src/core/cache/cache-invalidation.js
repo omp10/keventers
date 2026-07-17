@@ -21,19 +21,32 @@ export class CacheInvalidation {
   /**
    * Delete all keys matching a glob pattern using SCAN (never KEYS, which
    * blocks the server). Pattern is applied within the cache namespace.
+   *
+   * KEY-PREFIX HANDLING (do not simplify): ioredis applies `keyPrefix` to KEY
+   * ARGUMENTS only. SCAN's MATCH is a pattern, not a key, so it is NOT
+   * prefixed — the pattern must carry the prefix itself or it matches nothing.
+   * Conversely SCAN *returns* fully-qualified keys, while `del` re-applies the
+   * prefix, so the prefix must be stripped back off before deleting or every
+   * delete targets a double-prefixed key that doesn't exist.
+   *
+   * Both halves failing silently is why this looked like it worked: SCAN found
+   * nothing and reported 0 deleted.
    */
   async invalidateByPattern(pattern) {
-    const match = `cache:${pattern}`;
+    const client = this.client;
+    const prefix = client.options?.keyPrefix ?? '';
+    const match = `${prefix}cache:${pattern}`;
     let cursor = '0';
     let deleted = 0;
     do {
-      const [next, keys] = await this.client.scan(cursor, 'MATCH', match, 'COUNT', 200);
+      const [next, keys] = await client.scan(cursor, 'MATCH', match, 'COUNT', 200);
       cursor = next;
       if (keys.length > 0) {
-        deleted += await this.client.del(...keys);
+        const unprefixed = prefix ? keys.map((k) => (k.startsWith(prefix) ? k.slice(prefix.length) : k)) : keys;
+        deleted += await client.del(...unprefixed);
       }
     } while (cursor !== '0');
-    logger().debug({ pattern, deleted }, 'Cache invalidated by pattern');
+    logger().debug({ pattern, match, deleted }, 'Cache invalidated by pattern');
     return deleted;
   }
 

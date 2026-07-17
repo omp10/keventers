@@ -124,6 +124,20 @@ export class UserService extends BaseService {
     return user ? toUserDTO(user) : null;
   }
 
+  /**
+   * Batch read seam for other modules that hold user IDs and would otherwise
+   * N+1 through `getUser` — e.g. Organization resolving the people behind a
+   * branch's memberships. Read-only; returns DTOs keyed by id. Unknown ids are
+   * simply absent rather than an error, since the caller's list is the
+   * authority on which users it expects.
+   */
+  async getUsersByIds(ids = []) {
+    const unique = [...new Set(ids.map(String))].filter(Boolean);
+    if (!unique.length) return new Map();
+    const users = await this.users.find({ _id: { $in: unique } }, { limit: unique.length });
+    return new Map(users.map((u) => [String(u.id ?? u._id), toUserDTO(u)]));
+  }
+
   async listUsers(query = {}) {
     const filter = {};
     if (query.status) filter.status = query.status;

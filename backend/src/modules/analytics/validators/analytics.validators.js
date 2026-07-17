@@ -13,8 +13,18 @@ const rangeShape = {
 
 export const rangeQuerySchema = z.object(rangeShape).strict();
 
+/**
+ * Admin range + progressive scope. A super admin has no primary tenant, so the
+ * scope is explicit: organization, restaurant, or a single branch (the kitchen
+ * detail page passes `branchId` to read one outlet's projections).
+ */
 export const adminRangeQuerySchema = z
-  .object({ ...rangeShape, organizationId: objectId.optional() })
+  .object({
+    ...rangeShape,
+    organizationId: objectId.optional(),
+    restaurantId: objectId.optional(),
+    branchId: objectId.optional(),
+  })
   .strict();
 
 export const exportQuerySchema = z

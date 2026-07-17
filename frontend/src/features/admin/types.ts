@@ -121,3 +121,186 @@ export type AdminKitchen = {
 };
 
 export type RestaurantOption = { id: string; name: string; slug: string; status: string };
+
+/* ── Kitchen detail ───────────────────────────────────────────────────────────
+   One outlet seen from every angle: the menu its restaurant serves, the tables
+   and QR codes guests order from, the staff rostered to it, and what it earns.
+   The catalog is RESTAURANT-scoped (shared by every outlet of the brand), while
+   tables/QR/orders/staff are BRANCH-scoped — the page labels which is which so
+   an editor knows the blast radius of a change. */
+
+/** A product as the admin catalog returns it (`/admin/catalog`). */
+export type CatalogProduct = {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+  shortDescription: string;
+  thumbnailUrl?: string;
+  heroImageUrl?: string;
+  /**
+   * Plain MAJOR-unit numbers in the restaurant's currency — NOT the minor-unit
+   * Money DTO used by orders/payments. The cart converts these with
+   * `Money.fromMajor` at checkout.
+   */
+  pricing: { basePrice: number; compareAtPrice?: number | null; promotionalPrice?: number | null; taxIncluded?: boolean };
+  preparationTimeMinutes?: number;
+  dietaryTags: string[];
+  allergens: string[];
+  spiceLevel?: string;
+  availability: { status: string; unavailableReason?: string };
+  status: string;
+  isFeatured: boolean;
+  isPopular: boolean;
+  isRecommended: boolean;
+  displayOrder: number;
+  hasVariants: boolean;
+  categoryId: string;
+};
+
+export type CatalogCategory = {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+  imageUrl?: string | null;
+  parentId: string | null;
+  depth: number;
+  isSubcategory: boolean;
+  status: string;
+  isFeatured: boolean;
+  displayOrder: number;
+  subcategories?: CatalogCategory[];
+  products?: CatalogProduct[];
+};
+
+export type CatalogMenu = {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+  type: string;
+  status: string;
+  isActive: boolean;
+  isDefault: boolean;
+  displayOrder: number;
+  categories?: CatalogCategory[];
+};
+
+/** Full menu tree for a restaurant (`GET /admin/catalog?restaurantId=`). */
+export type KitchenCatalog = { restaurantId: string; menus: CatalogMenu[] };
+
+export type CatalogCategoryStatus = 'active' | 'inactive';
+export type CatalogProductStatus = 'draft' | 'active' | 'inactive' | 'archived';
+export type CatalogAvailabilityStatus = 'available' | 'out_of_stock' | 'temporarily_disabled';
+
+/** Catalog write payloads (PATCH `/restaurant/categories|products/:id`). Partial. */
+export type CatalogCategoryPayload = {
+  name?: string;
+  description?: string;
+  status?: CatalogCategoryStatus;
+  isFeatured?: boolean;
+};
+
+export type CatalogProductPayload = {
+  name?: string;
+  description?: string;
+  shortDescription?: string;
+  /**
+   * Price MUST be sent nested under `pricing`, in MAJOR units. The API also
+   * accepts a top-level `basePrice`, but that shortcut is honoured only on
+   * CREATE — `updateProduct` reads `data.pricing` alone, so a PATCH carrying
+   * `basePrice` returns 200 and silently discards the new price.
+   */
+  pricing?: { basePrice?: number };
+  preparationTimeMinutes?: number;
+  status?: CatalogProductStatus;
+  isFeatured?: boolean;
+  isPopular?: boolean;
+  isRecommended?: boolean;
+  availability?: { status?: CatalogAvailabilityStatus; unavailableReason?: string };
+};
+
+/** Catalog counts (`GET /admin/catalog/stats?restaurantId=`). */
+export type CatalogStats = {
+  restaurantId: string;
+  counts: { menus: number; activeMenus: number; categories: number; products: number; activeProducts: number };
+};
+
+/** A table at one outlet (`GET /admin/tables?restaurantId=&branchId=`). */
+export type KitchenTable = {
+  id: string;
+  branchId: string;
+  groupId: string | null;
+  floor: string;
+  zone: string;
+  number: string;
+  name: string;
+  seatingCapacity: number;
+  shape: string;
+  status: string;
+  isReserved: boolean;
+  isOrderingEnabled: boolean;
+  activeQrCodeId: string | null;
+  currentSessionId: string | null;
+  displayOrder: number;
+};
+
+/** A table's QR code (`GET /admin/qr/table/:tableId`). Never carries the signing secret. */
+export type KitchenQrCode = {
+  id: string;
+  tableId: string;
+  type: string;
+  status: string;
+  /** The scannable payload: `token.version.signature`. */
+  code: string;
+  scanUrl: string;
+  imageUrl: string | null;
+  secretVersion: number;
+  expiresAt: string | null;
+  scanCount: number;
+  lastScannedAt: string | null;
+};
+
+/**
+ * A person who runs this outlet (`GET /admin/kitchens/:id/staff`).
+ *
+ * Staff ARE memberships — there's no separate staff record. A membership reaches
+ * this outlet either by naming it (`scope: 'branch'`, the people actually
+ * rostered here) or by sitting above it (`restaurant`/`organization` scope, i.e.
+ * brand managers and owners who cover every outlet). `atThisKitchen` is the
+ * difference.
+ */
+export type KitchenStaff = {
+  id: string;
+  userId: string;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  avatarUrl: string | null;
+  role: string;
+  scope: 'organization' | 'restaurant' | 'branch';
+  atThisKitchen: boolean;
+  isOwner: boolean;
+  status: string;
+  userStatus: string | null;
+  lastLoginAt: string | null;
+};
+
+export type KitchenStaffResponse = {
+  items: KitchenStaff[];
+  counts: { total: number; atThisKitchen: number; byRole: Record<string, number> };
+};
+
+/** An order row at one outlet (`GET /admin/orders?restaurantId=&branchId=`). */
+export type KitchenOrder = {
+  id: string;
+  orderNumber: string;
+  status: string;
+  orderType: string;
+  total: Money;
+  itemCount: number;
+  tableId: string | null;
+  placedAt: string | null;
+  createdAt: string;
+};

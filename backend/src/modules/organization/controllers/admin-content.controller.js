@@ -62,6 +62,10 @@ export const KitchenAdminController = {
   get: asyncHandler(async (req, res) => {
     ApiResponse.success(res, { data: await adminKitchenService.get(req.params.id) });
   }),
+  /** The people who run this outlet, derived from memberships. */
+  staff: asyncHandler(async (req, res) => {
+    ApiResponse.success(res, { data: await adminKitchenService.staff(req.params.id) });
+  }),
   create: asyncHandler(async (req, res) => {
     ApiResponse.success(res, { data: await adminKitchenService.create(req.body, actorOf(req)), statusCode: 201 });
   }),

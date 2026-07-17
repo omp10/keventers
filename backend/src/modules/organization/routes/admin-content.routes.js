@@ -49,6 +49,8 @@ import {
  *   post: { tags: [Kitchens/Admin], security: [{ bearerAuth: [] }], summary: Create an outlet, responses: { 201: { description: Created } } }
  * /api/v1/admin/kitchens/restaurants:
  *   get: { tags: [Kitchens/Admin], security: [{ bearerAuth: [] }], summary: Restaurant options for the kitchen form, responses: { 200: { description: Options } } }
+ * /api/v1/admin/kitchens/{id}/staff:
+ *   get: { tags: [Kitchens/Admin], security: [{ bearerAuth: [] }], summary: Staff reaching this outlet (branch + restaurant + org scoped memberships) with role counts, responses: { 200: { description: Staff + counts } } }
  * /api/v1/admin/kitchens/{id}:
  *   get: { tags: [Kitchens/Admin], security: [{ bearerAuth: [] }], summary: Get an outlet, responses: { 200: { description: Kitchen } } }
  *   patch: { tags: [Kitchens/Admin], security: [{ bearerAuth: [] }], summary: Update an outlet / its discovery profile, responses: { 200: { description: Updated } } }
@@ -90,6 +92,7 @@ kitchenAdminRouter
   .get(validate({ query: listKitchensQuerySchema }), KitchenAdminController.list)
   .post(validate({ body: createKitchenSchema }), KitchenAdminController.create);
 kitchenAdminRouter.get('/restaurants', KitchenAdminController.restaurants);
+kitchenAdminRouter.get('/:id/staff', validate({ params: idParamSchema }), KitchenAdminController.staff);
 kitchenAdminRouter
   .route('/:id')
   .get(validate({ params: idParamSchema }), KitchenAdminController.get)

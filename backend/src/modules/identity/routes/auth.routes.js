@@ -4,7 +4,7 @@ import { validate } from '#core/validation/validate.middleware.js';
 import { requireAuth } from '#platform/auth/index.js';
 
 import { AuthController } from '../controllers/auth.controller.js';
-import { authRateLimit } from '../middleware/auth-rate-limit.middleware.js';
+import { authRateLimit, refreshSessionKey } from '../middleware/auth-rate-limit.middleware.js';
 import {
   loginSchema,
   otpRequestSchema,
@@ -111,7 +111,16 @@ router.post('/otp/verify', authRateLimit('otp-verify'), validate({ body: otpVeri
  *       200: { description: New token pair }
  *       401: { description: Session expired or revoked }
  */
-router.post('/refresh', authRateLimit('refresh'), validate({ body: refreshSchema }), AuthController.refresh);
+// Scoped to the token's SESSION rather than the caller's IP, and given a budget
+// that suits normal use: the client refreshes once per page load, so an IP-keyed
+// budget of 10 logged real users out after a few reloads and made every device
+// behind one restaurant's NAT share it. See `refreshSessionKey`.
+router.post(
+  '/refresh',
+  authRateLimit('refresh', { max: 60, keyOf: refreshSessionKey }),
+  validate({ body: refreshSchema }),
+  AuthController.refresh,
+);
 
 /**
  * @openapi
