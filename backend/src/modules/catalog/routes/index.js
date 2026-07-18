@@ -8,6 +8,7 @@ import menuRoutes from './menu.routes.js';
 import modifierRoutes from './modifier.routes.js';
 import productRoutes from './product.routes.js';
 import publicMenuRoutes from './public-menu.routes.js';
+import { publicUpsellRouter, upsellAdminRouter } from './upsell.routes.js';
 import variantRoutes from './variant.routes.js';
 
 /**
@@ -32,6 +33,7 @@ const router = Router();
 // Customer-facing menu. Mounted on the same `/public/branches` prefix the
 // organization module uses for branch detail; because catalog is registered
 // first, these deeper paths match here and anything else falls through to it.
+router.use('/public/branches', publicUpsellRouter);
 router.use('/public/branches', publicMenuRoutes);
 
 router.use('/restaurant/menus', menuRoutes);
@@ -40,6 +42,7 @@ router.use('/restaurant/products', productRoutes);
 router.use('/restaurant/variants', variantRoutes);
 router.use('/restaurant/modifiers', modifierRoutes);
 router.use('/restaurant/addons', addonRoutes);
+router.use('/restaurant/upsell', upsellAdminRouter);
 router.use('/restaurant/catalog', catalogRoutes);
 router.use('/admin/catalog', adminCatalogRoutes);
 

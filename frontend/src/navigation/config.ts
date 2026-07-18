@@ -62,6 +62,7 @@ export const restaurantNav: NavConfig = {
         { key: 'variants', label: 'Variants', icon: 'package', path: '/dashboard/catalog/variants', access: { anyPermission: ['product:read', 'variant:read', 'catalog:read'] } },
         { key: 'modifiers', label: 'Modifier groups', icon: 'more', path: '/dashboard/catalog/modifiers', access: { anyPermission: ['product:read', 'menu:read', 'catalog:read'] } },
         { key: 'addons', label: 'Add-ons', icon: 'add', path: '/dashboard/catalog/addons', access: { anyPermission: ['product:read', 'addon:read', 'catalog:read'] } },
+        { key: 'upsell', label: 'Upsell rules', icon: 'trend', path: '/dashboard/upsell', access: { anyPermission: ['product:read', 'menu:read', 'catalog:read'] } },
         { key: 'preview', label: 'Live preview', icon: 'eye', path: '/dashboard/catalog/preview', access: { anyPermission: ['menu:read', 'product:read', 'catalog:read'] } },
       ],
     },

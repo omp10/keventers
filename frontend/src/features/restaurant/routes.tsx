@@ -12,6 +12,7 @@ const LiveOrdersPage = lazy(() => import('./pages/LiveOrdersPage').then((m) => (
 const AnalyticsPage = lazy(() => import('./pages/AnalyticsPage').then((m) => ({ default: m.AnalyticsPage })));
 const JourneysPage = lazy(() => import('./pages/JourneysPage').then((m) => ({ default: m.JourneysPage })));
 const SubscriptionsPage = lazy(() => import('./pages/SubscriptionsPage').then((m) => ({ default: m.SubscriptionsPage })));
+const UpsellPage = lazy(() => import('./pages/UpsellPage').then((m) => ({ default: m.UpsellPage })));
 const P = () => import('./pages/Placeholders');
 const M = () => import('@/features/management');
 const CustomersPage = lazy(() => M().then((m) => ({ default: m.CustomersPage })));
@@ -32,6 +33,7 @@ export const restaurantRoutes: RestaurantRoute[] = [
   { path: '/dashboard/analytics', element: <AnalyticsPage /> },
   { path: '/dashboard/journeys', element: <JourneysPage /> },
   { path: '/dashboard/subscriptions', element: <SubscriptionsPage /> },
+  { path: '/dashboard/upsell', element: <UpsellPage /> },
   { path: '/dashboard/customers', element: <CustomersPage /> },
   { path: '/dashboard/payments', element: <PaymentsPage /> },
   { path: '/dashboard/tables', element: <TablesPage /> },
