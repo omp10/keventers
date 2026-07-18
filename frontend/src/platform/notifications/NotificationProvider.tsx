@@ -4,6 +4,7 @@ import { toast } from '@/design-system';
 import { notificationService } from '@/services';
 import { tokenStore, useAuth } from '@/platform/auth';
 import { useSocketEvent } from '@/platform/socket';
+import { initPush } from '@/platform/push/fcm';
 import { useNotificationStore, type AppNotification } from './store';
 
 type NotificationContextValue = {
@@ -51,6 +52,17 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     void refresh();
   }, [refresh]);
+
+  // FCM web push — register this device once the user is known. A complete
+  // no-op unless a Firebase project is configured (VITE_FIREBASE_*); a
+  // foreground push surfaces as the same toast the socket feed uses.
+  useEffect(() => {
+    if (!isAuthenticated && !isGuest) return;
+    void initPush((payload) => {
+      const p = (payload as { notification?: { title?: string; body?: string } })?.notification;
+      if (p?.title) toast.info(p.title, { description: p.body });
+    });
+  }, [isAuthenticated, isGuest]);
 
   // Live notifications — one subscription for the whole app.
   useSocketEvent<Partial<AppNotification> & { id: string; title: string }>('notification:new', (raw) => {

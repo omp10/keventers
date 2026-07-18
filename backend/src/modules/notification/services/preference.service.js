@@ -48,6 +48,18 @@ export class PreferenceService extends BaseService {
     return toPreferenceDTO(updated);
   }
 
+  /** Register an FCM device token for push (idempotent). */
+  async registerDevice(scope, userId, token) {
+    const pref = await this.preferences.addDeviceToken(scope, userId, token);
+    return toPreferenceDTO(pref);
+  }
+
+  /** Drop a device token (logout / permission revoked). */
+  async unregisterDevice(scope, userId, token) {
+    const pref = await this.preferences.removeDeviceToken(scope, userId, token);
+    return pref ? toPreferenceDTO(pref) : null;
+  }
+
   /**
    * Is `channel` allowed for `category` given the user's prefs?
    * @param {object|null} pref  the preference doc (may be null → defaults)

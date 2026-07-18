@@ -45,7 +45,37 @@ export const CustomerNotificationController = {
     const data = await preferenceService.updatePreferences({ organizationId: scope.organizationId, restaurantId: scope.restaurantId }, requireUser(scope), req.body);
     ApiResponse.success(res, { data });
   }),
+
+  /**
+   * POST /api/v1/notifications/devices — register this device's FCM token.
+   *
+   * Auth-guarded (account principal), NOT guest-session: a device token belongs
+   * to a USER (staff or signed-in customer) and push targets the user, so this
+   * must work for anyone signed in, including staff whose phone should ring on a
+   * new order even with the app closed.
+   */
+  registerDevice: asyncHandler(async (req, res) => {
+    const scope = deviceScopeOf(req);
+    const data = await preferenceService.registerDevice(scope, req.principal.id, req.body.token);
+    ApiResponse.success(res, { data, statusCode: 201 });
+  }),
+
+  /** DELETE /api/v1/notifications/devices — drop this device's FCM token. */
+  unregisterDevice: asyncHandler(async (req, res) => {
+    const scope = deviceScopeOf(req);
+    await preferenceService.unregisterDevice(scope, req.principal.id, req.body.token);
+    ApiResponse.success(res, { data: { ok: true } });
+  }),
 };
+
+/** Device tokens live on the user's preference for their primary restaurant. */
+function deviceScopeOf(req) {
+  const t = req.tenant ?? {};
+  return {
+    organizationId: t.primaryOrganizationId ?? t.organizationIds?.[0] ?? null,
+    restaurantId: t.primaryRestaurantId ?? t.restaurantIds?.[0] ?? null,
+  };
+}
 
 /** Preferences are per registered user — reject anonymous guests. */
 function requireUser(scope) {

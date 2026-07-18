@@ -127,3 +127,6 @@ export const campaignListQuerySchema = z
 export const outboxListQuerySchema = z
   .object({ ...pagination, restaurantId: objectId.optional(), status: z.string().max(20).optional(), eventName: z.string().max(60).optional() })
   .strict();
+
+/** Register/unregister an FCM device token. */
+export const deviceTokenSchema = z.object({ token: z.string().min(20).max(4096) }).strict();

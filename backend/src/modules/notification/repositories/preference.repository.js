@@ -32,6 +32,29 @@ export class PreferenceRepository extends NotificationScopedRepository {
       )
       .then((d) => this.toDomain(d));
   }
+
+  /** Add an FCM device token (idempotent — $addToSet dedupes across tabs/devices). */
+  addDeviceToken(scope, userId, token) {
+    const filter = { organizationId: scope.organizationId, restaurantId: scope.restaurantId, userId };
+    return this.model
+      .findOneAndUpdate(
+        filter,
+        { $addToSet: { deviceTokens: token }, $setOnInsert: filter },
+        { new: true, upsert: true, setDefaultsOnInsert: true },
+      )
+      .then((d) => this.toDomain(d));
+  }
+
+  /** Remove a device token (logout / permission revoked / stale). */
+  removeDeviceToken(scope, userId, token) {
+    return this.model
+      .findOneAndUpdate(
+        { organizationId: scope.organizationId, restaurantId: scope.restaurantId, userId },
+        { $pull: { deviceTokens: token } },
+        { new: true },
+      )
+      .then((d) => (d ? this.toDomain(d) : null));
+  }
 }
 
 export const preferenceRepository = new PreferenceRepository();

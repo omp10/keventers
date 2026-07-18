@@ -1,13 +1,20 @@
 import { Router } from 'express';
 
 import { validate } from '#core/validation/validate.middleware.js';
+import { requireAuth } from '#platform/auth/index.js';
+import { resolveTenant } from '#modules/organization/index.js';
 
 import { CustomerNotificationController } from '../controllers/customer-notification.controller.js';
-import { idParamSchema, inboxQuerySchema, updatePreferencesSchema } from '../validators/notification.validators.js';
+import { deviceTokenSchema, idParamSchema, inboxQuerySchema, updatePreferencesSchema } from '../validators/notification.validators.js';
 
 import { customerGuards } from './_guards.js';
 
 const router = Router();
+
+// FCM device tokens belong to a USER ACCOUNT (staff or signed-in customer), so
+// these are auth-guarded — NOT guest-session — and sit before the guest block.
+router.post('/devices', requireAuth, resolveTenant, validate({ body: deviceTokenSchema }), CustomerNotificationController.registerDevice);
+router.delete('/devices', requireAuth, resolveTenant, validate({ body: deviceTokenSchema }), CustomerNotificationController.unregisterDevice);
 
 router.use(...customerGuards);
 

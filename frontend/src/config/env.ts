@@ -64,6 +64,19 @@ export const env = {
      */
     clarityProjectId: (import.meta.env.VITE_CLARITY_PROJECT_ID as string) ?? '',
   },
+  /**
+   * Firebase Cloud Messaging (web push). Empty apiKey = push is simply not
+   * initialized — the app degrades to socket-driven in-app alerts, which is the
+   * correct default until the client provides a Firebase project + VAPID key.
+   */
+  fcm: {
+    apiKey: (import.meta.env.VITE_FIREBASE_API_KEY as string) ?? '',
+    authDomain: (import.meta.env.VITE_FIREBASE_AUTH_DOMAIN as string) ?? '',
+    projectId: (import.meta.env.VITE_FIREBASE_PROJECT_ID as string) ?? '',
+    messagingSenderId: (import.meta.env.VITE_FIREBASE_SENDER_ID as string) ?? '',
+    appId: (import.meta.env.VITE_FIREBASE_APP_ID as string) ?? '',
+    vapidKey: (import.meta.env.VITE_FIREBASE_VAPID_KEY as string) ?? '',
+  },
   /** Build-time feature-flag defaults; the flag platform can override at runtime. */
   featureDefaults: {
     payments: flag(import.meta.env.VITE_FF_PAYMENTS as string, true),
