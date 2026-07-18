@@ -7,10 +7,22 @@ import type { Money, OrderStatus, PaymentStatus, VegClass } from './types';
  */
 const SYMBOLS: Record<string, string> = { INR: '₹', USD: '$', EUR: '€', GBP: '£', AED: 'د.إ' };
 
-export function formatMoney(m?: Money | null): string {
-  if (!m) return '';
-  const symbol = SYMBOLS[m.currency] ?? `${m.currency} `;
-  const value = m.major.toLocaleString(undefined, { minimumFractionDigits: Number.isInteger(m.major) ? 0 : 2, maximumFractionDigits: 2 });
+export function formatMoney(m?: Money | number | null): string {
+  if (m == null) return '';
+  // Tolerate the shapes that actually reach here: a full Money DTO, a bare
+  // number (some catalog/addon payloads send just the amount), or a Money
+  // missing `major` (derive it from minor `amount`). Never throw on a price.
+  let major: number | undefined;
+  let currency = 'INR';
+  if (typeof m === 'number') {
+    major = m;
+  } else {
+    currency = m.currency ?? 'INR';
+    major = m.major ?? (typeof m.amount === 'number' ? m.amount / 100 : undefined);
+  }
+  if (typeof major !== 'number' || Number.isNaN(major)) return '';
+  const symbol = SYMBOLS[currency] ?? `${currency} `;
+  const value = major.toLocaleString(undefined, { minimumFractionDigits: Number.isInteger(major) ? 0 : 2, maximumFractionDigits: 2 });
   return `${symbol}${value}`;
 }
 

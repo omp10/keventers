@@ -39,7 +39,8 @@ export function KitchenOrderCard({
   return (
     <article
       className={cn(
-        'flex flex-col gap-3 rounded-2xl border border-l-8 bg-surface p-4 shadow-sm transition',
+        // Compact on a phone, full-size on a kitchen tablet/display (md+).
+        'flex flex-col gap-2 rounded-2xl border border-l-8 bg-surface p-3 shadow-sm transition md:gap-3 md:p-4',
         SLA_BORDER[entry.sla.state],
         entry.sla.state === 'breached' && 'ring-2 ring-danger/30',
         'animate-[kv-pop-in_180ms_cubic-bezier(0.16,1,0.3,1)] motion-reduce:animate-none',
@@ -50,7 +51,7 @@ export function KitchenOrderCard({
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-2xl font-extrabold tracking-tight text-foreground">#{entry.orderNumber}</span>
+            <span className="text-lg font-extrabold tracking-tight text-foreground md:text-2xl">#{entry.orderNumber}</span>
             {entry.priority === 'rush' && <Badge tone="danger" variant="solid">RUSH</Badge>}
             {entry.priority === 'vip' && <Badge tone="accent" variant="solid">VIP</Badge>}
             {(entry.recallCount ?? 0) > 0 && <Badge tone="warning" variant="soft">Recalled ×{entry.recallCount}</Badge>}
@@ -82,11 +83,11 @@ export function KitchenOrderCard({
         {items.map((it) => {
           const opts = [it.variantName, ...(it.modifiers ?? []), ...(it.addons ?? [])].filter(Boolean);
           return (
-            <li key={it.id} className="flex gap-3">
-              <span className="grid h-7 min-w-7 place-items-center rounded-md bg-primary-soft px-1.5 text-base font-bold text-primary">{it.quantity}</span>
+            <li key={it.id} className="flex gap-2 md:gap-3">
+              <span className="grid h-6 min-w-6 place-items-center rounded-md bg-primary-soft px-1.5 text-sm font-bold text-primary md:h-7 md:min-w-7 md:text-base">{it.quantity}</span>
               <span className="min-w-0 flex-1">
-                <span className="block text-base font-semibold leading-tight text-foreground">{it.name}</span>
-                {opts.length > 0 && <span className="block text-sm text-foreground-muted">{opts.join(' · ')}</span>}
+                <span className="block text-sm font-semibold leading-tight text-foreground md:text-base">{it.name}</span>
+                {opts.length > 0 && <span className="block text-xs text-foreground-muted md:text-sm">{opts.join(' · ')}</span>}
                 {it.instructions && <span className="mt-0.5 block text-sm font-medium text-warning">“{it.instructions}”</span>}
               </span>
             </li>
