@@ -1,5 +1,7 @@
 import { useSyncExternalStore } from 'react';
 
+import { playOrderAlert } from '@/utils/order-alert';
+
 /**
  * KITCHEN AUDIO — configurable alert sounds for the KDS, generated with the Web
  * Audio API (no asset files → brand-neutral, instant). Distinct cues per event
@@ -58,6 +60,19 @@ const TONES: Record<KitchenSoundKind, [number, number, number][]> = {
 
 export function playKitchenSound(kind: KitchenSoundKind): void {
   if (!current.enabled) return;
+  // New/priority orders ring the REAL bell (mp3); the synthesized tones remain
+  // the fallback when the file can't play (autoplay-locked, missing asset) and
+  // the voice for the other cues.
+  if (kind === 'new' || kind === 'priority') {
+    void playOrderAlert(current.volume).then((played) => {
+      if (!played) playTones(kind);
+    });
+    return;
+  }
+  playTones(kind);
+}
+
+function playTones(kind: KitchenSoundKind): void {
   const ac = audioCtx();
   if (!ac) return;
   // Chrome's autoplay policy suspends an AudioContext created before the first

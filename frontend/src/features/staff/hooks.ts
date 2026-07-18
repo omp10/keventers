@@ -3,6 +3,7 @@ import { useMemo } from 'react';
 import { toast } from '@/design-system';
 import { qk, queryClient, useMutationResource, useQueryResource } from '@/platform/query';
 import { useRealtimeQuery } from '@/platform/socket';
+import { playOrderAlert } from '@/utils/order-alert';
 import { NEXT_ACTION, staffService, type StaffOrder } from './staff.service';
 
 const QUEUE_KEY = qk('staff', 'my-queue');
@@ -22,10 +23,20 @@ export function useMyQueue(search?: string) {
 
   // The branch room is only known once data arrives — join it then.
   const branchId = query.data?.items[0]?.branchId;
+  // An ASSIGNMENT is work landing on someone's phone — ring the bell with the
+  // refresh. Other kitchen chatter refreshes silently.
   useRealtimeQuery({
     queryKey: QUEUE_KEY,
-    events: ['kitchen:order_assigned', 'kitchen:order_updated', 'kitchen:queue_updated', 'kitchen:order_queued'],
+    events: ['kitchen:order_assigned'],
     room: branchId ? `branch:${branchId}` : undefined,
+    onEvent: (_payload, { invalidate }) => {
+      void playOrderAlert();
+      invalidate();
+    },
+  });
+  useRealtimeQuery({
+    queryKey: QUEUE_KEY,
+    events: ['kitchen:order_updated', 'kitchen:queue_updated', 'kitchen:order_queued'],
   });
 
   return query;
