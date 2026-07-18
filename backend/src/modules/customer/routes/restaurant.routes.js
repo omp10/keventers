@@ -3,6 +3,7 @@ import { Router } from 'express';
 import { validate } from '#core/validation/validate.middleware.js';
 
 import { RestaurantCustomerController } from '../controllers/restaurant-customer.controller.js';
+import { SubscriptionController } from '../controllers/subscription.controller.js';
 import {
   adjustPointsSchema,
   createRewardSchema,
@@ -11,6 +12,9 @@ import {
   loyaltyLedgerQuerySchema,
   rewardListQuerySchema,
   updateRewardSchema,
+  subscriptionPlanSchema,
+  updateSubscriptionPlanSchema,
+  subscriberListQuerySchema,
 } from '../validators/customer.validators.js';
 
 import { managementGuards, requireLoyaltyAdjust, requireRewardManage } from './_guards.js';
@@ -59,3 +63,21 @@ rewardsRouter.patch('/:id', validate({ params: idParamSchema, body: updateReward
 rewardsRouter.delete('/:id', validate({ params: idParamSchema }), requireRewardManage, RestaurantCustomerController.deleteReward);
 
 export default { customersRouter, loyaltyRouter, rewardsRouter };
+
+export const subscriptionsRouter = Router();
+subscriptionsRouter.use(...managementGuards);
+/**
+ * @openapi
+ * /api/v1/restaurant/subscription-plans:
+ *   get: { tags: [Customer - Restaurant], security: [{ bearerAuth: [] }], summary: List subscription plans (incl. archived), responses: { 200: { description: Plans } } }
+ *   post: { tags: [Customer - Restaurant], security: [{ bearerAuth: [] }], summary: Create a subscription plan, responses: { 201: { description: Plan } } }
+ * /api/v1/restaurant/subscriptions:
+ *   get: { tags: [Customer - Restaurant], security: [{ bearerAuth: [] }], summary: List subscribers, responses: { 200: { description: Subscribers } } }
+ */
+subscriptionsRouter.get('/plans', SubscriptionController.listPlans);
+subscriptionsRouter.post('/plans', validate({ body: subscriptionPlanSchema }), SubscriptionController.createPlan);
+subscriptionsRouter.patch('/plans/:id', validate({ params: idParamSchema, body: updateSubscriptionPlanSchema }), SubscriptionController.updatePlan);
+subscriptionsRouter.delete('/plans/:id', validate({ params: idParamSchema }), SubscriptionController.archivePlan);
+subscriptionsRouter.get('/', validate({ query: subscriberListQuerySchema }), SubscriptionController.listSubscribers);
+subscriptionsRouter.patch('/:id/activate', validate({ params: idParamSchema }), SubscriptionController.activate);
+subscriptionsRouter.patch('/:id/cancel', validate({ params: idParamSchema }), SubscriptionController.cancel);

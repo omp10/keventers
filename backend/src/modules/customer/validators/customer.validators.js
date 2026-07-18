@@ -156,3 +156,34 @@ export const rewardListQuerySchema = z
 export const statusQuerySchema = z
   .object({ restaurantId: objectId.optional(), ...paginationQuery })
   .strict();
+
+/* ── Subscriptions ─────────────────────────────────────────────────────── */
+
+export const subscriptionPlanSchema = z
+  .object({
+    name: z.string().trim().min(1).max(120),
+    description: z.string().trim().max(500).optional(),
+    /** Minor units (paise). */
+    price: z.number().int().min(0),
+    currency: z.string().length(3).optional(),
+    periodDays: z.number().int().min(1).max(365).default(30),
+    itemQuota: z.number().int().min(0).default(0),
+    perks: z.array(z.string().trim().max(120)).max(12).default([]),
+    displayOrder: z.number().int().min(0).optional(),
+  })
+  .strict();
+
+export const updateSubscriptionPlanSchema = subscriptionPlanSchema
+  .partial()
+  .extend({ status: z.enum(['active', 'archived']).optional() })
+  .refine((v) => Object.keys(v).length > 0, { message: 'No updatable fields provided' });
+
+export const subscribeSchema = z.object({ planId: objectId }).strict();
+
+export const subscriberListQuerySchema = z
+  .object({
+    status: z.enum(['pending_payment', 'active', 'expired', 'cancelled']).optional(),
+    page: z.coerce.number().int().min(1).default(1),
+    limit: z.coerce.number().int().min(1).max(100).default(25),
+  })
+  .strict();

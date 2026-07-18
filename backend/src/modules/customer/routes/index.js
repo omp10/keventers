@@ -10,6 +10,7 @@ import {
   customersRouter,
   loyaltyRouter,
   rewardsRouter,
+  subscriptionsRouter,
 } from './restaurant.routes.js';
 
 /**
@@ -29,6 +30,7 @@ router.use('/customer', customerRoutes);
 router.use('/restaurant/customers', customersRouter);
 router.use('/restaurant/loyalty', loyaltyRouter);
 router.use('/restaurant/rewards', rewardsRouter);
+router.use('/restaurant/subscriptions', subscriptionsRouter);
 
 router.use('/admin/customers', adminCustomersRouter);
 router.use('/admin/loyalty', adminLoyaltyRouter);

@@ -86,6 +86,46 @@ function Timeline({ journeyId }: { journeyId: string }) {
   );
 }
 
+/** Stage-by-stage funnel: how many journeys got AT LEAST this far + drop-off. */
+function Funnel({ rows }: { rows: JourneyRow[] }) {
+  const stages = [
+    { at: 1, label: 'Scanned' },
+    { at: 3, label: 'Browsed menu' },
+    { at: 4, label: 'Added to cart' },
+    { at: 5, label: 'Checkout' },
+    { at: 6, label: 'Ordered' },
+  ];
+  const total = rows.length;
+  const reached = stages.map((s) => rows.filter((r) => r.stage >= s.at).length);
+
+  return (
+    <div className="rounded-2xl border border-border bg-surface p-4">
+      <h2 className="mb-3 text-sm font-semibold text-foreground">Conversion funnel <span className="font-normal text-foreground-subtle">(last {total} journeys)</span></h2>
+      <div className="space-y-2">
+        {stages.map((s, i) => {
+          const n = reached[i];
+          const pct = total ? Math.round((n / total) * 100) : 0;
+          const prev = i === 0 ? total : reached[i - 1];
+          const drop = prev > 0 ? Math.round(((prev - n) / prev) * 100) : 0;
+          return (
+            <div key={s.label} className="flex items-center gap-3">
+              <span className="w-28 shrink-0 text-xs font-medium text-foreground">{s.label}</span>
+              <div className="h-5 flex-1 overflow-hidden rounded bg-muted">
+                <div className="flex h-full items-center rounded bg-primary pl-2 text-[0.625rem] font-semibold text-primary-foreground" style={{ width: `${Math.max(pct, 4)}%` }}>
+                  {n}
+                </div>
+              </div>
+              <span className="w-24 shrink-0 text-right text-xs text-foreground-subtle">
+                {pct}%{i > 0 && drop > 0 ? ` · −${drop}%` : ''}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export function JourneysPage() {
   const [open, setOpen] = useState<string | null>(null);
   const q = useQueryResource<JourneyRow[]>(
@@ -105,6 +145,11 @@ export function JourneysPage() {
         </div>
         <Button variant="ghost" size="sm" leftIcon="refresh" onClick={() => void q.refetch()} loading={q.isFetching}>Refresh</Button>
       </div>
+
+      {/* SOW: the funnel with drop-off percentages at every stage. Computed
+          from the journeys loaded below — recent traffic, which is what the
+          "where do people stall" question is really about. */}
+      {rows.length > 0 && <Funnel rows={rows} />}
 
       {q.isLoading ? (
         <div className="grid min-h-[40vh] place-items-center"><Spinner /></div>

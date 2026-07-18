@@ -3,10 +3,12 @@ import { Router } from 'express';
 import { validate } from '#core/validation/validate.middleware.js';
 
 import { CustomerController } from '../controllers/customer.controller.js';
+import { SubscriptionController } from '../controllers/subscription.controller.js';
 import {
   addressSchema,
   idParamSchema,
   redeemSchema,
+  subscribeSchema,
   updateAddressSchema,
   updatePreferencesSchema,
   updateProfileSchema,
@@ -51,6 +53,18 @@ router.get('/redemptions', CustomerController.getRedemptions);
 
 router.get('/preferences', CustomerController.getPreferences);
 router.patch('/preferences', validate({ body: updatePreferencesSchema }), CustomerController.updatePreferences);
+
+/**
+ * @openapi
+ * /api/v1/customer/subscription-plans:
+ *   get: { tags: [Customer], security: [{ bearerAuth: [] }], summary: Active subscription plans for my restaurant, responses: { 200: { description: Plans } } }
+ * /api/v1/customer/subscriptions:
+ *   get: { tags: [Customer], security: [{ bearerAuth: [] }], summary: My subscriptions, responses: { 200: { description: Subscriptions } } }
+ *   post: { tags: [Customer], security: [{ bearerAuth: [] }], summary: Subscribe to a plan (settled at the counter), responses: { 201: { description: Subscription } } }
+ */
+router.get('/subscription-plans', SubscriptionController.plans);
+router.get('/subscriptions', SubscriptionController.mine);
+router.post('/subscriptions', validate({ body: subscribeSchema }), SubscriptionController.subscribe);
 
 router.get('/addresses', CustomerController.listAddresses);
 router.post('/addresses', validate({ body: addressSchema }), CustomerController.addAddress);

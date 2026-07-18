@@ -4,6 +4,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { JOURNEY, useJourney } from '@/platform/analytics';
 import { Button, Spinner, ErrorState } from '@/design-system';
 import { PriceBreakdown } from '../cart';
+import { SubscriptionOffer } from '../components';
 import { OrderStatusTimeline, OrderTrackingHero } from '../order';
 import { PaymentPanel } from '../payment';
 import { useOrder } from '../hooks';
@@ -73,6 +74,9 @@ export function OrderPage() {
         </div>
         <PriceBreakdown pricing={order.pricing} />
       </section>
+
+      {/* SOW step 10 — the subscription pitch, once the order is in. */}
+      <SubscriptionOffer />
 
       <div className="flex gap-2">
         <Button variant="secondary" fullWidth onClick={() => navigate(branchMenu)}>Add more items</Button>
