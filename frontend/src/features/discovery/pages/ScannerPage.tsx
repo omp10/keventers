@@ -21,7 +21,7 @@ export function ScannerPage() {
 
   const open = (r: ScannerResolution) => {
     setActiveBranchSlug(r.branchSlug);
-    navigate(`/r/${r.branchSlug}`, { replace: true });
+    navigate(`/r/${r.branchSlug}/menu`, { replace: true });
   };
 
   // Resolve a code passed directly in the URL.

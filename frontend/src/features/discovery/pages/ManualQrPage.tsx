@@ -8,7 +8,7 @@ export function ManualQrPage() {
   const navigate = useNavigate();
   const open = (r: ScannerResolution) => {
     setActiveBranchSlug(r.branchSlug);
-    navigate(`/r/${r.branchSlug}`, { replace: true });
+    navigate(`/r/${r.branchSlug}/menu`, { replace: true });
   };
   return (
     <div className="mx-auto max-w-md space-y-4">

@@ -3,7 +3,6 @@ import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 
 import { Icon, Spinner } from '@/design-system';
 import { useNavigation } from '@/navigation';
-import { ConnectionStatus } from '@/shell';
 import { LiveOrderTracker } from './components';
 import { cn } from '@/lib/cn';
 import { glass } from '@/utils/style';
@@ -26,7 +25,6 @@ export function OrderingLayout() {
 
   return (
     <div className={cn('min-h-dvh bg-background', showCustomerTabs && 'pb-[calc(4.5rem+max(env(safe-area-inset-bottom),1.25rem))] lg:pb-0')}>
-      <ConnectionStatus />
       <main className="mx-auto w-full max-w-2xl px-4 py-5">
         <Suspense
           fallback={

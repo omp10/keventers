@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 
 import { Badge, Button, Card, EmptyState, Icon, Input, Skeleton, Switch, ThemeToggleButton, toast } from '@/design-system';
@@ -7,6 +8,7 @@ import { useAuth } from '@/platform/auth';
 import { qk, queryClient, useMutationResource, useQueryResource } from '@/platform/query';
 import { cn } from '@/lib/cn';
 import { kitchenService } from '../services/kitchen.service';
+import { ScannerExperience } from '@/features/discovery';
 
 /* ─────────────────────────── Order History ───────────────────────────────
  * The KDS board deliberately shows only live work; this tab is where finished
@@ -205,6 +207,7 @@ export function KitchenMenuPage() {
 export function KitchenProfilePage() {
   const { user, roles, logout } = useAuth();
   const navigate = useNavigate();
+  const [scanning, setScanning] = useState(false);
 
   const rows: [string, string][] = [
     ['Operator', user?.fullName ?? '—'],
@@ -224,6 +227,16 @@ export function KitchenProfilePage() {
           </div>
         ))}
       </Card>
+
+      {/* Scan a table QR — opens that table's live menu (what the diner sees). */}
+      <Card padding="md" className="flex items-center justify-between gap-3">
+        <div>
+          <p className="text-sm font-medium text-foreground">Scan a table QR</p>
+          <p className="text-xs text-foreground-muted">Open a table's menu the way a customer sees it.</p>
+        </div>
+        <Button variant="secondary" leftIcon="qr" onClick={() => setScanning(true)}>Scan</Button>
+      </Card>
+
       <Card padding="md" className="flex items-center justify-between">
         <span className="text-sm font-medium text-foreground">Theme</span>
         <ThemeToggleButton />
@@ -236,6 +249,24 @@ export function KitchenProfilePage() {
       >
         Sign out
       </Button>
+
+      {scanning && <KitchenScannerOverlay onClose={() => setScanning(false)} onResolved={(slug) => navigate(`/r/${slug}/menu`)} />}
     </div>
+  );
+}
+
+/** Full-screen scanner for kitchen staff, portalled over the KDS chrome. */
+function KitchenScannerOverlay({ onClose, onResolved }: { onClose: () => void; onResolved: (slug: string) => void }) {
+  return createPortal(
+    <div className="fixed inset-0 z-[200] flex flex-col bg-background">
+      <div className="flex items-center justify-between border-b border-border px-4 py-3">
+        <h2 className="text-base font-semibold text-foreground">Scan a table QR</h2>
+        <Button variant="ghost" size="icon-sm" leftIcon="close" aria-label="Close" onClick={onClose} />
+      </div>
+      <div className="min-h-0 flex-1 overflow-y-auto p-4">
+        <ScannerExperience onResolved={(r) => onResolved(r.branchSlug)} />
+      </div>
+    </div>,
+    document.body,
   );
 }

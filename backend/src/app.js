@@ -38,9 +38,18 @@ export function createApp() {
         maxAge: '30d',
         fallthrough: true,
         index: false,
-        // Uploads are user-supplied: never let the browser sniff them into
-        // something executable.
-        setHeaders: (res) => res.setHeader('X-Content-Type-Options', 'nosniff'),
+        setHeaders: (res) => {
+          // Uploads are user-supplied: never let the browser sniff them into
+          // something executable.
+          res.setHeader('X-Content-Type-Options', 'nosniff');
+          // The frontend runs on a DIFFERENT origin (5173 in dev, the app
+          // domain in prod) than this API. Without these, a cross-origin
+          // `<img src>` to a stored upload fails to load (fetch still 200s) —
+          // which is exactly the "broken image preview" on every banner /
+          // product / category image. CDNs send these; so must we.
+          res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+          res.setHeader('Access-Control-Allow-Origin', '*');
+        },
       }),
     );
   }

@@ -6,7 +6,6 @@ import type { NavConfig } from '@/navigation';
 import { useNavigation } from '@/navigation';
 import { NotificationCenter } from '@/platform/notifications';
 import { EnvironmentBanner } from './EnvironmentBanner';
-import { ConnectionStatus } from './ConnectionStatus';
 import { CommandTrigger } from './CommandTrigger';
 import { Breadcrumbs } from './Breadcrumbs';
 
@@ -57,7 +56,6 @@ export function AppShell({
   return (
     <div className="flex h-dvh flex-col">
       <EnvironmentBanner />
-      <ConnectionStatus />
       <div className="min-h-0 flex-1">
         <ShellLayout
           sections={sections}
