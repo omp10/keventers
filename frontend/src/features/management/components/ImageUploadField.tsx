@@ -17,7 +17,7 @@ export function ImageUploadField({
   onChange,
   upload,
   label = 'Image',
-  hint = 'PNG or JPG, up to 5 MB.',
+  hint = 'PNG or JPG, up to 10 MB.',
   aspect = 'aspect-[16/9]',
   className,
 }: {
@@ -38,7 +38,7 @@ export function ImageUploadField({
   const send = async (file?: File) => {
     if (!file) return;
     if (!file.type.startsWith('image/')) return toast.error('Only image files are supported.');
-    if (file.size > 5 * 1024 * 1024) return toast.error('That image is larger than 5 MB.');
+    if (file.size > 10 * 1024 * 1024) return toast.error('That image is larger than 10 MB.');
     setProgress(0);
     try {
       const { url } = await upload(file, setProgress);

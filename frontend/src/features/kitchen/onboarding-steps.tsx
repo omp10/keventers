@@ -123,7 +123,7 @@ export const STEPS: StepDef[] = [
       <ImageUploadField
         label="Restaurant logo"
         aspect="aspect-square"
-        hint="PNG or JPG, up to 5 MB. Optional — you can add it later."
+        hint="PNG or JPG, up to 10 MB. Optional — you can add it later."
         value={draft.logoUrl ?? ''}
         onChange={(url) => patch({ logoUrl: url || null })}
         upload={(file, onProgress) => kitchenOnboardingService.uploadLogo(file, onProgress)}
