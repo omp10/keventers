@@ -12,8 +12,13 @@ class TableService {
   list(filters?: TableFilters) {
     return api.get<RestaurantTable[]>('/restaurant/tables', { query: filters });
   }
-  create(body: Partial<RestaurantTable>) {
-    return api.post<RestaurantTable>('/restaurant/tables', body);
+  /**
+   * Create a table. The backend keys tables to a branch (`?branchId=`) and
+   * speaks `number`/`seatingCapacity`, not the read model's `label`/`capacity`
+   * — mapping here rather than sending the wrong shape (which 422'd).
+   */
+  create(branchId: string, body: { number: string; seatingCapacity?: number }) {
+    return api.post<RestaurantTable>('/restaurant/tables', body, { query: { branchId } });
   }
   update(id: string, patch: Partial<RestaurantTable>) {
     return api.patch<RestaurantTable>(`/restaurant/tables/${id}`, patch);

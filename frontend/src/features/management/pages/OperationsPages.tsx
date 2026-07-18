@@ -10,10 +10,42 @@ import type { Branch, Coupon, DeliveryZone, NotificationPreferences, PaymentRow,
 const searchClass = 'min-w-56 flex-1';
 const fieldClass = 'h-10 w-full rounded-lg border border-border bg-surface px-3 text-sm text-foreground outline-none focus:border-primary';
 
+function TableCreateDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const branches = useQueryResource(qk('mgmt', 'branches'), () => branchService.list());
+  const [branchId, setBranchId] = useState('');
+  const [number, setNumber] = useState('');
+  const [capacity, setCapacity] = useState('4');
+  const [busy, setBusy] = useState(false);
+
+  const submit = async () => {
+    if (!branchId || !number.trim() || busy) return;
+    setBusy(true);
+    try {
+      await tableService.create(branchId, { number: number.trim(), seatingCapacity: Number(capacity) || undefined });
+      toast.success('Table created');
+      void queryClient.invalidateQueries({ queryKey: qk('mgmt', 'tables') });
+      onClose();
+    } catch (e) {
+      toast.error('Could not create the table', { description: (e as Error).message });
+      setBusy(false);
+    }
+  };
+
+  return (
+    <EntityDrawer open={open} onClose={onClose} title="Add table">
+      <label className="block text-sm">Branch<select className={fieldClass + ' mt-1'} value={branchId} onChange={(e) => setBranchId(e.target.value)}><option value="">Choose a branch…</option>{(branches.data ?? []).map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}</select></label>
+      <label className="block text-sm">Table number / name<Input value={number} onChange={(e) => setNumber(e.target.value)} placeholder="12" className="mt-1" /></label>
+      <label className="block text-sm">Seating capacity<Input type="number" min={1} max={100} value={capacity} onChange={(e) => setCapacity(e.target.value)} className="mt-1" /></label>
+      <Button className="w-full" onClick={() => void submit()} loading={busy} disabled={!branchId || !number.trim()}>Create table</Button>
+    </EntityDrawer>
+  );
+}
+
 export function TablesPage() {
   const [q, setQ] = useState('');
   const [status, setStatus] = useState<string>();
   const [selected, setSelected] = useState<string[]>([]);
+  const [creating, setCreating] = useState(false);
   const tables = useQueryResource(qk('mgmt', 'tables', q, status), () => tableService.list({ q: q || undefined, status }));
   const rows = tables.data ?? [];
   const mutate = async (action: 'merge' | 'split') => {
@@ -22,15 +54,42 @@ export function TablesPage() {
     setSelected([]);
     void queryClient.invalidateQueries({ queryKey: qk('mgmt', 'tables') });
   };
-  return <ManagementPage title="Tables" description="Live floor occupancy, capacity, groups, and table operations." actions={<Button leftIcon="add" onClick={() => toast.info('Table editor is ready for backend creation data.')}>Add table</Button>}>
+  return <ManagementPage title="Tables" description="Live floor occupancy, capacity, groups, and table operations." actions={<Button leftIcon="add" onClick={() => setCreating(true)}>Add table</Button>}><TableCreateDrawer open={creating} onClose={() => setCreating(false)} />
     <div className="flex flex-wrap gap-2"><Input className={searchClass} value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search tables..." /><select className={fieldClass + ' max-w-44'} value={status ?? ''} onChange={(e) => setStatus(e.target.value || undefined)}><option value="">All statuses</option><option>available</option><option>occupied</option><option>reserved</option><option>inactive</option></select></div>
     {tables.isLoading ? <Spinner /> : <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">{rows.map((t) => <button type="button" key={t.id} onClick={() => setSelected((ids) => ids.includes(t.id) ? ids.filter((id) => id !== t.id) : [...ids, t.id])} className={`rounded-xl border p-4 text-left transition ${selected.includes(t.id) ? 'border-primary bg-primary-soft' : 'border-border bg-surface hover:border-primary/50'}`}><div className="flex justify-between"><strong>{t.label}</strong><StatusPill tone={t.status === 'available' ? 'success' : t.status === 'occupied' ? 'warning' : 'neutral'}>{t.status}</StatusPill></div><p className="mt-6 text-sm text-foreground-muted">Capacity {t.capacity}</p><p className="text-xs text-foreground-subtle">{t.groupName ?? 'Ungrouped'}</p></button>)}</div>}
     {selected.length > 0 && <Card padding="sm" className="sticky bottom-4 flex flex-wrap items-center gap-2"><span className="mr-auto text-sm font-medium">{selected.length} selected</span><Button size="sm" variant="secondary" disabled={selected.length < 2} onClick={() => void mutate('merge')}>Merge</Button><Button size="sm" variant="secondary" disabled={selected.length !== 1} onClick={() => void mutate('split')}>Split</Button><Button size="sm" variant="ghost" onClick={() => setSelected([])}>Clear</Button></Card>}
   </ManagementPage>;
 }
 
+function QrGenerateDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const tables = useQueryResource(qk('mgmt', 'tables', 'for-qr'), () => tableService.list());
+  const [tableId, setTableId] = useState('');
+  const [busy, setBusy] = useState(false);
+  const submit = async () => {
+    if (!tableId || busy) return;
+    setBusy(true);
+    try {
+      await qrService.generate({ type: 'permanent', tableId });
+      toast.success('QR code generated');
+      void queryClient.invalidateQueries({ queryKey: qk('mgmt', 'qr') });
+      onClose();
+    } catch (e) {
+      toast.error('Could not generate the QR', { description: (e as Error).message });
+      setBusy(false);
+    }
+  };
+  return (
+    <EntityDrawer open={open} onClose={onClose} title="Generate QR code">
+      <label className="block text-sm">Table<select className={fieldClass + ' mt-1'} value={tableId} onChange={(e) => setTableId(e.target.value)}><option value="">Choose a table…</option>{(tables.data ?? []).map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}</select></label>
+      <p className="text-xs text-foreground-muted">The printed QR points customers straight to this table's menu.</p>
+      <Button className="w-full" onClick={() => void submit()} loading={busy} disabled={!tableId}>Generate QR</Button>
+    </EntityDrawer>
+  );
+}
+
 export function QrManagementPage() {
   const [preview, setPreview] = useState<QrCode>();
+  const [generating, setGenerating] = useState(false);
   const list = useQueryResource(qk('mgmt', 'qr'), () => qrService.list());
   const act = async (row: QrCode, action: 'rotate' | 'regenerate' | 'toggle') => {
     if (action === 'rotate') await qrService.rotate(row.id); else if (action === 'regenerate') await qrService.regenerate(row.id); else await qrService.setActive(row.id, !row.active);
@@ -42,7 +101,7 @@ export function QrManagementPage() {
     { key: 'scans', header: 'Scans', align: 'right', render: (r) => r.scans ?? 0 },
     { key: 'actions', header: '', align: 'right', render: (r) => <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}><Button size="sm" variant="ghost" onClick={() => void act(r, 'rotate')}>Rotate</Button><Button size="sm" variant="ghost" onClick={() => void act(r, 'toggle')}>{r.active ? 'Disable' : 'Enable'}</Button></div> },
   ];
-  return <ManagementPage title="QR management" description="Generate, rotate, print, and monitor restaurant QR codes." actions={<><ExportButton url={qrService.bulkDownloadUrl((list.data ?? []).map((r) => r.id))} filename="qr-codes.zip" label="Bulk download" /><Button leftIcon="add">Generate QR</Button></>}><ManagementTable rows={list.data ?? []} columns={columns} getId={(r) => r.id} loading={list.isLoading} onRowClick={setPreview} emptyTitle="No QR codes" /><EntityDrawer open={Boolean(preview)} onClose={() => setPreview(undefined)} title="QR preview"><div className="grid place-items-center rounded-2xl bg-white p-8"><Icon name="qrCode" className="h-48 w-48 text-black" /></div><div className="text-center"><h3 className="font-semibold">{preview?.tableLabel ?? preview?.code}</h3><p className="text-sm text-foreground-muted">Version {preview?.version ?? 1} · {preview?.scans ?? 0} scans</p></div>{preview && <Button className="w-full" variant="secondary" onClick={() => void act(preview, 'regenerate')}>Regenerate</Button>}</EntityDrawer></ManagementPage>;
+  return <ManagementPage title="QR management" description="Generate, rotate, print, and monitor restaurant QR codes." actions={<><ExportButton url={qrService.bulkDownloadUrl((list.data ?? []).map((r) => r.id))} filename="qr-codes.zip" label="Bulk download" /><Button leftIcon="add" onClick={() => setGenerating(true)}>Generate QR</Button></>}><ManagementTable rows={list.data ?? []} columns={columns} getId={(r) => r.id} loading={list.isLoading} onRowClick={setPreview} emptyTitle="No QR codes" /><EntityDrawer open={Boolean(preview)} onClose={() => setPreview(undefined)} title="QR preview"><div className="grid place-items-center rounded-2xl bg-white p-8"><Icon name="qrCode" className="h-48 w-48 text-black" /></div><div className="text-center"><h3 className="font-semibold">{preview?.tableLabel ?? preview?.code}</h3><p className="text-sm text-foreground-muted">Version {preview?.version ?? 1} · {preview?.scans ?? 0} scans</p></div>{preview && <Button className="w-full" variant="secondary" onClick={() => void act(preview, 'regenerate')}>Regenerate</Button>}</EntityDrawer><QrGenerateDrawer open={generating} onClose={() => setGenerating(false)} /></ManagementPage>;
 }
 
 function CouponCreateDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
