@@ -17,8 +17,9 @@ class RestaurantSettingsService {
 }
 
 class BranchService {
-  list() {
-    return api.get<Branch[]>('/restaurant/branches');
+  async list() {
+    const res = await api.get<{ items: Branch[] }>('/restaurant/branches');
+    return res.items;
   }
   get(id: string) {
     return api.get<Branch>(`/restaurant/branches/${id}`);
