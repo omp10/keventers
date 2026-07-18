@@ -43,6 +43,11 @@ class StaffService {
   transition(orderId: string, action: 'preparing' | 'ready' | 'served'): Promise<StaffOrder> {
     return api.patch<StaffOrder>(`/restaurant/kitchen/my/orders/${orderId}/${action}`);
   }
+
+  /** My operational context — the socket rooms to join for live order events. */
+  context(): Promise<{ restaurantId: string | null; branchId: string | null; rooms: string[] }> {
+    return api.get('/restaurant/context');
+  }
 }
 
 export const staffService = new StaffService();

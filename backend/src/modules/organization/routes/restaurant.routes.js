@@ -25,7 +25,12 @@ import { inviteStaffSchema, listStaffQuerySchema } from '../validators/staff.val
 
 const router = Router();
 
-// Organization Admin or Restaurant Manager, tenant-scoped.
+// GET /restaurant/context — ANY authenticated staff member (chef, waiter,
+// manager, admin) needs their socket rooms for live order events + sound, so
+// this sits BEFORE the manager-only gate below, guarded only by auth + tenant.
+router.get('/context', requireAuth, resolveTenant, requireTenant, RestaurantController.getContext);
+
+// Everything else: Organization Admin or Restaurant Manager, tenant-scoped.
 router.use(
   requireAuth,
   resolveTenant,

@@ -21,14 +21,19 @@ export function useMyQueue(search?: string) {
     { refetchInterval: 15_000 },
   );
 
-  // The branch room is only known once data arrives — join it then.
-  const branchId = query.data?.items[0]?.branchId;
+  // The branch/restaurant room comes from MY context, not from queue data —
+  // deriving it from the first assigned order meant an EMPTY queue joined no
+  // room, so the very first assignment (the one that matters) never rang.
+  const ctx = useQueryResource(qk('staff', 'context'), () => staffService.context(), { staleTime: 300_000, retry: false });
+  // The restaurant room catches every branch's kitchen events (the backend
+  // emits to both), so it's all a staff phone needs.
+  const room = ctx.data?.rooms?.[0];
   // An ASSIGNMENT is work landing on someone's phone — ring the bell with the
   // refresh. Other kitchen chatter refreshes silently.
   useRealtimeQuery({
     queryKey: QUEUE_KEY,
     events: ['kitchen:order_assigned'],
-    room: branchId ? `branch:${branchId}` : undefined,
+    room,
     onEvent: (_payload, { invalidate }) => {
       void playOrderAlert();
       invalidate();
