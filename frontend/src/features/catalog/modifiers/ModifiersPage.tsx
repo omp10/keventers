@@ -8,11 +8,10 @@ import {
   EmptyState,
   Icon,
   Spinner,
-  toast,
 } from '@/design-system';
 import { cn } from '@/lib/cn';
 
-import { BulkActionBar, useBulkSelection } from '../bulk';
+import { useBulkSelection } from '../bulk';
 import { StatusBadge } from '../components';
 import { useModifierGroups } from '../hooks';
 import type { ModifierGroupDraft } from '../types';
@@ -73,14 +72,9 @@ export function ModifiersPage() {
         </div>
       )}
 
-      <BulkActionBar
-        count={sel.count}
-        onClear={sel.clear}
-        actions={[
-          { key: 'duplicate', label: 'Duplicate', icon: 'copy', onClick: () => toast('Coming soon') },
-          { key: 'archive', label: 'Archive', icon: 'delete', tone: 'danger', onClick: () => toast('Coming soon') },
-        ]}
-      />
+      {/* No bulk bar: modifier-group duplicate/archive have no backend, so the
+          old bar only ever fired "Coming soon" toasts. Removed rather than
+          faked — edit a group via its card instead. */}
 
       {(isNew || editing) && (
         <ModifierGroupEditor

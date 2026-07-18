@@ -45,12 +45,56 @@ export function QrManagementPage() {
   return <ManagementPage title="QR management" description="Generate, rotate, print, and monitor restaurant QR codes." actions={<><ExportButton url={qrService.bulkDownloadUrl((list.data ?? []).map((r) => r.id))} filename="qr-codes.zip" label="Bulk download" /><Button leftIcon="add">Generate QR</Button></>}><ManagementTable rows={list.data ?? []} columns={columns} getId={(r) => r.id} loading={list.isLoading} onRowClick={setPreview} emptyTitle="No QR codes" /><EntityDrawer open={Boolean(preview)} onClose={() => setPreview(undefined)} title="QR preview"><div className="grid place-items-center rounded-2xl bg-white p-8"><Icon name="qrCode" className="h-48 w-48 text-black" /></div><div className="text-center"><h3 className="font-semibold">{preview?.tableLabel ?? preview?.code}</h3><p className="text-sm text-foreground-muted">Version {preview?.version ?? 1} · {preview?.scans ?? 0} scans</p></div>{preview && <Button className="w-full" variant="secondary" onClick={() => void act(preview, 'regenerate')}>Regenerate</Button>}</EntityDrawer></ManagementPage>;
 }
 
+function CouponCreateDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const [code, setCode] = useState('');
+  const [type, setType] = useState<'percentage' | 'fixed'>('percentage');
+  const [value, setValue] = useState('');
+  const [minSubtotal, setMinSubtotal] = useState('');
+  const [usageLimit, setUsageLimit] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  const submit = async () => {
+    if (!code.trim() || !value || busy) return;
+    setBusy(true);
+    try {
+      // percentage → basis points (10% → 1000); fixed → minor units (₹ → paise).
+      const v = type === 'percentage' ? Math.round(Number(value) * 100) : Math.round(Number(value) * 100);
+      await couponService.create({
+        code: code.trim().toUpperCase(),
+        type,
+        value: v,
+        ...(minSubtotal ? { minSubtotal: Math.round(Number(minSubtotal) * 100) } : {}),
+        ...(usageLimit ? { usageLimit: Number(usageLimit) } : {}),
+        status: 'active',
+      } as Partial<Coupon>);
+      toast.success('Coupon created');
+      void queryClient.invalidateQueries({ queryKey: qk('mgmt', 'coupons') });
+      onClose();
+    } catch (e) {
+      toast.error('Could not create the coupon', { description: (e as Error).message });
+      setBusy(false);
+    }
+  };
+
+  return (
+    <EntityDrawer open={open} onClose={onClose} title="Create coupon">
+      <label className="block text-sm">Code<Input value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} placeholder="WELCOME20" className="mt-1" /></label>
+      <label className="block text-sm">Type<select className={fieldClass + ' mt-1'} value={type} onChange={(e) => setType(e.target.value as 'percentage' | 'fixed')}><option value="percentage">Percentage off</option><option value="fixed">Flat amount off</option></select></label>
+      <label className="block text-sm">{type === 'percentage' ? 'Percent (%)' : 'Amount (₹)'}<Input type="number" min={0} value={value} onChange={(e) => setValue(e.target.value)} className="mt-1" /></label>
+      <label className="block text-sm">Min order (₹) <span className="text-foreground-subtle">optional</span><Input type="number" min={0} value={minSubtotal} onChange={(e) => setMinSubtotal(e.target.value)} className="mt-1" /></label>
+      <label className="block text-sm">Total uses <span className="text-foreground-subtle">optional</span><Input type="number" min={1} value={usageLimit} onChange={(e) => setUsageLimit(e.target.value)} className="mt-1" /></label>
+      <Button className="w-full" onClick={() => void submit()} loading={busy} disabled={!code.trim() || !value}>Create coupon</Button>
+    </EntityDrawer>
+  );
+}
+
 export function CouponsPage() {
   const [q, setQ] = useState('');
   const [status, setStatus] = useState<string>();
+  const [creating, setCreating] = useState(false);
   const list = usePaginatedResource<Coupon>(qk('mgmt', 'coupons', q, status), (page, limit) => couponService.list({ q: q || undefined, status }, page, limit));
   const columns: Column<Coupon>[] = [{ key: 'code', header: 'Coupon', render: (c) => <div><strong>{c.code}</strong><p className="text-xs text-foreground-muted">{c.type}</p></div> }, { key: 'status', header: 'Status', render: (c) => <StatusPill tone={c.status === 'active' ? 'success' : c.status === 'scheduled' ? 'info' : 'neutral'}>{c.status}</StatusPill> }, { key: 'usage', header: 'Usage', align: 'right', render: (c) => `${c.usageCount ?? 0}${c.usageLimit ? ` / ${c.usageLimit}` : ''}` }, { key: 'schedule', header: 'Schedule', render: (c) => <span className="text-sm text-foreground-muted">{c.startsAt ? new Date(c.startsAt).toLocaleDateString() : 'Immediate'}</span> }];
-  return <ManagementPage title="Coupons" description="Schedule campaigns and review backend-calculated redemption performance." actions={<Button leftIcon="add">Create coupon</Button>}><div className="flex gap-2"><Input className={searchClass} value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search coupon code..." /><select className={fieldClass + ' max-w-44'} value={status ?? ''} onChange={(e) => setStatus(e.target.value || undefined)}><option value="">All statuses</option><option>active</option><option>scheduled</option><option>draft</option><option>archived</option></select></div><ManagementTable rows={list.items} columns={columns} getId={(c) => c.id} loading={list.isLoading} emptyTitle="No coupons" /></ManagementPage>;
+  return <ManagementPage title="Coupons" description="Schedule campaigns and review backend-calculated redemption performance." actions={<Button leftIcon="add" onClick={() => setCreating(true)}>Create coupon</Button>}><div className="flex gap-2"><Input className={searchClass} value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search coupon code..." /><select className={fieldClass + ' max-w-44'} value={status ?? ''} onChange={(e) => setStatus(e.target.value || undefined)}><option value="">All statuses</option><option>active</option><option>scheduled</option><option>draft</option><option>archived</option></select></div><ManagementTable rows={list.items} columns={columns} getId={(c) => c.id} loading={list.isLoading} emptyTitle="No coupons" /><CouponCreateDrawer open={creating} onClose={() => setCreating(false)} /></ManagementPage>;
 }
 
 export function PaymentsPage() {
