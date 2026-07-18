@@ -1,4 +1,4 @@
-import { api } from '@/platform/api';
+import { capi } from '../catalog-scope';
 import type { MediaImage } from '../types';
 
 /**
@@ -11,7 +11,7 @@ class MediaService {
   upload(file: File, onProgress?: (pct: number) => void): Promise<MediaImage> {
     const form = new FormData();
     form.append('file', file);
-    return api.upload<MediaImage>('/restaurant/media/upload', form, { onUploadProgress: onProgress });
+    return capi.upload<MediaImage>('/restaurant/media/upload', form, { onUploadProgress: onProgress });
   }
 }
 

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import {
   Button,
@@ -31,6 +31,7 @@ type View = 'grid' | 'table';
  */
 export function ProductsPage() {
   const [params, setParams] = useSearchParams();
+  const navigate = useNavigate();
   const [view, setView] = useState<View>('grid');
   const [filters, setFilters] = useState<ProductFilters>({});
 
@@ -112,6 +113,9 @@ export function ProductsPage() {
             <Icon name="store" />
           </Button>
         </div>
+        <Button variant="secondary" leftIcon="grid" onClick={() => navigate('/dashboard/catalog/categories')}>
+          Categories
+        </Button>
         <Button variant="primary" leftIcon="add" onClick={openNew}>
           New product
         </Button>

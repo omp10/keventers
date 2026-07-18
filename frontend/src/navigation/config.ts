@@ -105,6 +105,13 @@ export const adminNav: NavConfig = {
       ],
     },
     {
+      title: 'Catalog',
+      items: [
+        { key: 'admin-products', label: 'Products', icon: 'utensils', path: '/admin/products', access: { anyRole: ['super_admin'] } },
+        { key: 'admin-menu-categories', label: 'Menu categories', icon: 'grid', path: '/admin/menu-categories', access: { anyRole: ['super_admin'] } },
+      ],
+    },
+    {
       // Everything the CUSTOMER app renders, curated by admins.
       title: 'Storefront',
       items: [

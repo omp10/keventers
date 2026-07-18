@@ -1,4 +1,5 @@
-import { api, type Paginated } from '@/platform/api';
+import { type Paginated } from '@/platform/api';
+import { capi } from '../catalog-scope';
 import type { Availability, CatalogProduct, ProductFilters } from '../types';
 
 /**
@@ -32,19 +33,19 @@ function toParams(f: ProductFilters, page: number, limit: number) {
 
 class ProductService {
   list(filters: ProductFilters, page = 1, limit = 24): Promise<Paginated<CatalogProduct>> {
-    return api.paginate<CatalogProduct>('/restaurant/products', { query: toParams(filters, page, limit) });
+    return capi.paginate<CatalogProduct>('/restaurant/products', { query: toParams(filters, page, limit) });
   }
 
   get(id: string) {
-    return api.get<CatalogProduct>(`/restaurant/products/${id}`);
+    return capi.get<CatalogProduct>(`/restaurant/products/${id}`);
   }
 
   create(draft: Partial<CatalogProduct>) {
-    return api.post<CatalogProduct>('/restaurant/products', draft);
+    return capi.post<CatalogProduct>('/restaurant/products', draft);
   }
 
   update(id: string, patch: Partial<CatalogProduct>) {
-    return api.patch<CatalogProduct>(`/restaurant/products/${id}`, patch);
+    return capi.patch<CatalogProduct>(`/restaurant/products/${id}`, patch);
   }
 
   /**
@@ -69,11 +70,11 @@ class ProductService {
   }
 
   setAvailability(id: string, availability: Availability) {
-    return api.patch<CatalogProduct>(`/restaurant/products/${id}/availability`, availability);
+    return capi.patch<CatalogProduct>(`/restaurant/products/${id}/availability`, availability);
   }
 
   remove(id: string) {
-    return api.delete<{ id: string }>(`/restaurant/products/${id}`);
+    return capi.delete<{ id: string }>(`/restaurant/products/${id}`);
   }
 
   /**

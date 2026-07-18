@@ -1,4 +1,4 @@
-import { api } from '@/platform/api';
+import { capi } from '../catalog-scope';
 import type { Category } from '../types';
 
 /**
@@ -69,7 +69,7 @@ function toWire(c: Partial<Category>) {
 
 class CategoryService {
   async tree(): Promise<Category[]> {
-    return (await api.get<CategoryWire[]>('/restaurant/categories/tree')).map(toCategory);
+    return (await capi.get<CategoryWire[]>('/restaurant/categories/tree')).map(toCategory);
   }
 
   /**
@@ -91,15 +91,15 @@ class CategoryService {
   }
 
   async get(id: string): Promise<Category> {
-    return toCategory(await api.get<CategoryWire>(`/restaurant/categories/${id}`));
+    return toCategory(await capi.get<CategoryWire>(`/restaurant/categories/${id}`));
   }
 
   async create(draft: Partial<Category>): Promise<Category> {
-    return toCategory(await api.post<CategoryWire>('/restaurant/categories', toWire(draft)));
+    return toCategory(await capi.post<CategoryWire>('/restaurant/categories', toWire(draft)));
   }
 
   async update(id: string, patch: Partial<Category>): Promise<Category> {
-    return toCategory(await api.patch<CategoryWire>(`/restaurant/categories/${id}`, toWire(patch)));
+    return toCategory(await capi.patch<CategoryWire>(`/restaurant/categories/${id}`, toWire(patch)));
   }
 
   /**
@@ -122,7 +122,7 @@ class CategoryService {
 
   /** Soft-delete (the API's DELETE is a soft delete). */
   remove(id: string) {
-    return api.delete<{ ok: true }>(`/restaurant/categories/${id}`);
+    return capi.delete<{ ok: true }>(`/restaurant/categories/${id}`);
   }
 
   /**

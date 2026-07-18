@@ -1,4 +1,4 @@
-import { api } from '@/platform/api';
+import { capi } from '../catalog-scope';
 import type { Menu, Schedule } from '../types';
 import { fetchAll } from './fetch-all';
 
@@ -12,35 +12,35 @@ class MenuService {
   }
 
   get(id: string) {
-    return api.get<Menu>(`/restaurant/menus/${id}`);
+    return capi.get<Menu>(`/restaurant/menus/${id}`);
   }
 
   create(draft: Partial<Menu>) {
-    return api.post<Menu>('/restaurant/menus', draft);
+    return capi.post<Menu>('/restaurant/menus', draft);
   }
 
   update(id: string, patch: Partial<Menu>) {
-    return api.patch<Menu>(`/restaurant/menus/${id}`, patch);
+    return capi.patch<Menu>(`/restaurant/menus/${id}`, patch);
   }
 
   duplicate(id: string) {
-    return api.post<Menu>(`/restaurant/menus/${id}/duplicate`);
+    return capi.post<Menu>(`/restaurant/menus/${id}/duplicate`);
   }
 
   archive(id: string) {
-    return api.post<Menu>(`/restaurant/menus/${id}/archive`);
+    return capi.post<Menu>(`/restaurant/menus/${id}/archive`);
   }
 
   publish(id: string) {
-    return api.post<Menu>(`/restaurant/menus/${id}/publish`);
+    return capi.post<Menu>(`/restaurant/menus/${id}/publish`);
   }
 
   schedule(id: string, schedule: Schedule) {
-    return api.post<Menu>(`/restaurant/menus/${id}/schedule`, schedule);
+    return capi.post<Menu>(`/restaurant/menus/${id}/schedule`, schedule);
   }
 
   setActive(id: string) {
-    return api.post<Menu>(`/restaurant/menus/${id}/activate`);
+    return capi.post<Menu>(`/restaurant/menus/${id}/activate`);
   }
 }
 

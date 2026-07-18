@@ -18,6 +18,7 @@ const UpsellPage = lazy(() => import('@/features/restaurant/pages/UpsellPage').t
 const scoped = (title: string, description: string, Page: ComponentType) => (
   <AdminRestaurantScoped title={title} description={description} Page={Page} />
 );
+const AdminCatalog = lazy(() => import('./AdminCatalogPage').then((m) => ({ default: m.AdminCatalogPage })));
 
 export const adminRoutes: AdminRoute[] = [
   { path: '/admin', element: <Dashboard /> }, { path: '/admin/organizations', element: <Organizations /> }, { path: '/admin/approvals', element: <Approvals /> }, { path: '/admin/onboarding-fields', element: <OnboardingFields /> }, { path: '/admin/restaurants', element: <Organizations /> }, { path: '/admin/users', element: <Users /> },
@@ -26,4 +27,6 @@ export const adminRoutes: AdminRoute[] = [
   { path: '/admin/journeys', element: scoped('Customer journeys', 'Every customer visit and the conversion funnel, per restaurant.', JourneysPage) },
   { path: '/admin/feedback', element: scoped('Feedback & NPS', 'Customer ratings and NPS, per restaurant.', FeedbackPage) },
   { path: '/admin/upsell', element: scoped('Upsell rules', 'The recommendation engine and its rules, per restaurant.', UpsellPage) },
+  { path: '/admin/products', element: <AdminCatalog tab="products" /> },
+  { path: '/admin/menu-categories', element: <AdminCatalog tab="categories" /> },
 ];
