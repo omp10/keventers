@@ -48,7 +48,8 @@ const ctaSchema = z.object({
 
 export const createBannerSchema = z.object({
   placement: z.enum(Object.values(BANNER_PLACEMENT)).optional(),
-  title: z.string().trim().min(1).max(80),
+  // Optional: an image-only banner needs no words on top of it.
+  title: z.string().trim().max(80).optional().default(''),
   subtitle: z.string().trim().max(160).optional(),
   theme: z.enum(Object.values(BANNER_THEME)).optional(),
   imageUrl: z.string().url().max(500).nullish(),

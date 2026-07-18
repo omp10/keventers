@@ -4,7 +4,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { JOURNEY, useJourney } from '@/platform/analytics';
 import { Button, Spinner, ErrorState } from '@/design-system';
 import { PriceBreakdown } from '../cart';
-import { SubscriptionOffer } from '../components';
+import { FeedbackCard, SubscriptionOffer } from '../components';
 import { OrderStatusTimeline, OrderTrackingHero } from '../order';
 import { PaymentPanel } from '../payment';
 import { useOrder } from '../hooks';
@@ -75,7 +75,8 @@ export function OrderPage() {
         <PriceBreakdown pricing={order.pricing} />
       </section>
 
-      {/* SOW step 10 — the subscription pitch, once the order is in. */}
+      {/* SOW step 11 — feedback once served; step 10 — the subscription pitch. */}
+      <FeedbackCard order={order} />
       <SubscriptionOffer />
 
       <div className="flex gap-2">

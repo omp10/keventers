@@ -82,7 +82,9 @@ export function BannersPage() {
   const patch = (p: Partial<AdminBanner>) => setDraft((d) => ({ ...d, ...p }));
 
   const save = async () => {
-    if (!draft?.title?.trim()) return toast.error('A title is required.');
+    // Title is optional — an image-only banner is legitimate; but a banner
+    // with NEITHER words nor an image would render blank.
+    if (!draft?.title?.trim() && !draft?.imageUrl) return toast.error('Add a title or an image.');
     setSaving(true);
     try {
       const body: BannerPayload = {

@@ -5,3 +5,4 @@ export { ProductCard, type ProductCardVariant, type ProductCardProps } from './P
 export { ProductDetail as ProductDetailDrawer } from './ProductDetail';
 export { LiveOrderTracker } from './LiveOrderTracker';
 export { SubscriptionOffer } from './SubscriptionOffer';
+export { FeedbackCard } from './FeedbackCard';

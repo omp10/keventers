@@ -187,3 +187,16 @@ export const subscriberListQuerySchema = z
     limit: z.coerce.number().int().min(1).max(100).default(25),
   })
   .strict();
+
+/* ── Feedback / NPS ────────────────────────────────────────────────────── */
+
+export const feedbackSchema = z
+  .object({
+    orderId: objectId,
+    npsScore: z.number().int().min(0).max(10).nullable().optional(),
+    foodRating: z.number().int().min(1).max(5).nullable().optional(),
+    serviceRating: z.number().int().min(1).max(5).nullable().optional(),
+    storeRating: z.number().int().min(1).max(5).nullable().optional(),
+    comment: z.string().trim().max(1000).optional(),
+  })
+  .strict();

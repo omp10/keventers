@@ -34,7 +34,7 @@ const bannerSchema = new Schema(
       default: BANNER_PLACEMENT.CUSTOMER_HOME,
       index: true,
     },
-    title: { type: String, required: true, trim: true, maxlength: 80 },
+    title: { type: String, default: '', trim: true, maxlength: 80 },
     subtitle: { type: String, trim: true, default: '', maxlength: 160 },
     /** Visual treatment the client applies via its theme tokens. */
     theme: { type: String, enum: Object.values(BANNER_THEME), default: BANNER_THEME.BRAND },

@@ -4,6 +4,7 @@ import { validate } from '#core/validation/validate.middleware.js';
 
 import { RestaurantCustomerController } from '../controllers/restaurant-customer.controller.js';
 import { SubscriptionController } from '../controllers/subscription.controller.js';
+import { FeedbackController } from '../controllers/feedback.controller.js';
 import {
   adjustPointsSchema,
   createRewardSchema,
@@ -81,3 +82,15 @@ subscriptionsRouter.delete('/plans/:id', validate({ params: idParamSchema }), Su
 subscriptionsRouter.get('/', validate({ query: subscriberListQuerySchema }), SubscriptionController.listSubscribers);
 subscriptionsRouter.patch('/:id/activate', validate({ params: idParamSchema }), SubscriptionController.activate);
 subscriptionsRouter.patch('/:id/cancel', validate({ params: idParamSchema }), SubscriptionController.cancel);
+
+export const feedbackRouter = Router();
+feedbackRouter.use(...managementGuards);
+/**
+ * @openapi
+ * /api/v1/restaurant/feedback:
+ *   get: { tags: [Customer - Restaurant], security: [{ bearerAuth: [] }], summary: List customer feedback, responses: { 200: { description: Feedback } } }
+ * /api/v1/restaurant/feedback/summary:
+ *   get: { tags: [Customer - Restaurant], security: [{ bearerAuth: [] }], summary: NPS + rating averages, responses: { 200: { description: Summary } } }
+ */
+feedbackRouter.get('/summary', FeedbackController.summary);
+feedbackRouter.get('/', FeedbackController.list);

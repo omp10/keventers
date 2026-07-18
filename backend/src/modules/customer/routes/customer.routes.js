@@ -4,11 +4,13 @@ import { validate } from '#core/validation/validate.middleware.js';
 
 import { CustomerController } from '../controllers/customer.controller.js';
 import { SubscriptionController } from '../controllers/subscription.controller.js';
+import { FeedbackController } from '../controllers/feedback.controller.js';
 import {
   addressSchema,
   idParamSchema,
   redeemSchema,
   subscribeSchema,
+  feedbackSchema,
   updateAddressSchema,
   updatePreferencesSchema,
   updateProfileSchema,
@@ -65,6 +67,9 @@ router.patch('/preferences', validate({ body: updatePreferencesSchema }), Custom
 router.get('/subscription-plans', SubscriptionController.plans);
 router.get('/subscriptions', SubscriptionController.mine);
 router.post('/subscriptions', validate({ body: subscribeSchema }), SubscriptionController.subscribe);
+
+router.post('/feedback', validate({ body: feedbackSchema }), FeedbackController.submit);
+router.get('/feedback/:orderId', FeedbackController.getForOrder);
 
 router.get('/addresses', CustomerController.listAddresses);
 router.post('/addresses', validate({ body: addressSchema }), CustomerController.addAddress);

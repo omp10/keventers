@@ -11,6 +11,7 @@ import {
   loyaltyRouter,
   rewardsRouter,
   subscriptionsRouter,
+  feedbackRouter,
 } from './restaurant.routes.js';
 
 /**
@@ -31,6 +32,7 @@ router.use('/restaurant/customers', customersRouter);
 router.use('/restaurant/loyalty', loyaltyRouter);
 router.use('/restaurant/rewards', rewardsRouter);
 router.use('/restaurant/subscriptions', subscriptionsRouter);
+router.use('/restaurant/feedback', feedbackRouter);
 
 router.use('/admin/customers', adminCustomersRouter);
 router.use('/admin/loyalty', adminLoyaltyRouter);
