@@ -22,10 +22,21 @@ export type CatalogStatus = 'draft' | 'active' | 'inactive' | 'archived';
 /** The API's `AVAILABILITY_STATUS` — it distinguishes WHY something is off. */
 export type AvailabilityState = 'available' | 'out_of_stock' | 'temporarily_disabled';
 
+/** One availability time window — mirrors the backend `availabilityWindowSchema`. */
+export type AvailabilityWindow = {
+  label?: string;
+  /** Lowercase full day names matching the backend enum. */
+  days?: ('monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday')[];
+  /** 24-hour HH:mm start time. */
+  startTime?: string;
+  /** 24-hour HH:mm end time. */
+  endTime?: string;
+};
+
 export type Schedule = {
   startAt?: string | null;
   endAt?: string | null;
-  /** Weekday numbers 0-6 (backend interprets). */
+  /** Weekday numbers 0-6 (legacy — kept for ScheduleField compat). */
   days?: number[];
   from?: string;
   to?: string;
@@ -39,6 +50,8 @@ export type Availability = {
   /** Why it's off — the API stores a reason alongside the status. */
   unavailableReason?: string;
   scheduled?: boolean;
+  /** The backend stores schedule as `windows` (array of AvailabilityWindow). */
+  windows?: AvailabilityWindow[];
   schedule?: Schedule | null;
   branchOverrides?: BranchAvailabilityOverride[];
 };
@@ -88,8 +101,13 @@ export type VariantDraft = {
   price: Money;
   sku?: string;
   available: boolean;
+  /** Backend field name — present on API responses, mapped to `available` on load. */
+  isAvailable?: boolean;
   prepTimeMinutes?: number;
+  preparationTimeMinutes?: number | null;
   order?: number;
+  /** Backend field name — present on API responses, mapped to `order` on load. */
+  displayOrder?: number;
 };
 
 export type ModifierDraft = {

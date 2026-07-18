@@ -25,17 +25,17 @@ import {
 import { cn } from '@/lib/cn';
 import { formatMoney, ProductCard, type Product } from '@/features/ordering';
 
-import { useProduct, useCategories, useModifierGroups, useAddons, useProductMutations } from '../hooks';
+import { useProduct, useCategories, useModifierGroups, useAddons, useProductMutations, useProductVariants } from '../hooks';
 import { resolveCategorySelection } from './category-selection';
 import {
   StatusBadge,
   PriceInput,
   VegSelect,
-  ScheduleField,
   AvailabilityControl,
   SortableList,
 } from '../components';
 import { MediaManager } from '../media';
+import { variantService } from '../services';
 import type { CatalogProduct, Money, VariantDraft } from '../types';
 
 type ProductEditorProps = {
@@ -93,6 +93,7 @@ function Section({ label, hint, children }: { label: string; hint?: string; chil
  */
 export function ProductEditor({ productId, isNew, onClose }: ProductEditorProps) {
   const { data: loaded, isLoading } = useProduct(isNew ? undefined : productId);
+  const { data: loadedVariants } = useProductVariants(isNew ? undefined : productId);
   const { data: categories } = useCategories();
   const { data: modifierGroups } = useModifierGroups();
   const { data: addons } = useAddons();
@@ -109,6 +110,27 @@ export function ProductEditor({ productId, isNew, onClose }: ProductEditorProps)
       setDraft({ ...blankDraft(), ...loaded });
     }
   }, [isNew, loaded, productId]);
+
+  // Seed variants from the backend (variants are separate documents, not embedded in the product).
+  // Backend returns: price (number), isAvailable (boolean), displayOrder (number).
+  // Frontend draft needs: price (Money), available (boolean), order (number).
+  useEffect(() => {
+    if (loadedVariants && loadedVariants.length > 0) {
+      setDraft((d) => ({
+        ...d,
+        variants: loadedVariants.map((v) => ({
+          ...v,
+          // Backend returns price as a plain number; normalise to Money for the editor.
+          price: typeof (v.price as unknown) === 'number'
+            ? { amount: v.price as unknown as number, currency: 'INR', major: (v.price as unknown as number) / 100 }
+            : v.price,
+          available: v.isAvailable !== undefined ? Boolean(v.isAvailable) : (v.available ?? true),
+          order: v.displayOrder ?? v.order ?? 0,
+        } as VariantDraft)),
+      }));
+    }
+  }, [loadedVariants]);
+
 
   const patch = (p: Partial<CatalogProduct>) => setDraft((d) => ({ ...d, ...p }));
 
@@ -199,15 +221,61 @@ export function ProductEditor({ productId, isNew, onClose }: ProductEditorProps)
       // `addonIds`/`modifierGroupIds` — sending the objects back was silently
       // stripped by validation, so attaching add-ons in this editor never
       // actually saved anything.
+      const { variants: draftVariants, ...draftWithoutVariants } = draft;
       const body = {
-        ...draft,
+        ...draftWithoutVariants,
         heroImageUrl: cover,
         thumbnailUrl: cover,
         addonIds: (draft.addons ?? []).map((a) => a.id),
         modifierGroupIds: (draft.modifierGroups ?? []).map((g) => g.id),
       };
       const saved = isNew ? await m.create(body) : await m.update(productId!, body);
-      return saved ?? null;
+      if (!saved) return null;
+
+      // Sync variants separately — they are their own backend documents under
+      // POST /restaurant/products/:id/variants (create) and
+      // PATCH /restaurant/variants/:id (update) and DELETE /restaurant/variants/:id.
+      const savedProductId = saved.id;
+      const existingIds = new Set((loadedVariants ?? []).map((v) => v.id));
+      const draftIds = new Set((draftVariants ?? []).map((v) => v.id));
+
+      // Delete removed variants.
+      const toDelete = (loadedVariants ?? []).filter((v) => !draftIds.has(v.id));
+      await Promise.allSettled(toDelete.map((v) => variantService.remove(v.id)));
+
+      // Create new variants (those whose id isn't a known backend id — i.e. was generated client-side).
+      const toCreate = (draftVariants ?? []).filter((v) => !existingIds.has(v.id));
+      // Helper: extract plain numeric price from Money object or raw number.
+      const toAmount = (p: Money | number | unknown): number =>
+        p && typeof p === 'object' && 'amount' in (p as object) ? (p as Money).amount : (typeof p === 'number' ? p : 0);
+      await Promise.allSettled(
+        toCreate.map((v) =>
+          variantService.create(savedProductId, {
+            name: v.name,
+            // Backend expects price as a plain number, not a Money object.
+            price: toAmount(v.price),
+            isAvailable: v.available ?? true,
+            sku: v.sku,
+            displayOrder: v.order,
+          } as any),
+        ),
+      );
+
+      // Update changed existing variants.
+      const toUpdate = (draftVariants ?? []).filter((v) => existingIds.has(v.id));
+      await Promise.allSettled(
+        toUpdate.map((v) =>
+          variantService.update(v.id, {
+            name: v.name,
+            price: toAmount(v.price),
+            isAvailable: v.available ?? true,
+            sku: v.sku,
+            displayOrder: v.order,
+          } as any),
+        ),
+      );
+
+      return saved;
     } catch {
       return null;
     }
@@ -584,17 +652,13 @@ export function ProductEditor({ productId, isNew, onClose }: ProductEditorProps)
               {/* SCHEDULING */}
               <TabsContent value="Scheduling" className="space-y-3">
                 <p className="text-sm text-foreground-muted">
-                  Controls scheduled publishing — the product goes live within this window.
+                  Use the <strong>Availability</strong> tab to set time windows (days + hours) when this item should be
+                  available. The status (Available / Out of stock / Paused) combined with windows lets you restrict
+                  items to lunch hours, weekdays, etc.
                 </p>
-                <ScheduleField
-                  value={draft.availability.schedule}
-                  onChange={(schedule) =>
-                    // `scheduled` is a FLAG on the API, not an availability
-                    // status — the status stays whatever it is (available /
-                    // out of stock) and the schedule decides when it applies.
-                    patch({ availability: { ...draft.availability, scheduled: true, schedule } })
-                  }
-                />
+                <Button variant="secondary" size="sm" onClick={() => setTab('Availability')}>
+                  Go to Availability settings
+                </Button>
               </TabsContent>
 
               {/* PREVIEW */}

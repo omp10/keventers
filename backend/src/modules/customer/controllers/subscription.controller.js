@@ -3,37 +3,39 @@ import { ApiResponse } from '#core/http/api-response.js';
 
 import { customerService } from '../services/customer.service.js';
 import { subscriptionService } from '../services/subscription.service.js';
+import { resolveRestaurantScope } from '../utils/tenant.util.js';
 import { customerScopeOf } from './_helpers.js';
 
 /** Management tenant: the caller's primary restaurant (same rule as loyalty). */
-const tenantOf = (req) => ({
-  organizationId: req.tenant.primaryOrganizationId ?? req.tenant.organizationIds?.[0],
-  restaurantId: req.query?.restaurantId ?? req.tenant.primaryRestaurantId,
-});
+const tenantOf = async (req) => {
+  const restaurantId = req.query?.restaurantId ?? req.validatedQuery?.restaurantId;
+  return resolveRestaurantScope(req.tenant, restaurantId);
+};
 
 export const SubscriptionController = {
   /* ── management (dashboard CMS) ── */
   listPlans: asyncHandler(async (req, res) => {
-    ApiResponse.success(res, { data: await subscriptionService.listPlans(tenantOf(req), { includeArchived: true }) });
+    ApiResponse.success(res, { data: await subscriptionService.listPlans(await tenantOf(req), { includeArchived: true }) });
   }),
   createPlan: asyncHandler(async (req, res) => {
-    ApiResponse.success(res, { data: await subscriptionService.createPlan(tenantOf(req), req.body), statusCode: 201 });
+    ApiResponse.success(res, { data: await subscriptionService.createPlan(await tenantOf(req), req.body), statusCode: 201 });
   }),
   updatePlan: asyncHandler(async (req, res) => {
-    ApiResponse.success(res, { data: await subscriptionService.updatePlan(tenantOf(req), req.params.id, req.body) });
+    ApiResponse.success(res, { data: await subscriptionService.updatePlan(await tenantOf(req), req.params.id, req.body) });
   }),
   archivePlan: asyncHandler(async (req, res) => {
-    ApiResponse.success(res, { data: await subscriptionService.archivePlan(tenantOf(req), req.params.id) });
+    ApiResponse.success(res, { data: await subscriptionService.archivePlan(await tenantOf(req), req.params.id) });
   }),
   listSubscribers: asyncHandler(async (req, res) => {
-    ApiResponse.success(res, { data: await subscriptionService.listSubscribers(tenantOf(req), req.validatedQuery ?? {}) });
+    ApiResponse.success(res, { data: await subscriptionService.listSubscribers(await tenantOf(req), req.validatedQuery ?? {}) });
   }),
   activate: asyncHandler(async (req, res) => {
-    ApiResponse.success(res, { data: await subscriptionService.activate(tenantOf(req), req.params.id) });
+    ApiResponse.success(res, { data: await subscriptionService.activate(await tenantOf(req), req.params.id) });
   }),
   cancel: asyncHandler(async (req, res) => {
-    ApiResponse.success(res, { data: await subscriptionService.cancel(tenantOf(req), req.params.id) });
+    ApiResponse.success(res, { data: await subscriptionService.cancel(await tenantOf(req), req.params.id) });
   }),
+
 
   /* ── customer ── */
   plans: asyncHandler(async (req, res) => {

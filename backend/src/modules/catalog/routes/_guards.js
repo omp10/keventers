@@ -28,8 +28,18 @@ export const restaurantGuards = [
   requireAuth,
   resolveTenant,
   requireTenant,
-  requireRole(ORG_ROLES.ORGANIZATION_ADMIN, ORG_ROLES.RESTAURANT_MANAGER, ORG_ROLES.SUPER_ADMIN),
+  requireRole(
+    ORG_ROLES.ORGANIZATION_ADMIN,
+    ORG_ROLES.RESTAURANT_MANAGER,
+    ORG_ROLES.BRANCH_MANAGER,
+    ORG_ROLES.SUPER_ADMIN,
+    ORG_ROLES.STAFF,
+    'kitchen_manager',
+    'cashier',
+    'waiter',
+  ),
 ];
+
 
 /** Platform-admin inspection guard: auth → tenant → super admin. */
 export const adminGuards = [

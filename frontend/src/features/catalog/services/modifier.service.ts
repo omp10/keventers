@@ -54,6 +54,15 @@ class VariantService {
   listAll(q?: string) {
     return capi.get<(VariantDraft & { productId: string; productName: string })[]>('/restaurant/variants', { query: { q } });
   }
+  create(productId: string, draft: Partial<VariantDraft>) {
+    return capi.post<VariantDraft>(`/restaurant/products/${productId}/variants`, draft);
+  }
+  update(variantId: string, patch: Partial<VariantDraft>) {
+    return capi.patch<VariantDraft>(`/restaurant/variants/${variantId}`, patch);
+  }
+  remove(variantId: string) {
+    return capi.delete<{ id: string }>(`/restaurant/variants/${variantId}`);
+  }
   bulkUpdate(updates: { id: string; patch: Partial<VariantDraft> }[]) {
     return capi.post<{ ok: true }>('/restaurant/variants/bulk', { updates });
   }
