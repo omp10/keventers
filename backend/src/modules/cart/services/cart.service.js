@@ -214,11 +214,42 @@ export class CartService extends BaseService {
     if (!existing) await this.getOrCreateCart(scope);
     const mutationOpts = { ...opts, version: opts.version ?? input.version };
     return this.#mutate(scope, mutationOpts, async (cart) => {
-      if ((cart.items?.length ?? 0) >= this.cartConfig.maxItems) {
-        throw new BadRequestError(CART_ERRORS.MAX_ITEMS);
-      }
       const item = await this.validation.resolveItem(scope, input, cart.currency);
-      const items = [...cart.items, item];
+      
+      const existingItemIndex = (cart.items ?? []).findIndex((it) => {
+        if (String(it.productId) !== String(item.productId)) return false;
+        if (String(it.variantId ?? '') !== String(item.variantId ?? '')) return false;
+
+        const itMods = (it.modifiers ?? []).map(m => String(m.modifierId)).sort().join(',');
+        const newMods = (item.modifiers ?? []).map(m => String(m.modifierId)).sort().join(',');
+        if (itMods !== newMods) return false;
+
+        const itAddons = (it.addons ?? []).map(a => String(a.addonId)).sort().join(',');
+        const newAddons = (item.addons ?? []).map(a => String(a.addonId)).sort().join(',');
+        if (itAddons !== newAddons) return false;
+
+        if ((it.specialInstructions ?? '') !== (item.specialInstructions ?? '')) return false;
+        if ((it.notes ?? '') !== (item.notes ?? '')) return false;
+
+        return true;
+      });
+
+      let items;
+      if (existingItemIndex !== -1) {
+        items = cart.items.map((it, idx) => {
+          if (idx !== existingItemIndex) return it;
+          const next = it.toObject ? it.toObject() : { ...it };
+          next.quantity += item.quantity;
+          next.lineSubtotal = (next.pricing?.unitPrice ?? 0) * next.quantity;
+          return next;
+        });
+      } else {
+        if ((cart.items?.length ?? 0) >= this.cartConfig.maxItems) {
+          throw new BadRequestError(CART_ERRORS.MAX_ITEMS);
+        }
+        items = [...cart.items, item];
+      }
+
       this.audit.success('cart.item.added', { targetId: this.#cartId(cart), metadata: { productId: item.productId } });
       return {
         items,

@@ -62,8 +62,17 @@ describe('CartService', () => {
 
   it('increments version on each mutation (optimistic concurrency)', async () => {
     await ctx.service.addItem(GUEST_SCOPE, addInput);
-    const cart = await ctx.service.addItem(GUEST_SCOPE, addInput);
+    const otherProduct = { ...addInput, productId: '5f2222222222222222222222' };
+    const cart = await ctx.service.addItem(GUEST_SCOPE, otherProduct);
     expect(cart.items).toHaveLength(2);
+    expect(cart.version).toBe(2);
+  });
+
+  it('consolidates duplicate items in the cart', async () => {
+    await ctx.service.addItem(GUEST_SCOPE, addInput);
+    const cart = await ctx.service.addItem(GUEST_SCOPE, addInput);
+    expect(cart.items).toHaveLength(1);
+    expect(cart.items[0].quantity).toBe(4); // 2 + 2
     expect(cart.version).toBe(2);
   });
 

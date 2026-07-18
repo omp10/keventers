@@ -36,12 +36,16 @@ for (const p of rows) {
   const url = wantByName.get(p.name);
   if (!url) continue;
   const image = { role: 'hero', key: null, url, alt: p.name, displayOrder: 0 };
+
+  const isRecommended = ['Biryani', 'Paneer Tikka', 'Butter Chicken', 'Rasmalai'].includes(p.name);
+  const isPopular = ['Butter Chicken', 'Dal Makhani', 'Crispy Corn', 'Gulab Jamun'].includes(p.name);
+
   await products.updateOne(
     { _id: p._id },
-    { $set: { images: [image], heroImageUrl: url, thumbnailUrl: url } },
+    { $set: { images: [image], heroImageUrl: url, thumbnailUrl: url, isRecommended, isPopular } },
   );
   updated += 1;
-  console.log(`  ✓ ${p.name}`);
+  console.log(`  ✓ ${p.name} (recommended: ${isRecommended}, popular: ${isPopular})`);
 }
 
 const missing = [...wantByName.keys()].filter((n) => !rows.some((r) => r.name === n));
