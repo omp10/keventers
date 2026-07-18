@@ -36,35 +36,44 @@ const toDateInput = (iso?: string | null) => (iso ? new Date(iso).toISOString().
  * hardcoded colors, so it follows the active brand.
  */
 function BannerPreview({ banner }: { banner: Partial<AdminBanner> }) {
+  const isImageTheme = banner.theme === 'image';
   const accent = banner.theme === 'accent';
+
   return (
     <div className="space-y-2">
       <p className="text-sm font-medium text-foreground">Customer preview</p>
-      <div
-        className={cn(
-          'relative flex h-32 items-center gap-4 overflow-hidden rounded-2xl p-5 shadow-md',
-          accent ? 'bg-accent text-accent-foreground' : 'text-primary-foreground',
-        )}
-        style={accent ? undefined : { backgroundImage: gradients.brand }}
-      >
-        <span
-          aria-hidden
-          className={cn('absolute -right-8 -top-10 h-36 w-36 rounded-full blur-2xl', accent ? 'bg-accent-foreground/10' : 'bg-primary-foreground/10')}
-        />
-        <div className="relative min-w-0 flex-1">
-          <p className="truncate font-display text-xl font-extrabold leading-tight">{banner.title || 'Banner title'}</p>
-          {banner.subtitle && <p className="mt-1 truncate text-sm opacity-85">{banner.subtitle}</p>}
-          {banner.cta?.label && (
-            <span className={cn('mt-3 inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-bold uppercase tracking-wide', accent ? 'bg-accent-foreground/15' : 'bg-primary-foreground/15')}>
-              {banner.cta.label}
-              <Icon name="arrowRight" className="h-3.5 w-3.5" />
-            </span>
-          )}
+      {isImageTheme && banner.imageUrl ? (
+        <div className="relative h-48 overflow-hidden rounded-2xl shadow-md sm:h-56">
+          <img
+            src={banner.imageUrl}
+            alt={banner.title || 'Banner'}
+            className="h-full w-full object-cover"
+          />
         </div>
-        {banner.theme === 'image' && banner.imageUrl && (
-          <img src={banner.imageUrl} alt="" className="relative h-full max-h-24 w-36 shrink-0 rounded-xl object-cover shadow-lg" />
-        )}
-      </div>
+      ) : (
+        <div
+          className={cn(
+            'relative flex h-40 items-center gap-4 overflow-hidden rounded-2xl p-5 shadow-md sm:h-48',
+            accent ? 'bg-accent text-accent-foreground' : 'text-primary-foreground',
+          )}
+          style={accent ? undefined : { backgroundImage: gradients.brand }}
+        >
+          <span
+            aria-hidden
+            className={cn('absolute -right-8 -top-10 h-36 w-36 rounded-full blur-2xl', accent ? 'bg-accent-foreground/10' : 'bg-primary-foreground/10')}
+          />
+          <div className="relative min-w-0 flex-1">
+            <p className="truncate font-display text-xl font-extrabold leading-tight">{banner.title || 'Banner title'}</p>
+            {banner.subtitle && <p className="mt-1 truncate text-sm opacity-85">{banner.subtitle}</p>}
+            {banner.cta?.label && (
+              <span className={cn('mt-3 inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-bold uppercase tracking-wide', accent ? 'bg-accent-foreground/15' : 'bg-primary-foreground/15')}>
+                {banner.cta.label}
+                <Icon name="arrowRight" className="h-3.5 w-3.5" />
+              </span>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

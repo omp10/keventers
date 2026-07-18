@@ -34,7 +34,26 @@ const slideShell =
 /** One admin banner — themed surface via tokens; images render as a framed
  *  thumbnail beside the copy so text never fights an image for contrast. */
 function BannerSlide({ banner, onOpen }: { banner: PromoBanner; onOpen: () => void }) {
+  const isImageTheme = banner.theme === 'image';
   const accent = banner.theme === 'accent';
+
+  if (isImageTheme && banner.imageUrl) {
+    return (
+      <button
+        type="button"
+        onClick={onOpen}
+        className="group relative h-full w-full overflow-hidden rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+      >
+        <img
+          src={banner.imageUrl}
+          alt={banner.title || 'Banner'}
+          loading="lazy"
+          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+        />
+      </button>
+    );
+  }
+
   return (
     <button
       type="button"
@@ -64,14 +83,6 @@ function BannerSlide({ banner, onOpen }: { banner: PromoBanner; onOpen: () => vo
           </span>
         )}
       </div>
-      {banner.theme === 'image' && banner.imageUrl && (
-        <img
-          src={banner.imageUrl}
-          alt=""
-          loading="lazy"
-          className="relative hidden h-full max-h-28 w-36 shrink-0 rounded-xl object-cover shadow-lg xs:block sm:w-44"
-        />
-      )}
     </button>
   );
 }
@@ -161,7 +172,7 @@ export function PromoCarousel({ className }: { className?: string }) {
       onFocusCapture={() => setPaused(true)}
       onBlurCapture={() => setPaused(false)}
     >
-      <div className="relative h-36 overflow-hidden rounded-2xl shadow-md xs:h-32 sm:h-36">
+      <div className="relative h-56 overflow-hidden rounded-2xl shadow-md xs:h-52 sm:h-64">
         <AnimatePresence initial={false} custom={direction} mode="popLayout">
           <motion.div
             key={active.id}
