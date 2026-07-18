@@ -195,7 +195,17 @@ export function ProductEditor({ productId, isNew, onClose }: ProductEditorProps)
       // heroImageUrl/thumbnailUrl over images[0], so leaving them stale after a
       // gallery edit showed the OLD photo (or none) to customers.
       const cover = draft.images[0]?.url ?? null;
-      const body = { ...draft, heroImageUrl: cover, thumbnailUrl: cover };
+      // The API READS as full `addons`/`modifierGroups` objects but WRITES as
+      // `addonIds`/`modifierGroupIds` — sending the objects back was silently
+      // stripped by validation, so attaching add-ons in this editor never
+      // actually saved anything.
+      const body = {
+        ...draft,
+        heroImageUrl: cover,
+        thumbnailUrl: cover,
+        addonIds: (draft.addons ?? []).map((a) => a.id),
+        modifierGroupIds: (draft.modifierGroups ?? []).map((g) => g.id),
+      };
       const saved = isNew ? await m.create(body) : await m.update(productId!, body);
       return saved ?? null;
     } catch {
