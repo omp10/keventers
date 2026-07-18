@@ -5,6 +5,7 @@ import { useAuth } from '@/platform/auth';
 import { qk, useQueryResource } from '@/platform/query';
 import { useRealtimeQuery } from '@/platform/socket';
 import { cn } from '@/lib/cn';
+import { useCart } from '../hooks';
 import { orderService } from '../services';
 import type { Order, OrderStatus } from '../types';
 
@@ -29,6 +30,7 @@ export function LiveOrderTracker() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const { status } = useAuth();
+  const cart = useCart();
 
   // Without a guest session or account the list call can only 401 (which would
   // bounce the visitor to the entry screen) — so don't even ask.
@@ -57,6 +59,10 @@ export function LiveOrderTracker() {
   // The tracking page IS the expanded view of this pill — showing both is noise.
   if (!enabled || !order || pathname.startsWith('/order/')) return null;
 
+  const hasCartItems = cart.itemCount > 0;
+  const isMenuPage = pathname.includes('/menu');
+  const isCartVisible = hasCartItems && isMenuPage;
+
   const line = STATUS_LINE[order.status] ?? 'Order in progress';
   const eta = order.status !== 'ready' && order.estimatedMinutes ? `~${order.estimatedMinutes} min` : null;
   // The LIST endpoint returns slim rows — items/branch may be absent, and
@@ -77,7 +83,11 @@ export function LiveOrderTracker() {
         'fixed inset-x-3 z-[110] mx-auto flex w-auto max-w-xl items-center gap-3 rounded-2xl border border-border',
         'bg-surface/95 p-3 text-left shadow-xl backdrop-blur transition active:scale-[0.99] lg:hidden',
       )}
-      style={{ bottom: 'calc(4.5rem + max(env(safe-area-inset-bottom), 1.25rem) + 0.625rem)' }}
+      style={{
+        bottom: isCartVisible
+          ? 'calc(8.5rem + max(env(safe-area-inset-bottom), 1.25rem) + 0.625rem)'
+          : 'calc(4.5rem + max(env(safe-area-inset-bottom), 1.25rem) + 0.625rem)',
+      }}
     >
       {/* Pulsing live dot */}
       <span className="relative grid h-10 w-10 shrink-0 place-items-center rounded-full bg-primary/10">

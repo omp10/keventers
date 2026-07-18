@@ -42,53 +42,166 @@ function Steam({ delay = 0, x, reduced }: { delay?: number; x: number; reduced: 
 function ChefScene({ reduced }: { reduced: boolean }) {
   return (
     <svg viewBox="0 0 160 120" className="h-36 w-44" role="img" aria-label="Chef preparing your order">
-      {/* steam */}
-      <Steam x={116} delay={0} reduced={reduced} />
-      <Steam x={126} delay={0.7} reduced={reduced} />
-      <Steam x={136} delay={1.4} reduced={reduced} />
+      {/* Steam rising from wok */}
+      {[
+        { x: 114, delay: 0 },
+        { x: 124, delay: 0.6 },
+        { x: 134, delay: 1.2 },
+      ].map((s, i) => (
+        <motion.path
+          key={i}
+          d={`M ${s.x} 74 q -4 -8 0 -16 q 4 -8 0 -16`}
+          fill="none"
+          stroke="var(--kv-color-foreground-subtle)"
+          strokeWidth={2}
+          strokeLinecap="round"
+          initial={{ opacity: 0, y: 0 }}
+          {...loop(reduced, { opacity: [0, 0.6, 0], y: [-2, -18] }, { duration: 2, delay: s.delay, repeat: Infinity, ease: 'easeInOut' })}
+        />
+      ))}
 
-      {/* chef (bobs while stirring) */}
+      {/* Chef head, hat, body group (bobs gently) */}
       <motion.g
-        {...loop(reduced, { y: [0, -2.5, 0] }, { duration: 1.6, repeat: Infinity, ease: 'easeInOut' })}
+        {...loop(reduced, { y: [0, -2, 0] }, { duration: 1.8, repeat: Infinity, ease: 'easeInOut' })}
       >
-        {/* hat */}
+        {/* Hat */}
+        <rect x="42" y="32" width="36" height="8" rx="2" fill="var(--kv-color-surface)" stroke="var(--kv-color-border-strong)" strokeWidth={2.5} />
         <path
-          d="M42 34 q0 -12 12 -12 q3 -8 12 -8 q9 0 12 8 q12 0 12 12 l-2 8 h-44 z"
+          d="M 44 33 C 35 23, 40 8, 52 13 C 55 3, 75 3, 78 13 C 90 8, 95 23, 86 33 Z"
           fill="var(--kv-color-surface)"
           stroke="var(--kv-color-border-strong)"
           strokeWidth={2.5}
         />
-        {/* face */}
-        <circle cx="66" cy="52" r="13" fill="var(--kv-color-surface-raised)" stroke="var(--kv-color-border-strong)" strokeWidth={2.5} />
-        <circle cx="61.5" cy="51" r="1.6" fill="var(--kv-color-foreground)" />
-        <circle cx="70.5" cy="51" r="1.6" fill="var(--kv-color-foreground)" />
-        <path d="M62 57 q4 3 8 0" fill="none" stroke="var(--kv-color-foreground)" strokeWidth={1.8} strokeLinecap="round" />
-        {/* apron body */}
-        <path d="M50 66 q16 -8 32 0 l4 30 h-40 z" fill="var(--kv-color-primary)" />
-        <path d="M58 72 h16" stroke="var(--kv-color-primary-foreground)" strokeWidth={2} strokeLinecap="round" opacity={0.5} />
-        {/* stirring arm */}
-        <motion.g
-          style={{ originX: '58px', originY: '74px' }}
-          {...loop(reduced, { rotate: [0, 14, 0] }, { duration: 1.6, repeat: Infinity, ease: 'easeInOut' })}
-        >
-          <path d="M58 74 q18 4 40 6" fill="none" stroke="var(--kv-color-primary)" strokeWidth={7} strokeLinecap="round" />
-          {/* spoon */}
-          <line x1="98" y1="80" x2="112" y2="66" stroke="var(--kv-color-border-strong)" strokeWidth={3.4} strokeLinecap="round" />
-        </motion.g>
+
+        {/* Face */}
+        <circle cx="60" cy="58" r="15" fill="var(--kv-color-surface-raised)" stroke="var(--kv-color-border-strong)" strokeWidth={2.5} />
+        {/* Smiling Eyes */}
+        <path d="M 50 56 Q 54 60 58 56" fill="none" stroke="var(--kv-color-border-strong)" strokeWidth={2.2} strokeLinecap="round" />
+        <path d="M 62 56 Q 66 60 70 56" fill="none" stroke="var(--kv-color-border-strong)" strokeWidth={2.2} strokeLinecap="round" />
+        {/* Blush cheeks */}
+        <circle cx="47" cy="61" r="2.5" fill="var(--kv-color-danger)" opacity={0.35} />
+        <circle cx="73" cy="61" r="2.5" fill="var(--kv-color-danger)" opacity={0.35} />
+        {/* Cute Smile */}
+        <path d="M 56 64 Q 60 68 64 64" fill="none" stroke="var(--kv-color-border-strong)" strokeWidth={2} strokeLinecap="round" />
+        {/* Nose */}
+        <circle cx="60" cy="60" r="1.5" fill="var(--kv-color-border-strong)" />
+
+        {/* Body (Apron) */}
+        <path d="M 44 76 C 44 72, 76 72, 76 76 L 80 115 L 40 115 Z" fill="var(--kv-color-primary)" />
+        {/* Scarf / Kerchief */}
+        <path d="M 52 75 L 68 75 L 60 84 Z" fill="var(--kv-color-danger)" />
+        <circle cx="60" cy="76" r="3.5" fill="var(--kv-color-danger)" />
       </motion.g>
 
-      {/* pan on stove */}
+      {/* Left Arm and Salt Shaker (shakes over the pan) */}
       <g>
-        <rect x="102" y="82" width="48" height="12" rx="6" fill="var(--kv-color-brand-secondary)" />
-        <line x1="102" y1="86" x2="88" y2="82" stroke="var(--kv-color-brand-secondary)" strokeWidth={4.5} strokeLinecap="round" />
-        {/* flame flicker */}
+        {/* Arm extending from chef's shoulder (bobbing with chef body) */}
         <motion.path
-          d="M120 102 q3 -7 6 0 q3 7 -3 8 q-6 -1 -3 -8"
-          fill="var(--kv-color-accent)"
-          {...loop(reduced, { scaleY: [1, 1.25, 1], opacity: [0.85, 1, 0.85] }, { duration: 0.9, repeat: Infinity, ease: 'easeInOut' })}
-          style={{ originX: '123px', originY: '110px' }}
+          d="M 44 82 Q 70 55 92 52"
+          fill="none"
+          stroke="var(--kv-color-primary)"
+          strokeWidth={6}
+          strokeLinecap="round"
+          {...loop(reduced, { d: ["M 44 82 Q 70 55 92 52", "M 44 80 Q 70 53 92 50", "M 44 82 Q 70 55 92 52"] }, { duration: 1.8, repeat: Infinity, ease: 'easeInOut' })}
         />
-        <rect x="108" y="108" width="36" height="4" rx="2" fill="var(--kv-color-border)" />
+        {/* Shaker holding/shaking group */}
+        <motion.g
+          style={{ originX: '95px', originY: '50px' }}
+          {...loop(reduced, { rotate: [135, 155, 135, 155, 135], y: [0, -2, 0] }, { duration: 1.2, repeat: Infinity, ease: 'easeInOut' })}
+        >
+          {/* Salt Shaker Body (Upside Down) */}
+          <rect x="91" y="34" width="8" height="11" rx="1.5" fill="var(--kv-color-surface-raised)" stroke="var(--kv-color-border-strong)" strokeWidth={1.5} />
+          <rect x="92" y="45" width="6" height="2" fill="var(--kv-color-border-strong)" />
+          {/* Shaker holes detail */}
+          <circle cx="93.5" cy="46" r="0.5" fill="var(--kv-color-surface)" />
+          <circle cx="95" cy="46" r="0.5" fill="var(--kv-color-surface)" />
+          <circle cx="96.5" cy="46" r="0.5" fill="var(--kv-color-surface)" />
+          {/* Hand holding the shaker */}
+          <circle cx="95" cy="50" r="4.5" fill="var(--kv-color-surface-raised)" stroke="var(--kv-color-border-strong)" strokeWidth={1.5} />
+        </motion.g>
+      </g>
+
+      {/* Falling Salt Particles */}
+      <motion.circle
+        cx={93} cy={54} r={1.2} fill="var(--kv-color-foreground)"
+        {...loop(reduced, { y: [0, 32], opacity: [0, 0.8, 0] }, { duration: 1.2, repeat: Infinity, ease: 'easeIn', delay: 0.1 })}
+      />
+      <motion.circle
+        cx={96} cy={54} r={1.2} fill="var(--kv-color-foreground)"
+        {...loop(reduced, { y: [0, 32], opacity: [0, 0.8, 0] }, { duration: 1.2, repeat: Infinity, ease: 'easeIn', delay: 0.5 })}
+      />
+      <motion.circle
+        cx={99} cy={54} r={1.2} fill="var(--kv-color-foreground)"
+        {...loop(reduced, { y: [0, 32], opacity: [0, 0.8, 0] }, { duration: 1.2, repeat: Infinity, ease: 'easeIn', delay: 0.9 })}
+      />
+
+      {/* Flying/Tossing Veggies */}
+      <g>
+        {/* Carrot Slice */}
+        <motion.rect
+          x={110} y={80} width={6} height={6} rx={1.5}
+          fill="var(--kv-color-accent)"
+          style={{ originX: '113px', originY: '83px' }}
+          {...loop(reduced, { y: [0, -32, 0], rotate: [0, 180, 360], x: [0, -4, 0] }, { duration: 1.4, repeat: Infinity, ease: 'easeInOut' })}
+        />
+        {/* Pea */}
+        <motion.circle
+          cx={122} cy={80} r={2.8}
+          fill="var(--kv-color-success)"
+          {...loop(reduced, { y: [0, -44, 0], x: [0, 3, 0] }, { duration: 1.4, delay: 0.2, repeat: Infinity, ease: 'easeInOut' })}
+        />
+        {/* Pepper Slice */}
+        <motion.path
+          d="M 130 80 Q 133 76 136 80"
+          fill="none"
+          stroke="var(--kv-color-primary)"
+          strokeWidth={2.5}
+          strokeLinecap="round"
+          style={{ originX: '133px', originY: '80px' }}
+          {...loop(reduced, { y: [0, -25, 0], rotate: [0, -120, -240], x: [0, 5, 0] }, { duration: 1.4, delay: 0.45, repeat: Infinity, ease: 'easeInOut' })}
+        />
+      </g>
+
+      {/* Right Arm & Pan Wok (Tosses/Bobs) */}
+      <motion.g
+        style={{ originX: '72px', originY: '84px' }}
+        {...loop(reduced, { rotate: [0, 5, -3, 0], y: [0, 4, -2, 0] }, { duration: 1.4, repeat: Infinity, ease: 'easeInOut' })}
+      >
+        {/* Arm */}
+        <path d="M 72 84 Q 85 92 92 88" fill="none" stroke="var(--kv-color-primary)" strokeWidth={7} strokeLinecap="round" />
+        {/* Hand */}
+        <circle cx="92" cy="88" r="4.5" fill="var(--kv-color-surface-raised)" stroke="var(--kv-color-border-strong)" strokeWidth={1.5} />
+        {/* Pan Handle */}
+        <line x1="92" y1="88" x2="106" y2="88" stroke="var(--kv-color-border-strong)" strokeWidth={3.5} strokeLinecap="round" />
+        {/* Pan / Wok Body */}
+        <path d="M 104 84 C 104 100, 140 100, 140 84 Z" fill="var(--kv-color-secondary)" stroke="var(--kv-color-border-strong)" strokeWidth={2.5} />
+      </motion.g>
+
+      {/* Stove Burner & Flickering Flame */}
+      <g>
+        {/* Burner Plate */}
+        <rect x="110" y="102" width="24" height="4" rx="2" fill="var(--kv-color-border)" />
+        {/* Flame 1 */}
+        <motion.path
+          d="M 116 102 C 114 96, 118 92, 118 92 C 118 92, 122 96, 120 102 Z"
+          fill="var(--kv-color-accent)"
+          {...loop(reduced, { scaleY: [1, 1.3, 0.9, 1.2, 1], opacity: [0.8, 1, 0.7, 1, 0.8] }, { duration: 0.8, repeat: Infinity, ease: 'easeInOut' })}
+          style={{ originX: '118px', originY: '102px' }}
+        />
+        {/* Flame 2 */}
+        <motion.path
+          d="M 122 102 C 120 95, 124 90, 124 90 C 124 90, 128 95, 126 102 Z"
+          fill="var(--kv-color-danger)"
+          {...loop(reduced, { scaleY: [1, 0.8, 1.25, 0.95, 1], opacity: [0.9, 0.75, 1, 0.85, 0.9] }, { duration: 0.7, delay: 0.15, repeat: Infinity, ease: 'easeInOut' })}
+          style={{ originX: '124px', originY: '102px' }}
+        />
+        {/* Flame 3 */}
+        <motion.path
+          d="M 128 102 C 126 97, 130 93, 130 93 C 130 93, 134 97, 132 102 Z"
+          fill="var(--kv-color-accent)"
+          {...loop(reduced, { scaleY: [1, 1.2, 0.85, 1.1, 1], opacity: [0.75, 0.95, 0.7, 1, 0.75] }, { duration: 0.9, delay: 0.3, repeat: Infinity, ease: 'easeInOut' })}
+          style={{ originX: '130px', originY: '102px' }}
+        />
       </g>
     </svg>
   );
