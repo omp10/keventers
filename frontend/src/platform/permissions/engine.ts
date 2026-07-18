@@ -51,11 +51,20 @@ export type AccessContext = {
 };
 
 /** Evaluate an AccessRule against the current context. Empty rule = allow. */
+const PRIVILEGED_ROLES = ['super_admin', 'owner', 'organization_admin', 'restaurant_manager', 'branch_manager'];
+
 export function evaluateAccess(rule: AccessRule | undefined, ctx: AccessContext): boolean {
   if (!rule) return true;
   if (rule.anyRole && !hasAnyRole(ctx.roles, rule.anyRole)) return false;
-  if (rule.anyPermission && !hasAnyPermission(ctx.permissions, rule.anyPermission)) return false;
-  if (rule.allPermissions && !hasAllPermissions(ctx.permissions, rule.allPermissions)) return false;
+  // A restaurant's owner/admin/manager IS the authority over it, so their
+  // management nav must not hinge on a per-permission grant being present in
+  // the token — roles are the source of truth, fine-grained permissions an
+  // optional overlay. Without this, an organization_admin with an empty
+  // permission list saw a nearly-empty sidebar. Flags + explicit role gates
+  // (above) still apply.
+  const privileged = hasAnyRole(ctx.roles, PRIVILEGED_ROLES);
+  if (!privileged && rule.anyPermission && !hasAnyPermission(ctx.permissions, rule.anyPermission)) return false;
+  if (!privileged && rule.allPermissions && !hasAllPermissions(ctx.permissions, rule.allPermissions)) return false;
   if (rule.requireFlags && !rule.requireFlags.every((f) => ctx.flags[f])) return false;
   if (rule.custom && !rule.custom(ctx)) return false;
   return true;
