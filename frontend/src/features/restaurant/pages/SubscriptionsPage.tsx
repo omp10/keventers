@@ -1,8 +1,10 @@
 import { useState } from 'react';
 
 import { Badge, Button, Card, EmptyState, Icon, Input, Spinner, Textarea, toast } from '@/design-system';
-import { api } from '@/platform/api';
 import { qk, queryClient, useQueryResource } from '@/platform/query';
+import { useRestaurantScope, useScopedApi } from '../RestaurantScope';
+
+type Sapi = ReturnType<typeof useScopedApi>;
 
 /**
  * Customer Subscriptions (/dashboard/subscriptions) — the admin-managed
@@ -42,7 +44,7 @@ const invalidate = () => {
   void queryClient.invalidateQueries({ queryKey: qk('restaurant', 'subscribers') });
 };
 
-function PlanForm({ plan, onDone }: { plan: Plan | null; onDone: () => void }) {
+function PlanForm({ plan, onDone, sapi }: { plan: Plan | null; onDone: () => void; sapi: Sapi }) {
   const [name, setName] = useState(plan?.name ?? '');
   const [description, setDescription] = useState(plan?.description ?? '');
   const [priceMajor, setPriceMajor] = useState(plan ? String(plan.price / 100) : '');
@@ -64,8 +66,8 @@ function PlanForm({ plan, onDone }: { plan: Plan | null; onDone: () => void }) {
       perks: perks.split('\n').map((p) => p.trim()).filter(Boolean),
     };
     try {
-      if (plan) await api.patch(`/restaurant/subscriptions/plans/${plan.id}`, body);
-      else await api.post('/restaurant/subscriptions/plans', body);
+      if (plan) await sapi.patch(`/restaurant/subscriptions/plans/${plan.id}`, body);
+      else await sapi.post('/restaurant/subscriptions/plans', body);
       toast.success(plan ? 'Plan updated' : 'Plan created');
       invalidate();
       onDone();
@@ -108,15 +110,17 @@ function PlanForm({ plan, onDone }: { plan: Plan | null; onDone: () => void }) {
 export function SubscriptionsPage() {
   const [editing, setEditing] = useState<Plan | null>(null);
   const [creating, setCreating] = useState(false);
+  const sapi = useScopedApi();
+  const scope = useRestaurantScope();
 
-  const plans = useQueryResource<Plan[]>(qk('restaurant', 'sub-plans'), () => api.get('/restaurant/subscriptions/plans'));
-  const subs = useQueryResource<Subscriber[]>(qk('restaurant', 'subscribers'), () => api.get('/restaurant/subscriptions', { query: { limit: 50 } }), {
+  const plans = useQueryResource<Plan[]>(qk('restaurant', 'sub-plans', scope ?? null), () => sapi.get('/restaurant/subscriptions/plans'));
+  const subs = useQueryResource<Subscriber[]>(qk('restaurant', 'subscribers', scope ?? null), () => sapi.get('/restaurant/subscriptions', { query: { limit: 50 } }), {
     refetchInterval: 30_000,
   });
 
   const act = async (id: string, action: 'activate' | 'cancel') => {
     try {
-      await api.patch(`/restaurant/subscriptions/${id}/${action}`);
+      await sapi.patch(`/restaurant/subscriptions/${id}/${action}`);
       toast.success(action === 'activate' ? 'Subscription activated' : 'Subscription cancelled');
       invalidate();
     } catch (e) {
@@ -126,7 +130,7 @@ export function SubscriptionsPage() {
 
   const archive = async (p: Plan) => {
     try {
-      await api.patch(`/restaurant/subscriptions/plans/${p.id}`, { status: p.status === 'archived' ? 'active' : 'archived' });
+      await sapi.patch(`/restaurant/subscriptions/plans/${p.id}`, { status: p.status === 'archived' ? 'active' : 'archived' });
       invalidate();
     } catch (e) {
       toast.error('Action failed', { description: (e as Error).message });
@@ -146,7 +150,7 @@ export function SubscriptionsPage() {
       {(creating || editing) && (
         <Card padding="md">
           <h2 className="mb-3 text-sm font-semibold text-foreground">{editing ? `Edit — ${editing.name}` : 'New plan'}</h2>
-          <PlanForm plan={editing} onDone={() => { setCreating(false); setEditing(null); }} />
+          <PlanForm plan={editing} sapi={sapi} onDone={() => { setCreating(false); setEditing(null); }} />
         </Card>
       )}
 

@@ -1,8 +1,8 @@
 import { useState } from 'react';
 
 import { Badge, Button, Card, EmptyState, Icon, Spinner } from '@/design-system';
-import { api } from '@/platform/api';
 import { qk, useQueryResource } from '@/platform/query';
+import { useRestaurantScope, useScopedApi } from '../RestaurantScope';
 
 /**
  * Customer Journeys (/dashboard/journeys) — the client's "show me each
@@ -64,9 +64,11 @@ function StepDetail({ p }: { p: Record<string, unknown> }) {
 }
 
 function Timeline({ journeyId }: { journeyId: string }) {
+  const sapi = useScopedApi();
+  const scope = useRestaurantScope();
   const q = useQueryResource<JourneyStep[]>(
-    qk('restaurant', 'journey', journeyId),
-    () => api.get(`/restaurant/analytics/journeys/${journeyId}`),
+    qk('restaurant', 'journey', journeyId, scope ?? null),
+    () => sapi.get(`/restaurant/analytics/journeys/${journeyId}`),
   );
   if (q.isLoading) return <div className="grid place-items-center py-6"><Spinner size="sm" /></div>;
   const steps = q.data ?? [];
@@ -128,9 +130,11 @@ function Funnel({ rows }: { rows: JourneyRow[] }) {
 
 export function JourneysPage() {
   const [open, setOpen] = useState<string | null>(null);
+  const sapi = useScopedApi();
+  const scope = useRestaurantScope();
   const q = useQueryResource<JourneyRow[]>(
-    qk('restaurant', 'journeys'),
-    () => api.get('/restaurant/analytics/journeys', { query: { limit: 50 } }),
+    qk('restaurant', 'journeys', scope ?? null),
+    () => sapi.get('/restaurant/analytics/journeys', { query: { limit: 50 } }),
     { refetchInterval: 30_000 },
   );
 

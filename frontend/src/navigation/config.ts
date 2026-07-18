@@ -115,6 +115,15 @@ export const adminNav: NavConfig = {
       ],
     },
     {
+      title: 'Growth',
+      items: [
+        { key: 'admin-journeys', label: 'Customer journeys', icon: 'users', path: '/admin/journeys', access: { anyRole: ['super_admin'] } },
+        { key: 'admin-feedback', label: 'Feedback & NPS', icon: 'star', path: '/admin/feedback', access: { anyRole: ['super_admin'] } },
+        { key: 'admin-subscriptions', label: 'Subscriptions', icon: 'gift', path: '/admin/subscriptions', access: { anyRole: ['super_admin'] } },
+        { key: 'admin-upsell', label: 'Upsell rules', icon: 'trend', path: '/admin/upsell', access: { anyRole: ['super_admin'] } },
+      ],
+    },
+    {
       title: 'Platform',
       items: [
         { key: 'analytics', label: 'Analytics', icon: 'trend', path: '/admin/analytics', access: { anyRole: ['super_admin'] } },

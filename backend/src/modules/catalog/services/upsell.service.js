@@ -170,7 +170,15 @@ class UpsellService {
   }
 
   async createRule(tenant, data) {
-    const rule = await UpsellRule.create({ organizationId: tenant.organizationId, restaurantId: tenant.restaurantId, ...data });
+    let { organizationId } = tenant;
+    // Super-admin scopes by restaurantId alone — resolve the org so the rule
+    // carries a valid tenant.
+    if (!organizationId && tenant.restaurantId) {
+      const { restaurantService } = await import('#modules/organization/index.js');
+      const restaurant = await restaurantService.getPublicProfile(tenant.restaurantId);
+      organizationId = restaurant?.organizationId ?? null;
+    }
+    const rule = await UpsellRule.create({ organizationId, restaurantId: tenant.restaurantId, ...data });
     this.invalidate(tenant.restaurantId);
     return rule.toJSON();
   }

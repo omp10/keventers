@@ -1,8 +1,8 @@
 import { useState } from 'react';
 
 import { Badge, Button, Card, EmptyState, Icon, Input, Spinner, toast } from '@/design-system';
-import { api } from '@/platform/api';
 import { qk, queryClient, useQueryResource } from '@/platform/query';
+import { useRestaurantScope, useScopedApi } from '../RestaurantScope';
 
 /**
  * Upsell rules (/dashboard/upsell) — the SOW's configurable upselling CMS.
@@ -12,6 +12,7 @@ import { qk, queryClient, useQueryResource } from '@/platform/query';
  *   · the RULES the business adds on top (trigger → suggestion, weight, daily
  *     time window) that blend into every recommendation.
  */
+type Sapi = ReturnType<typeof useScopedApi>;
 type ProductLite = { id: string; name: string };
 type Rule = {
   id: string;
@@ -27,7 +28,7 @@ type Pair = { a: string; b: string; togetherCount: number; basis: number };
 
 const invalidate = () => void queryClient.invalidateQueries({ queryKey: qk('restaurant', 'upsell') });
 
-function RuleForm({ products, onDone }: { products: ProductLite[]; onDone: () => void }) {
+function RuleForm({ products, onDone, sapi }: { products: ProductLite[]; onDone: () => void; sapi: Sapi }) {
   const [triggerIds, setTriggerIds] = useState<string[]>([]);
   const [suggestId, setSuggestId] = useState('');
   const [weight, setWeight] = useState('60');
@@ -41,7 +42,7 @@ function RuleForm({ products, onDone }: { products: ProductLite[]; onDone: () =>
     if (!suggestId || busy) return;
     setBusy(true);
     try {
-      await api.post('/restaurant/upsell/rules', {
+      await sapi.post('/restaurant/upsell/rules', {
         triggerProductIds: triggerIds,
         suggestProductId: suggestId,
         weight: Number(weight) || 60,
@@ -108,17 +109,19 @@ function RuleForm({ products, onDone }: { products: ProductLite[]; onDone: () =>
 
 export function UpsellPage() {
   const [creating, setCreating] = useState(false);
+  const sapi = useScopedApi();
+  const scope = useRestaurantScope();
 
-  const rules = useQueryResource<Rule[]>(qk('restaurant', 'upsell', 'rules'), () => api.get('/restaurant/upsell/rules'));
-  const learned = useQueryResource<Pair[]>(qk('restaurant', 'upsell', 'learned'), () => api.get('/restaurant/upsell/learned'));
-  const products = useQueryResource<ProductLite[]>(qk('restaurant', 'upsell', 'products'), async () => {
-    const page = await api.paginate<{ id: string; name: string }>('/restaurant/products', { query: { page: 1, limit: 100 } });
+  const rules = useQueryResource<Rule[]>(qk('restaurant', 'upsell', 'rules', scope ?? null), () => sapi.get('/restaurant/upsell/rules'));
+  const learned = useQueryResource<Pair[]>(qk('restaurant', 'upsell', 'learned', scope ?? null), () => sapi.get('/restaurant/upsell/learned'));
+  const products = useQueryResource<ProductLite[]>(qk('restaurant', 'upsell', 'products', scope ?? null), async () => {
+    const page = await sapi.paginate<{ id: string; name: string }>('/restaurant/products', { query: { page: 1, limit: 100 } });
     return page.items.map((p) => ({ id: p.id, name: p.name }));
   });
 
   const toggle = async (r: Rule) => {
     try {
-      await api.patch(`/restaurant/upsell/rules/${r.id}`, { isActive: !r.isActive });
+      await sapi.patch(`/restaurant/upsell/rules/${r.id}`, { isActive: !r.isActive });
       invalidate();
     } catch (e) {
       toast.error('Action failed', { description: (e as Error).message });
@@ -126,7 +129,7 @@ export function UpsellPage() {
   };
   const remove = async (r: Rule) => {
     try {
-      await api.delete(`/restaurant/upsell/rules/${r.id}`);
+      await sapi.delete(`/restaurant/upsell/rules/${r.id}`);
       invalidate();
     } catch (e) {
       toast.error('Action failed', { description: (e as Error).message });
@@ -148,7 +151,7 @@ export function UpsellPage() {
       {creating && (
         <Card padding="md">
           <h2 className="mb-3 text-sm font-semibold text-foreground">New rule</h2>
-          {products.isLoading ? <Spinner size="sm" /> : <RuleForm products={products.data ?? []} onDone={() => setCreating(false)} />}
+          {products.isLoading ? <Spinner size="sm" /> : <RuleForm products={products.data ?? []} sapi={sapi} onDone={() => setCreating(false)} />}
         </Card>
       )}
 

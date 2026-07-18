@@ -1,6 +1,6 @@
 import { Badge, Card, EmptyState, Icon, Spinner } from '@/design-system';
-import { api } from '@/platform/api';
 import { qk, useQueryResource } from '@/platform/query';
+import { useRestaurantScope, useScopedApi } from '../RestaurantScope';
 
 /**
  * Feedback & NPS (/dashboard/feedback) — the SOW's customer-satisfaction view:
@@ -31,8 +31,10 @@ function Stat({ label, value, suffix = '' }: { label: string; value: number | st
 const stars = (n: number | null) => (n == null ? null : '★'.repeat(n) + '☆'.repeat(5 - n));
 
 export function FeedbackPage() {
-  const summary = useQueryResource<Summary>(qk('restaurant', 'feedback', 'summary'), () => api.get('/restaurant/feedback/summary'), { refetchInterval: 60_000 });
-  const rows = useQueryResource<Row[]>(qk('restaurant', 'feedback', 'list'), () => api.get('/restaurant/feedback', { query: { limit: 50 } }), { refetchInterval: 60_000 });
+  const sapi = useScopedApi();
+  const scope = useRestaurantScope();
+  const summary = useQueryResource<Summary>(qk('restaurant', 'feedback', 'summary', scope ?? null), () => sapi.get('/restaurant/feedback/summary'), { refetchInterval: 60_000 });
+  const rows = useQueryResource<Row[]>(qk('restaurant', 'feedback', 'list', scope ?? null), () => sapi.get('/restaurant/feedback', { query: { limit: 50 } }), { refetchInterval: 60_000 });
 
   const s = summary.data;
 

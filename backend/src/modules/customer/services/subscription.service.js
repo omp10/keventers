@@ -10,12 +10,15 @@ import { Subscription, SUBSCRIPTION_STATUS } from '../models/subscription.model.
  * from the dashboard, which stamps the period window.
  */
 const scopeOf = (t) => ({ organizationId: t.organizationId, restaurantId: t.restaurantId });
+// Query filter: restaurantId is globally unique, so it alone scopes a read —
+// and a super-admin (who carries no organizationId) can still match.
+const matchOf = (t) => ({ restaurantId: t.restaurantId });
 
 class SubscriptionService {
   /* ── plans (management) ── */
 
   async listPlans(tenant, { includeArchived = false } = {}) {
-    const q = { ...scopeOf(tenant), deletedAt: null };
+    const q = { ...matchOf(tenant), deletedAt: null };
     if (!includeArchived) q.status = SUBSCRIPTION_PLAN_STATUS.ACTIVE;
     const plans = await SubscriptionPlan.find(q).sort({ displayOrder: 1, createdAt: 1 }).lean({ virtuals: true });
     // Subscriber counts in one query, not one per plan.
@@ -28,13 +31,21 @@ class SubscriptionService {
   }
 
   async createPlan(tenant, data, _actorId = null) {
-    const plan = await SubscriptionPlan.create({ ...scopeOf(tenant), ...data });
+    let { organizationId } = tenant;
+    // Super-admin scopes by restaurantId alone and carries no org — resolve it
+    // from the restaurant so the plan is stamped with a valid tenant.
+    if (!organizationId && tenant.restaurantId) {
+      const { restaurantService } = await import('#modules/organization/index.js');
+      const restaurant = await restaurantService.getPublicProfile(tenant.restaurantId);
+      organizationId = restaurant?.organizationId ?? null;
+    }
+    const plan = await SubscriptionPlan.create({ organizationId, restaurantId: tenant.restaurantId, ...data });
     return plan.toJSON();
   }
 
   async updatePlan(tenant, id, patch) {
     const plan = await SubscriptionPlan.findOneAndUpdate(
-      { _id: id, ...scopeOf(tenant), deletedAt: null },
+      { _id: id, ...matchOf(tenant), deletedAt: null },
       { $set: patch },
       { new: true },
     );
@@ -50,7 +61,7 @@ class SubscriptionService {
 
   /** Active plans, public shape (no tenant internals). */
   async listPublicPlans(tenant) {
-    const plans = await SubscriptionPlan.find({ ...scopeOf(tenant), status: SUBSCRIPTION_PLAN_STATUS.ACTIVE, deletedAt: null })
+    const plans = await SubscriptionPlan.find({ ...matchOf(tenant), status: SUBSCRIPTION_PLAN_STATUS.ACTIVE, deletedAt: null })
       .sort({ displayOrder: 1, createdAt: 1 })
       .lean({ virtuals: true });
     return plans.map((p) => ({
@@ -66,7 +77,7 @@ class SubscriptionService {
   }
 
   async subscribe(tenant, { customerId, userId }, planId) {
-    const plan = await SubscriptionPlan.findOne({ _id: planId, ...scopeOf(tenant), status: SUBSCRIPTION_PLAN_STATUS.ACTIVE, deletedAt: null });
+    const plan = await SubscriptionPlan.findOne({ _id: planId, ...matchOf(tenant), status: SUBSCRIPTION_PLAN_STATUS.ACTIVE, deletedAt: null });
     if (!plan) throw new NotFoundError('Subscription plan not found');
     const existing = await Subscription.findOne({
       customerId,
@@ -97,7 +108,7 @@ class SubscriptionService {
   /* ── management over subscribers ── */
 
   async listSubscribers(tenant, { status, page = 1, limit = 25 } = {}) {
-    const q = { ...scopeOf(tenant) };
+    const q = { ...matchOf(tenant) };
     if (status) q.status = status;
     const subs = await Subscription.find(q)
       .sort({ createdAt: -1 })
@@ -110,7 +121,7 @@ class SubscriptionService {
 
   /** Staff settles payment at the counter → the period starts NOW. */
   async activate(tenant, id) {
-    const sub = await Subscription.findOne({ _id: id, ...scopeOf(tenant) });
+    const sub = await Subscription.findOne({ _id: id, ...matchOf(tenant) });
     if (!sub) throw new NotFoundError('Subscription not found');
     const plan = await SubscriptionPlan.findById(sub.planId);
     const now = new Date();
@@ -123,7 +134,7 @@ class SubscriptionService {
 
   async cancel(tenant, id) {
     const sub = await Subscription.findOneAndUpdate(
-      { _id: id, ...scopeOf(tenant) },
+      { _id: id, ...matchOf(tenant) },
       { $set: { status: SUBSCRIPTION_STATUS.CANCELLED } },
       { new: true },
     );

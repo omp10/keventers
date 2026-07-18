@@ -14,3 +14,4 @@ export * from './hooks';
 export * from './realtime';
 export { contextService, staffOrderService, staffAnalyticsService } from './services';
 export type { OrderFilters, AnalyticsRange } from './services';
+export { RestaurantScopeProvider, useRestaurantScope, useScopedApi } from './RestaurantScope';
