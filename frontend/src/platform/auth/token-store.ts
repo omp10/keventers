@@ -84,6 +84,28 @@ export const tokenStore = {
   hasSession: () => Boolean(refreshToken),
 };
 
+/**
+ * MULTI-TAB SYNC. The in-memory `guestToken`/`refreshToken` are seeded from
+ * localStorage ONCE at load; without this, a change in another tab (a new scan,
+ * a refresh-token rotation, a logout) never reaches this tab, which keeps
+ * sending the now-stale token and gets "Invalid or expired guest session
+ * token" / a surprise logout. The `storage` event fires ONLY in other tabs, so
+ * this simply mirrors their writes into this tab and notifies listeners (socket
+ * re-auth, AuthProvider) — every open tab then shares one live session.
+ */
+if (typeof window !== 'undefined') {
+  window.addEventListener('storage', (e) => {
+    if (e.storageArea !== localStorage) return;
+    if (e.key === GUEST_KEY) {
+      guestToken = e.newValue;
+      notify();
+    } else if (e.key === REFRESH_KEY) {
+      refreshToken = e.newValue;
+      notify();
+    }
+  });
+}
+
 /** Decode a JWT payload without a library (unverified — for exp/claims only). */
 export function decodeJwt<T = Record<string, unknown>>(token: string): T | null {
   try {
