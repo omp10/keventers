@@ -11,7 +11,7 @@ import { OrderStatusTimeline, OrderTrackingHero } from '../order';
 import { PaymentPanel } from '../payment';
 import { useOrder } from '../hooks';
 import { orderService } from '../services';
-import { formatMinutes, PAYMENT_STATUS_PRESENTATION, ORDER_STATUS_PRESENTATION } from '../format';
+import { PAYMENT_STATUS_PRESENTATION, ORDER_STATUS_PRESENTATION } from '../format';
 import type { PaymentProvider } from '../types';
 
 /**
