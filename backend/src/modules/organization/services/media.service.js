@@ -2,6 +2,8 @@ import { BaseService } from '#core/service/base.service.js';
 import { ValidationError } from '#core/errors/app-error.js';
 import { getStorage } from '#platform/storage/index.js';
 
+import { optimizeImage } from './image-optimizer.js';
+
 /**
  * MEDIA — image ingestion for platform/brand content (banners, category tiles,
  * kitchen covers). The client NEVER talks to Cloudinary/S3 directly: it posts
@@ -27,10 +29,15 @@ export class MediaService extends BaseService {
   async uploadImage(file, { folder = 'platform', actorId = null } = {}) {
     if (!file?.buffer?.length) throw new ValidationError('An image file is required');
 
+    // Compress BEFORE storing: a 2 MB PNG banner is ~2 MB on every first view
+    // for every customer, forever. Doing it here means every surface that will
+    // ever render this image benefits, without any of them knowing.
+    const optimized = await optimizeImage(file, folder);
+
     const result = await this.storage.upload({
-      buffer: file.buffer,
-      filename: file.originalname,
-      mimeType: file.mimetype,
+      buffer: optimized.buffer,
+      filename: optimized.filename,
+      mimeType: optimized.mimeType,
       folder,
     });
 
