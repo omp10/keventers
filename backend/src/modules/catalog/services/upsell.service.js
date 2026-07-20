@@ -147,6 +147,13 @@ class UpsellService {
           // Catalog stores MAJOR rupees; the wire speaks MINOR like orders do.
           price: Math.round((p.pricing?.basePrice ?? 0) * 100),
           currency: p.pricing?.currency ?? 'INR',
+          // A one-tap add is impossible for a product the cart will demand a
+          // choice for — it 400s with VARIANT_REQUIRED. The client needs to know
+          // BEFORE the tap so it can open the picker instead of failing silently.
+          // Deliberately conservative: any modifier group counts, without
+          // checking which are required. Opening the sheet for a product that
+          // did not need it costs a tap; guessing wrong costs the sale.
+          needsChoice: Boolean(p.hasVariants) || (p.modifierGroupIds?.length ?? 0) > 0,
           reason: reasons.get(id) ?? 'Recommended',
           score: Math.round(score),
         };

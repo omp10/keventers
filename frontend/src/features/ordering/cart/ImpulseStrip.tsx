@@ -1,11 +1,14 @@
-import { Button, Icon } from '@/design-system';
+import { useState } from 'react';
+
+import { Button, Icon, toast } from '@/design-system';
 import { getActiveBranchSlug } from '@/features/discovery';
 import { JOURNEY, useJourney } from '@/platform/analytics';
 import { api } from '@/platform/api';
 import { qk, useQueryResource } from '@/platform/query';
+import { ProductDetail } from '../components/ProductDetail';
 import { formatMoney } from '../format';
-import { useCart } from '../hooks';
-import type { Money } from '../types';
+import { useCart, useProduct } from '../hooks';
+import type { CartItemSelection, Money } from '../types';
 
 /**
  * ImpulseStrip — the pre-checkout upsell, fed by the UPSELL ENGINE: learned
@@ -21,6 +24,8 @@ type Suggestion = {
   price: number;
   currency: string;
   reason: string;
+  /** Product has variants or modifiers — a blind one-tap add would be rejected. */
+  needsChoice?: boolean;
 };
 
 const money = (minor: number, currency: string): Money => ({ amount: minor, currency, major: minor / 100 });
@@ -36,6 +41,24 @@ export function ImpulseStrip() {
     () => api.post(`/public/branches/${encodeURIComponent(branchSlug!)}/upsell`, { seedIds }, { skipAuth: true }),
     { enabled: Boolean(branchSlug) && seedIds.length > 0, staleTime: 60_000 },
   );
+
+  // A product with variants/modifiers cannot be added blind — the cart rejects it
+  // with VARIANT_REQUIRED. Open the same picker the menu uses instead of dropping
+  // the tap on the floor, which is what used to happen: Biryani (one variant) did
+  // nothing at all while Gulab Jamun (none) added fine.
+  const [pickSlug, setPickSlug] = useState<string>();
+  const detail = useProduct(branchSlug ?? undefined, pickSlug);
+
+  const add = async (selection: CartItemSelection, p: Suggestion) => {
+    try {
+      await cart.add(selection);
+      journey(JOURNEY.IMPULSE_ITEM_ADDED, { productId: p.id, productSlug: p.slug, value: p.price, reason: p.reason });
+      setPickSlug(undefined);
+    } catch (e) {
+      // This add was previously unguarded, so a rejection was invisible.
+      toast.error(`Could not add ${p.name}`, { description: (e as Error).message });
+    }
+  };
 
   const picks = q.data ?? [];
   if (picks.length === 0) return null;
@@ -57,17 +80,29 @@ export function ImpulseStrip() {
                 size="sm"
                 variant="secondary"
                 disabled={cart.isMutating}
-                onClick={async () => {
-                  await cart.add({ productId: p.id, quantity: 1 });
-                  journey(JOURNEY.IMPULSE_ITEM_ADDED, { productId: p.id, productSlug: p.slug, value: p.price, reason: p.reason });
+                onClick={() => {
+                  if (p.needsChoice) { setPickSlug(p.slug); return; }
+                  void add({ productId: p.id, quantity: 1 }, p);
                 }}
               >
-                Add
+                {p.needsChoice ? 'Choose' : 'Add'}
               </Button>
             </div>
           </div>
         ))}
       </div>
+
+      {/* The menu's own picker, reused verbatim — variants, modifiers, add-ons. */}
+      <ProductDetail
+        product={detail.data}
+        loading={detail.isLoading}
+        open={Boolean(pickSlug)}
+        onOpenChange={(o) => !o && setPickSlug(undefined)}
+        onAddToCart={(selection) => {
+          const p = picks.find((x) => x.slug === pickSlug);
+          return p ? add(selection, p) : undefined;
+        }}
+      />
     </section>
   );
 }

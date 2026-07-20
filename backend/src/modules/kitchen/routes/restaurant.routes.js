@@ -39,6 +39,7 @@ router.get('/queue', validate({ query: listQueueQuerySchema }), KitchenControlle
  * /api/v1/restaurant/kitchen/chefs:
  *   get: { tags: [Kitchen], security: [{ bearerAuth: [] }], summary: Assignable staff for this outlet (?restaurantId=&branchId=) with live workload, responses: { 200: { description: Chefs } } }
  */
+router.get('/metrics', KitchenController.metrics);
 router.get('/chefs', KitchenController.chefs);
 
 /**

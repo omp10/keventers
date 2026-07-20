@@ -509,6 +509,69 @@ export class KitchenService extends BaseService {
     }
   }
 
+  /**
+   * Outlet metrics for the kitchen dashboard.
+   *
+   * This endpoint was CALLED but never existed — the dashboard rendered zeros
+   * for every KPI and looked like a dead-quiet kitchen rather than a broken one.
+   *
+   * Counts come from the live queue; `served` and `avgPrepSeconds` are TODAY's
+   * (since local midnight), because "served" against all history is a number
+   * nobody on a line can use. Prep time measures preparing→ready, the span the
+   * kitchen actually controls — queue-sitting time is the expo's problem, not
+   * the cook's, and folding it in would blame the line for a late assignment.
+   */
+  async getMetrics(tenant, restaurantId, branchId, now = new Date()) {
+    const scope = await this.resolveScope(tenant, restaurantId, branchId);
+    const since = new Date(now);
+    since.setHours(0, 0, 0, 0);
+
+    const [active, servedToday] = await Promise.all([
+      this.queue.findScoped(scope, { status: { $in: ACTIVE_KITCHEN_STATUSES } }),
+      this.queue.findScoped(scope, { status: KITCHEN_STATUS.SERVED, 'timers.servedAt': { $gte: since } }),
+    ]);
+
+    const by = (s) => active.filter((e) => e.status === s).length;
+    // An entry is "approaching" once it has burned 80% of its target and has not
+    // breached. Without a target configured there is nothing to approach.
+    const approaching = active.filter((e) => {
+      if (e.sla?.breached || !e.sla?.targetSeconds) return false;
+      const startedAt = e.timers?.preparingAt ?? e.timers?.queuedAt;
+      if (!startedAt) return false;
+      return (now - new Date(startedAt)) / 1000 >= e.sla.targetSeconds * 0.8;
+    }).length;
+
+    const preps = servedToday
+      .map((e) => (e.timers?.preparingAt && e.timers?.readyAt ? (new Date(e.timers.readyAt) - new Date(e.timers.preparingAt)) / 1000 : null))
+      .filter((n) => n != null && n >= 0);
+    const breachedToday = servedToday.filter((e) => e.sla?.breached).length;
+    const breachedActive = active.filter((e) => e.sla?.breached).length;
+
+    // On-time rate is scored over COMPLETED work — an order still cooking has
+    // not passed or failed yet, and counting it as on-time flatters the number.
+    const rated = servedToday.length;
+
+    return {
+      active: active.length,
+      waiting: by(KITCHEN_STATUS.PENDING) + by(KITCHEN_STATUS.ASSIGNED),
+      preparing: by(KITCHEN_STATUS.PREPARING),
+      ready: by(KITCHEN_STATUS.READY),
+      served: servedToday.length,
+      avgPrepSeconds: preps.length ? Math.round(preps.reduce((a, b) => a + b, 0) / preps.length) : undefined,
+      sla: {
+        onTimeRate: rated ? (rated - breachedToday) / rated : 1,
+        approaching,
+        breached: breachedActive + breachedToday,
+      },
+      // Performance blends on-time delivery with how much of the board is
+      // currently breaching. A kitchen that shipped this morning but is drowning
+      // now should not read green.
+      performance: rated || active.length
+        ? Math.max(0, Math.min(1, (rated ? (rated - breachedToday) / rated : 1) - (active.length ? breachedActive / active.length : 0) * 0.5))
+        : 1,
+    };
+  }
+
   async getStationBoard(tenant, restaurantId, branchId, stationId) {
     const scope = await this.resolveScope(tenant, restaurantId, branchId);
     const entries = await this.queue.findScoped(

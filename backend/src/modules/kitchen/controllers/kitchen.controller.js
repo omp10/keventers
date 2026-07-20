@@ -11,6 +11,12 @@ export const KitchenController = {
     ApiResponse.success(res, { data });
   }),
 
+  /** Live outlet KPIs for the kitchen dashboard (counts, SLA, avg prep). */
+  metrics: asyncHandler(async (req, res) => {
+    const data = await kitchenService.getMetrics(req.tenant, restaurantIdOf(req), branchIdOf(req));
+    ApiResponse.success(res, { data });
+  }),
+
   /** The roster an order can be assigned to at this outlet, with live workload. */
   chefs: asyncHandler(async (req, res) => {
     const data = await kitchenService.listChefs(req.tenant, restaurantIdOf(req), branchIdOf(req));
