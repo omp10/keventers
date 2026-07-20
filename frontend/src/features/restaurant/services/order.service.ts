@@ -40,9 +40,16 @@ class StaffOrderService {
     return api.get<StaffOrderDetail>(`/restaurant/orders/${orderId}`);
   }
 
-  /** Advance an order through the backend state machine. */
+  /**
+   * The UI verb and the API verb are NOT the same word for one action: the
+   * button says "Start preparing" and the action is `start`, but the endpoint is
+   * POST /:id/prepare. Sending the UI verb straight through produced
+   * "Route not found: POST /api/v1/restaurant/orders/<id>/start" — Start simply
+   * did nothing. Every other verb matches, so this maps only the odd one out.
+   */
   transition(orderId: string, action: OrderAction, payload?: Record<string, unknown>) {
-    return api.post<StaffOrderDetail>(`/restaurant/orders/${orderId}/${action}`, payload);
+    const endpoint = action === 'start' ? 'prepare' : action;
+    return api.post<StaffOrderDetail>(`/restaurant/orders/${orderId}/${endpoint}`, payload);
   }
 }
 
