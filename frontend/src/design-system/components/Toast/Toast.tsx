@@ -12,9 +12,19 @@ export function Toaster() {
   return (
     <SonnerToaster
       theme={scheme}
-      position="bottom-right"
+      // TOP, not bottom: the staff, kitchen and customer apps all put their
+      // primary actions along the bottom edge (tab bars, sticky Add-to-cart,
+      // the board's action row). A bottom-right toast landed on top of them and
+      // swallowed taps for as long as it was visible.
+      position="top-center"
       gap={10}
-      offset={16}
+      // Sonner translates the front toast UP by its own measured height here
+      // (our !p-4 override throws off its height math), so what you actually
+      // see lands at roughly `offset - toastHeight`. 140 keeps both a one-line
+      // toast and a taller title+description one fully on screen and clear of
+      // the sticky headers. Measured, not guessed — drop this and toasts with a
+      // description render off the top edge.
+      offset={140}
       toastOptions={{
         classNames: {
           toast:
