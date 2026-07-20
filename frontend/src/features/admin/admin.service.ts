@@ -27,6 +27,8 @@ export const adminService = {
   roles: () => api.paginate<unknown>('/identity/roles', { query: { page: 1, limit: 100 } }),
   payments: (filters: AdminFilters, p = 1, limit = 25): Promise<Paginated<PlatformPayment>> => api.paginate('/admin/payments', { query: page(filters, p, limit) }),
   settlements: (p = 1, limit = 25) => api.paginate('/admin/settlements', { query: { page: p, limit } }),
+  /** One order, in full: items, pricing lines, timeline, snapshots, raw ids. */
+  order: (id: string) => api.get<Record<string, unknown>>(`/admin/orders/${id}`),
   /** Every order across the platform. Omit restaurantId to span all outlets. */
   orders: (filters: AdminFilters = {}, p = 1, limit = 25): Promise<Paginated<PlatformOrder>> => api.paginate('/admin/orders', { query: page(filters, p, limit) }),
   notifications: (filters: AdminFilters, p = 1, limit = 25): Promise<Paginated<NotificationRecord>> => api.paginate('/admin/notifications', { query: page(filters, p, limit) }),

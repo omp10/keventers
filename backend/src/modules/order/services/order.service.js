@@ -439,6 +439,19 @@ export class OrderService extends BaseService {
     // "Branch", and shipping only `branchId` meant it read `order.branch.name`
     // off an object that was never sent — every order detail crashed the drawer.
     const [dto] = await this.#withOutletNames([toOrderDTO(order, { forStaff: true })]);
+    // Resolve the TABLE too. An order stores only `tableId`, so every staff and
+    // admin surface was left rendering an ObjectId (or "see ids") for the one
+    // detail that actually locates the order in the room. Single-order read
+    // only — the list path must not pay a lookup per row.
+    if (dto?.tableId && !dto.table) {
+      try {
+        const { tableService } = await import('#modules/qr-ordering/index.js');
+        const table = await tableService.getPublicById(String(dto.tableId));
+        if (table) dto.table = { id: String(table.id ?? dto.tableId), number: table.number ?? null, name: table.name ?? null };
+      } catch {
+        /* a label is a nicety — never fail the order read over it */
+      }
+    }
     return dto;
   }
 

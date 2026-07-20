@@ -5,6 +5,7 @@ import { ExportButton, ManagementPage, ManagementTable, StatusPill, type Column,
 import { formatMoney } from '@/features/ordering/format';
 import { qk, usePaginatedResource } from '@/platform/query';
 import { adminService } from './admin.service';
+import { AdminOrderDetailDrawer } from './AdminOrderDetailDrawer';
 import type { PlatformOrder } from './types';
 
 /**
@@ -53,6 +54,8 @@ function ago(iso?: string): string {
  */
 export function AdminOrdersPage() {
   const [status, setStatus] = useState<string>('live');
+  /** Which order the forensic drawer is showing. */
+  const [detailId, setDetailId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [term, setTerm] = useState('');
   const isLive = status === 'live' || LIVE_STATUSES.includes(status);
@@ -98,6 +101,21 @@ export function AdminOrdersPage() {
     { key: 'status', header: 'Status', render: (o) => <StatusPill tone={TONE[o.status] ?? 'neutral'}>{o.status}</StatusPill> },
     { key: 'total', header: 'Total', align: 'right', render: (o) => formatMoney(o.pricing?.total ?? o.total) },
     { key: 'age', header: 'Placed', align: 'right', render: (o) => <span className="text-foreground-muted">{ago(o.createdAt)}</span> },
+    {
+      key: 'details',
+      header: '',
+      align: 'right',
+      render: (o) => (
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={(e) => { e.stopPropagation(); setDetailId(o.id); }}
+          aria-label={`View full details for order ${o.orderNumber}`}
+        >
+          View details
+        </Button>
+      ),
+    },
   ];
 
   return (
@@ -143,11 +161,14 @@ export function AdminOrdersPage() {
         rows={rows}
         columns={columns}
         getId={(o) => o.id}
+        onRowClick={(o) => setDetailId(o.id)}
         loading={q.isLoading}
         emptyIcon="order"
         emptyTitle={status === 'live' ? 'No live orders' : 'No orders yet'}
         emptyDescription={status === 'live' ? 'New orders appear here the moment they are placed.' : undefined}
       />
+
+      <AdminOrderDetailDrawer orderId={detailId} onClose={() => setDetailId(null)} />
 
       {q.pageCount > 1 && (
         <div className="flex items-center justify-end gap-2">
