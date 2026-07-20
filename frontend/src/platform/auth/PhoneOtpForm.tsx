@@ -15,6 +15,32 @@ import { useAuth } from './useAuth';
  * Because all three panels share it, the dev-code affordance below appears on all
  * three identically — there is no per-app sign-in to keep in sync.
  */
+/**
+ * Phone input rules. The field accepted ANY text at ANY length — letters,
+ * punctuation, a 30-digit number — and only checked `length >= 8` before firing
+ * an OTP. Everything below is enforced as you type so an invalid number can
+ * never reach the API.
+ *
+ * E.164: an optional leading "+" then digits only, at most 15 digits worldwide.
+ * Without a country code we hold to a 10-digit national number (India), which
+ * is what stops "more than 10 numbers" being typed in the first place.
+ */
+const NATIONAL_DIGITS = 10;
+const E164_MAX_DIGITS = 15;
+
+export function sanitizePhone(raw: string): string {
+  const intl = raw.trimStart().startsWith('+');
+  const digits = raw.replace(/\D/g, '').slice(0, intl ? E164_MAX_DIGITS : NATIONAL_DIGITS);
+  return intl ? `+${digits}` : digits;
+}
+
+/** Enough of a number to send a code to. */
+export function isValidPhone(value: string): boolean {
+  const intl = value.startsWith('+');
+  const digits = value.replace(/\D/g, '');
+  return intl ? digits.length >= 8 && digits.length <= E164_MAX_DIGITS : digits.length === NATIONAL_DIGITS;
+}
+
 export function PhoneOtpForm({
   onSignedIn,
   submitLabel = 'Continue',
@@ -85,13 +111,16 @@ export function PhoneOtpForm({
             inputMode="tel"
             autoComplete="tel"
             value={phone}
-            onChange={(e) => setPhone(e.target.value)}
+            onChange={(e) => setPhone(sanitizePhone(e.target.value))}
             placeholder="Phone number"
             leftIcon="phone"
+            // Belt and braces: the sanitiser already caps it, but maxLength also
+            // stops a paste from momentarily overflowing the field.
+            maxLength={phone.startsWith('+') ? E164_MAX_DIGITS + 1 : NATIONAL_DIGITS}
             required
             autoFocus
           />
-          <Button type="submit" fullWidth size="lg" loading={busy} disabled={phone.trim().length < 8}>
+          <Button type="submit" fullWidth size="lg" loading={busy} disabled={!isValidPhone(phone)}>
             {submitLabel}
           </Button>
           <p className="text-center text-xs text-foreground-subtle">
