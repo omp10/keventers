@@ -1,25 +1,26 @@
-import { lazy, type ComponentType, type ReactNode } from 'react';
+import { lazyRoute } from '@/platform/error';
+import { type ComponentType, type ReactNode } from 'react';
 const P = () => import('./AdminPages');
-const page = (key: keyof Awaited<ReturnType<typeof P>>) => lazy(() => P().then((m) => ({ default: m[key] as ComponentType })));
+const page = (key: keyof Awaited<ReturnType<typeof P>>) => lazyRoute(() => P().then((m) => ({ default: m[key] as ComponentType })));
 export type AdminRoute = { path: string; element: ReactNode };
 const Dashboard = page('PlatformDashboardPage'); const Organizations = page('OrganizationsPage'); const Approvals = page('ApprovalsPage'); const Users = page('UsersPage'); const Payments = page('PlatformPaymentsPage'); const Analytics = page('PlatformAnalyticsPage'); const Notifications = page('AdminNotificationsPage'); const Monitoring = page('MonitoringPage'); const Audit = page('AuditLogsPage'); const Flags = page('FeatureFlagsPage'); const Settings = page('PlatformSettingsPage');
-const OnboardingFields = lazy(() => import('./OnboardingFieldsPage').then((m) => ({ default: m.OnboardingFieldsPage })));
+const OnboardingFields = lazyRoute(() => import('./OnboardingFieldsPage').then((m) => ({ default: m.OnboardingFieldsPage })));
 // Platform content pages (banners / categories / zones / kitchens) — one lazy chunk.
 const C = () => import('./content');
-const contentPage = (key: keyof Awaited<ReturnType<typeof C>>) => lazy(() => C().then((m) => ({ default: m[key] as ComponentType })));
+const contentPage = (key: keyof Awaited<ReturnType<typeof C>>) => lazyRoute(() => C().then((m) => ({ default: m[key] as ComponentType })));
 const Banners = contentPage('BannersPage'); const Categories = contentPage('CategoriesPage'); const Zones = contentPage('ZonesPage'); const Kitchens = contentPage('KitchensPage'); const KitchenDetail = contentPage('KitchenDetailPage');
 
 // Restaurant-scoped management surfaced to the super-admin via a picker.
-const AdminRestaurantScoped = lazy(() => import('./AdminRestaurantScoped').then((m) => ({ default: m.AdminRestaurantScoped })));
-const SubscriptionsPage = lazy(() => import('@/features/restaurant/pages/SubscriptionsPage').then((m) => ({ default: m.SubscriptionsPage })));
-const JourneysPage = lazy(() => import('@/features/restaurant/pages/JourneysPage').then((m) => ({ default: m.JourneysPage })));
-const FeedbackPage = lazy(() => import('@/features/restaurant/pages/FeedbackPage').then((m) => ({ default: m.FeedbackPage })));
-const UpsellPage = lazy(() => import('@/features/restaurant/pages/UpsellPage').then((m) => ({ default: m.UpsellPage })));
+const AdminRestaurantScoped = lazyRoute(() => import('./AdminRestaurantScoped').then((m) => ({ default: m.AdminRestaurantScoped })));
+const SubscriptionsPage = lazyRoute(() => import('@/features/restaurant/pages/SubscriptionsPage').then((m) => ({ default: m.SubscriptionsPage })));
+const JourneysPage = lazyRoute(() => import('@/features/restaurant/pages/JourneysPage').then((m) => ({ default: m.JourneysPage })));
+const FeedbackPage = lazyRoute(() => import('@/features/restaurant/pages/FeedbackPage').then((m) => ({ default: m.FeedbackPage })));
+const UpsellPage = lazyRoute(() => import('@/features/restaurant/pages/UpsellPage').then((m) => ({ default: m.UpsellPage })));
 const scoped = (title: string, description: string, Page: ComponentType) => (
   <AdminRestaurantScoped title={title} description={description} Page={Page} />
 );
-const AdminCatalog = lazy(() => import('./AdminCatalogPage').then((m) => ({ default: m.AdminCatalogPage })));
-const AdminOrders = lazy(() => import('./AdminOrdersPage').then((m) => ({ default: m.AdminOrdersPage })));
+const AdminCatalog = lazyRoute(() => import('./AdminCatalogPage').then((m) => ({ default: m.AdminCatalogPage })));
+const AdminOrders = lazyRoute(() => import('./AdminOrdersPage').then((m) => ({ default: m.AdminOrdersPage })));
 
 export const adminRoutes: AdminRoute[] = [
   { path: '/admin', element: <Dashboard /> }, { path: '/admin/organizations', element: <Organizations /> }, { path: '/admin/approvals', element: <Approvals /> }, { path: '/admin/onboarding-fields', element: <OnboardingFields /> }, { path: '/admin/restaurants', element: <Organizations /> }, { path: '/admin/users', element: <Users /> },
