@@ -65,7 +65,12 @@ function Identity() {
     setBusy(true);
     try {
       const [firstName, ...rest] = trimmed.split(/\s+/);
-      await updateName({ firstName, lastName: rest.join(' ') || undefined });
+      // Send '' — NOT undefined — when there is no surname. The API treats
+      // `undefined` as "leave unchanged", so a one-word name could never clear
+      // an existing surname: accounts created by the old phone signup were
+      // stuck with the placeholder "User" forever, however they renamed
+      // themselves. What the customer typed is the whole of their name.
+      await updateName({ firstName, lastName: rest.join(' ') });
       setEditing(false);
       toast.success('Name updated');
     } catch (error) {

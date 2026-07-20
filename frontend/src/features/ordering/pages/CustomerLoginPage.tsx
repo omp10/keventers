@@ -32,7 +32,9 @@ function NameStep({ onDone }: { onDone: () => void }) {
       // DOB rides the same request — the client wants phone + OTP + DOB
       // collected ONCE at registration, never asked again later.
       const [firstName, ...rest] = trimmed.split(/\s+/);
-      await updateName({ firstName, lastName: rest.join(' ') || undefined, ...(dob ? { dateOfBirth: dob } : {}) });
+      // '' rather than undefined: the API reads `undefined` as "leave unchanged",
+      // so a one-word name would never clear a previously-stored surname.
+      await updateName({ firstName, lastName: rest.join(' '), ...(dob ? { dateOfBirth: dob } : {}) });
       onDone();
     } catch (error) {
       toast.error('Could not save your name', { description: (error as Error).message });
