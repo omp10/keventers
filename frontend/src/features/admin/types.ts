@@ -19,6 +19,20 @@ export type OnboardingApplication = { id: string; businessName: string; ownerNam
 export type PlatformUser = { id: string; name?: string; email: string; type?: string; status: AdminStatus; roles?: string[]; lastLoginAt?: string; createdAt?: string };
 export type PlatformPayment = { id: string; orderId?: string; provider?: string; status: string; amount: Money; createdAt: string };
 export type NotificationRecord = { id: string; title?: string; channel?: string; status: string; recipient?: string; createdAt?: string };
+
+/** An order as the PLATFORM sees it — across every restaurant, names resolved. */
+export type PlatformOrder = {
+  id: string;
+  orderNumber: string;
+  status: string;
+  orderType?: string;
+  pricing?: { total?: Money };
+  total?: Money;
+  createdAt: string;
+  updatedAt?: string;
+  restaurant?: { id: string; name: string } | null;
+  branch?: { id: string; name: string; slug?: string } | null;
+};
 export type OnboardingFieldType = 'text' | 'email' | 'number' | 'textarea' | 'select' | 'file';
 export type OnboardingFieldDefinition = {
   key: string; label: string; phase: 'application' | 'setup'; type: OnboardingFieldType;

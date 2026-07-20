@@ -1,5 +1,5 @@
 import { api, type Paginated } from '@/platform/api';
-import type { AdminBanner, AdminCategory, AdminKitchen, AdminZone, BannerPayload, CatalogCategory, CatalogCategoryPayload, CatalogProduct, CatalogProductPayload, CatalogStats, CategoryPayload, KitchenCatalog, KitchenOrder, KitchenQrCode, KitchenStaffResponse, KitchenTable, NotificationRecord, OnboardingApplication, OnboardingFieldDefinition, OnboardingFormConfig, Organization, PlatformKpis, PlatformPayment, PlatformUser, RestaurantOption, UploadedMedia } from './types';
+import type { AdminBanner, AdminCategory, AdminKitchen, AdminZone, BannerPayload, CatalogCategory, CatalogCategoryPayload, CatalogProduct, CatalogProductPayload, CatalogStats, CategoryPayload, KitchenCatalog, KitchenOrder, KitchenQrCode, KitchenStaffResponse, KitchenTable, NotificationRecord, OnboardingApplication, OnboardingFieldDefinition, OnboardingFormConfig, Organization, PlatformKpis, PlatformOrder, PlatformPayment, PlatformUser, RestaurantOption, UploadedMedia } from './types';
 
 export type AdminFilters = { search?: string; status?: string; type?: string; provider?: string; from?: string; to?: string };
 
@@ -27,6 +27,8 @@ export const adminService = {
   roles: () => api.paginate<unknown>('/identity/roles', { query: { page: 1, limit: 100 } }),
   payments: (filters: AdminFilters, p = 1, limit = 25): Promise<Paginated<PlatformPayment>> => api.paginate('/admin/payments', { query: page(filters, p, limit) }),
   settlements: (p = 1, limit = 25) => api.paginate('/admin/settlements', { query: { page: p, limit } }),
+  /** Every order across the platform. Omit restaurantId to span all outlets. */
+  orders: (filters: AdminFilters = {}, p = 1, limit = 25): Promise<Paginated<PlatformOrder>> => api.paginate('/admin/orders', { query: page(filters, p, limit) }),
   notifications: (filters: AdminFilters, p = 1, limit = 25): Promise<Paginated<NotificationRecord>> => api.paginate('/admin/notifications', { query: page(filters, p, limit) }),
   campaigns: (p = 1, limit = 25) => api.paginate('/admin/notification-campaigns', { query: { page: p, limit } }),
 

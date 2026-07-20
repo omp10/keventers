@@ -105,6 +105,13 @@ export const adminNav: NavConfig = {
       ],
     },
     {
+      // Live operations across every restaurant on the platform.
+      title: 'Orders',
+      items: [
+        { key: 'admin-orders', label: 'All orders', icon: 'order', path: '/admin/orders', access: { anyRole: ['super_admin'] } },
+      ],
+    },
+    {
       title: 'Catalog',
       items: [
         { key: 'admin-products', label: 'Products', icon: 'utensils', path: '/admin/products', access: { anyRole: ['super_admin'] } },

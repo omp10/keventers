@@ -90,6 +90,14 @@ export class RestaurantService extends BaseService {
     return restaurant ? toRestaurantDTO(restaurant) : null;
   }
 
+  /** Trusted BATCH read — one query per page of rows. Returns a Map by id. */
+  async getPublicByIds(ids = []) {
+    const unique = [...new Set(ids.map(String).filter(Boolean))];
+    if (!unique.length) return new Map();
+    const rows = await this.restaurants.find({ _id: { $in: unique } }, { limit: unique.length });
+    return new Map(rows.map((r) => [String(r.id ?? r._id), toRestaurantDTO(r)]));
+  }
+
   async listForOrganization(organizationId, query = {}) {
     const page = await this.restaurants.paginate({
       filter: { organizationId },

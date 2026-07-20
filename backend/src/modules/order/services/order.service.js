@@ -427,23 +427,8 @@ export class OrderService extends BaseService {
    */
   async #summaryPage(page) {
     const summaries = (page.items ?? []).map((o) => toOrderSummaryDTO(o, { forStaff: false }));
-    const branchIds = [...new Set(summaries.map((s) => s?.branchId).filter(Boolean))];
-    const byId = new Map();
-    if (branchIds.length) {
-      try {
-        const { branchService } = await import('#modules/organization/index.js');
-        const branches = await Promise.all(branchIds.map((id) => branchService.getPublicById(id).catch(() => null)));
-        for (const b of branches) if (b) byId.set(String(b.id ?? b._id), b);
-      } catch {
-        /* names are a nicety — never fail the history over them */
-      }
-    }
-    const items = summaries.map((s) => {
-      const b = s?.branchId ? byId.get(String(s.branchId)) : null;
-      return { ...s, branch: b ? { id: String(b.id ?? b._id), name: b.name ?? '', slug: b.slug ?? '' } : null };
-    });
     // Same envelope the rest of the API returns ({ items, pagination }).
-    return { items, pagination: page.meta };
+    return { items: await this.#withOutletNames(summaries), pagination: page.meta };
   }
 
   // ==================== STAFF READS ====================
@@ -502,18 +487,53 @@ export class OrderService extends BaseService {
   }
 
   async listForStaff(tenant, restaurantId, branchId, query = {}) {
-    const scope = await resolveStaffScope(tenant, restaurantId, branchId);
     const filter = {};
     if (query.status) filter.status = query.status;
     if (query.orderType) filter.orderType = query.orderType;
     if (query.customerUserId) filter.customerUserId = query.customerUserId;
-    const page = await this.orders.paginateForStaff(scope, {
+    const params = {
       filter,
       search: query.search,
       sort: query.sort ?? '-createdAt',
       pagination: { page: query.page, limit: query.limit },
-    });
-    return this.paginated(page, (o) => toOrderSummaryDTO(o, { forStaff: true }));
+    };
+
+    // PLATFORM-WIDE for a Super Admin who named no restaurant — they own none,
+    // so scoping threw and "track every order" was unreachable. Indexes
+    // {createdAt:-1} and {status:1,createdAt:-1} back this query.
+    const page = tenant?.isSuperAdmin && !restaurantId
+      ? await this.orders.paginate({ ...params, allowedFilterFields: ['status', 'orderType', 'customerUserId'] })
+      : await this.orders.paginateForStaff(await resolveStaffScope(tenant, restaurantId, branchId), params);
+
+    const summaries = (page.items ?? []).map((o) => toOrderSummaryDTO(o, { forStaff: true }));
+    return { items: await this.#withOutletNames(summaries), pagination: page.meta };
+  }
+
+  /**
+   * Zip restaurant + branch NAMES onto a page of summaries — two batched
+   * queries for the whole page, never one per row. A platform-wide list spans
+   * outlets, so ids alone are unreadable.
+   */
+  async #withOutletNames(summaries) {
+    if (!summaries.length) return summaries;
+    try {
+      const { branchService, restaurantService } = await import('#modules/organization/index.js');
+      const [branches, restaurants] = await Promise.all([
+        branchService.getPublicByIds(summaries.map((s) => s?.branchId).filter(Boolean)),
+        restaurantService.getPublicByIds(summaries.map((s) => s?.restaurantId).filter(Boolean)),
+      ]);
+      return summaries.map((s) => {
+        const b = s?.branchId ? branches.get(String(s.branchId)) : null;
+        const r = s?.restaurantId ? restaurants.get(String(s.restaurantId)) : null;
+        return {
+          ...s,
+          branch: b ? { id: String(b.id), name: b.name ?? '', slug: b.slug ?? '' } : null,
+          restaurant: r ? { id: String(r.id), name: r.name ?? '' } : null,
+        };
+      });
+    } catch {
+      return summaries; // names are a nicety — never fail the list over them
+    }
   }
 
   // ==================== NOTES ====================

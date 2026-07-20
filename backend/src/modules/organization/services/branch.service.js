@@ -81,6 +81,18 @@ export class BranchService extends BaseService {
   }
 
   /**
+   * Trusted BATCH read — one query for a whole page of orders, instead of one
+   * round trip per row. Returns a Map keyed by id so callers can zip names onto
+   * their rows without a nested find.
+   */
+  async getPublicByIds(ids = []) {
+    const unique = [...new Set(ids.map(String).filter(Boolean))];
+    if (!unique.length) return new Map();
+    const branches = await this.branches.find({ _id: { $in: unique } }, { limit: unique.length });
+    return new Map(branches.map((b) => [String(b.id ?? b._id), toBranchDTO(b)]));
+  }
+
+  /**
    * Trusted read of a branch by its PUBLIC slug, no tenant check — the customer
    * app addresses branches by slug (/r/:slug), so opening an ordering session
    * from a typed table number resolves the branch here. Returns null if absent.

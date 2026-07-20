@@ -206,6 +206,11 @@ orderSchema.index({ sessionId: 1, createdAt: -1 });
 orderSchema.index({ restaurantId: 1, createdAt: -1 });
 orderSchema.index({ organizationId: 1, createdAt: -1 });
 orderSchema.index({ deletedAt: 1 });
+// PLATFORM-WIDE admin views: every other index above is prefixed by a tenant id,
+// so "all orders across the platform, newest first" (and the same filtered by
+// status, which is what live tracking polls) had no index to stand on.
+orderSchema.index({ createdAt: -1 });
+orderSchema.index({ status: 1, createdAt: -1 });
 
 export const Order = mongoose.models.Order || mongoose.model('Order', orderSchema);
 
