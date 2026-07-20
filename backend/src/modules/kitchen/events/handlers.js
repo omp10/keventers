@@ -51,6 +51,27 @@ export function registerKitchenEventHandlers(eventBus, deps = {}) {
     { name: 'kitchen.on-order-cancelled' },
   );
 
+  /**
+   * Mirror ORDER progress onto the ticket. Advancing from the dashboard used to
+   * move the order only, leaving the KDS board showing a stale state — the two
+   * screens then disagreed for the rest of that order's life.
+   *
+   * `syncFromOrder` is a NO-OP when the ticket is already in the target state,
+   * which is what stops this closing a loop with the Order module's own
+   * `kitchen.order.*` subscribers.
+   */
+  const syncStatus = (orderStatus) => async (payload) => {
+    if (!payload?.orderId) return;
+    try {
+      await kitchen.syncFromOrder(payload.orderId, orderStatus);
+    } catch (err) {
+      log.warn({ err, orderId: payload.orderId, orderStatus }, 'Kitchen status sync failed');
+    }
+  };
+  eventBus.subscribe(ORDER_EVENTS.ORDER_PREPARING, syncStatus('preparing'), { name: 'kitchen.on-order-preparing' });
+  eventBus.subscribe(ORDER_EVENTS.ORDER_READY, syncStatus('ready'), { name: 'kitchen.on-order-ready' });
+  eventBus.subscribe(ORDER_EVENTS.ORDER_SERVED, syncStatus('served'), { name: 'kitchen.on-order-served' });
+
   // Observability for kitchen lifecycle.
   const observe = (event, msg) =>
     eventBus.subscribe(event, async (p) => log.info({ payload: p }, msg), { name: `kitchen.log.${event}` });

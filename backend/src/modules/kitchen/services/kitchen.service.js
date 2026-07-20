@@ -9,6 +9,7 @@ import {
   ACTOR_TYPE,
   KITCHEN_ERRORS,
   KITCHEN_STATUS,
+  KITCHEN_TRANSITIONS,
   PRIORITY,
   PRIORITY_WEIGHT,
   REDIS_KEYS,
@@ -33,6 +34,17 @@ import { chefAssignmentService } from './chef-assignment.service.js';
 import { slaService } from './sla.service.js';
 import { stationRouterService } from './station-router.service.js';
 import { kitchenRealtimeService } from './kitchen-realtime.service.js';
+
+/**
+ * ORDER status -> KITCHEN status. Only the three states both machines share are
+ * mirrored: `confirmed` already enqueues a ticket, and `completed`/`cancelled`
+ * are handled by their own dedicated paths.
+ */
+const ORDER_TO_KITCHEN_STATUS = Object.freeze({
+  preparing: KITCHEN_STATUS.PREPARING,
+  ready: KITCHEN_STATUS.READY,
+  served: KITCHEN_STATUS.SERVED,
+});
 
 /**
  * Kitchen Display System core. Driven by ORDER EVENTS (enqueue on confirm,
@@ -199,6 +211,40 @@ export class KitchenService extends BaseService {
       actorId,
       actorType: ACTOR_TYPE.CHEF,
       extraSet: { 'timers.readyAt': new Date() },
+    });
+  }
+
+  /**
+   * Mirror an ORDER status onto its kitchen ticket. System seam — no tenant,
+   * because it runs from an event, not a request.
+   *
+   * The two modules keep separate state machines and the sync used to run ONE
+   * WAY only: advancing from the KDS mirrored onto the order, but advancing from
+   * the dashboard left the kitchen ticket behind, so the two screens disagreed
+   * from that moment on.
+   *
+   * THE LOOP GUARD. Order already consumes `kitchen.order.*`, so mirroring the
+   * other way closes a cycle: order.preparing -> kitchen preparing -> emits
+   * kitchen.order.preparing -> order preparing -> emits order.preparing … The
+   * no-op below is what breaks it. On the second pass the ticket is ALREADY in
+   * the target state, so nothing transitions and nothing is published. An
+   * illegal transition (a ticket that has moved on) is also a no-op rather than
+   * an error: a stale mirror must never throw into the publisher.
+   */
+  async syncFromOrder(orderId, orderStatus) {
+    const target = ORDER_TO_KITCHEN_STATUS[orderStatus];
+    if (!target) return null;
+
+    const entry = await this.queue.findByOrderId(orderId);
+    if (!entry) return null;
+    if (entry.status === target) return null;                    // <- breaks the cycle
+    if (!(KITCHEN_TRANSITIONS[entry.status] ?? []).includes(target)) return null;
+
+    const timerField = { preparing: 'timers.preparingAt', ready: 'timers.readyAt', served: 'timers.servedAt' }[target];
+    return this.#transition(entry, target, {
+      actorType: ACTOR_TYPE.STAFF,
+      reason: 'synced from order status',
+      ...(timerField ? { extraSet: { [timerField]: new Date() } } : {}),
     });
   }
 
