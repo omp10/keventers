@@ -1,5 +1,3 @@
-import sharp from 'sharp';
-
 import { logger } from '#core/logging/logger.js';
 
 /**
@@ -27,6 +25,28 @@ const QUALITY = 82;
 const PASSTHROUGH = new Set(['image/svg+xml', 'image/gif']);
 
 /**
+ * sharp is loaded LAZILY and its failure is survivable.
+ *
+ * It ships a native binary, and production deploys run `npm ci --ignore-scripts`
+ * (which is why bcrypt needs an explicit rebuild there). A top-level
+ * `import sharp` would make this module — and therefore media.service, and
+ * therefore the whole organization module — fail to load if that binary were
+ * ever missing, taking the API down at boot. Compressing a banner is a
+ * nice-to-have; serving orders is not. If sharp cannot load we store the
+ * original and say so once.
+ */
+let sharpPromise = null;
+function loadSharp() {
+  sharpPromise ??= import('sharp')
+    .then((m) => m.default)
+    .catch((err) => {
+      logger().error({ err }, 'sharp unavailable — images will be stored unoptimized');
+      return null;
+    });
+  return sharpPromise;
+}
+
+/**
  * @param {{buffer: Buffer, mimetype?: string, originalname?: string}} file
  * @param {string} folder
  * @returns {Promise<{buffer: Buffer, mimeType: string, filename: string, meta: object}>}
@@ -39,6 +59,9 @@ export async function optimizeImage(file, folder = 'platform') {
   if (PASSTHROUGH.has(mimeType)) {
     return { buffer: original, mimeType, filename, meta: { skipped: 'passthrough' } };
   }
+
+  const sharp = await loadSharp();
+  if (!sharp) return { buffer: original, mimeType, filename, meta: { skipped: 'sharp_unavailable' } };
 
   try {
     const image = sharp(original, { failOn: 'none' });
