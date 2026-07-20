@@ -553,6 +553,38 @@ export class OrderService extends BaseService {
     }
   }
 
+  /**
+   * HARD-DELETE an order — Super Admin only, and genuinely irreversible.
+   *
+   * Cascades to the kitchen ticket. An order's ticket is 1:1 with it, so
+   * removing the order alone leaves a ghost on the KDS board: a card the cooks
+   * can see and act on for an order that no longer exists. Feedback and
+   * analytics are left alone deliberately — ratings are their own record, and
+   * projections are rebuildable, so silently rewriting either from a delete
+   * would be a bigger surprise than leaving them.
+   */
+  async deleteByAdmin(orderId, actorId = null) {
+    const order = await this.orders.findById(orderId);
+    if (!order) throw new NotFoundError(ORDER_ERRORS.ORDER_NOT_FOUND);
+
+    await this.orders.deleteById(orderId);
+    // Best-effort cascade: the order is already gone, so a failure here must
+    // not surface as "delete failed" — it is logged and left for cleanup.
+    try {
+      const { kitchenService } = await import('#modules/kitchen/index.js');
+      await kitchenService.deleteForOrderSystem(orderId);
+    } catch (err) {
+      this.logger.warn({ err, orderId }, 'Kitchen ticket cleanup failed after order delete');
+    }
+
+    this.audit.success('order.deleted', {
+      actorId,
+      targetId: String(orderId),
+      metadata: { orderNumber: order.orderNumber, status: order.status },
+    });
+    return { id: String(orderId), orderNumber: order.orderNumber, deleted: true };
+  }
+
   // ==================== NOTES ====================
 
   async addNote(tenant, id, { type, body, visibility }, actorId = null) {

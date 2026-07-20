@@ -155,6 +155,18 @@ export class KitchenService extends BaseService {
     return entry ? toKitchenEntryDTO(entry) : null;
   }
 
+  /**
+   * Remove a ticket whose ORDER has been hard-deleted. System seam, idempotent:
+   * without it the board keeps showing a card for an order that is gone.
+   */
+  async deleteForOrderSystem(orderId) {
+    const entry = await this.queue.findByOrderId(orderId);
+    if (!entry) return null;
+    await this.store.removeFromBoard?.(entry).catch(() => {});
+    await this.queue.deleteById(entityId(entry));
+    return { id: entityId(entry), deleted: true };
+  }
+
   /** Cancel a kitchen entry when its order is cancelled (idempotent). */
   async cancelFromOrder(orderId, reason = 'order_cancelled') {
     const entry = await this.queue.findByOrderId(orderId);

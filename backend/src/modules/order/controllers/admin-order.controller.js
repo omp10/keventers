@@ -21,6 +21,12 @@ export const AdminOrderController = {
     const data = await orderService.getForStaff(req.tenant, req.params.id);
     ApiResponse.success(res, { data });
   }),
+
+  /** DELETE /admin/orders/:id — hard delete. Super Admin only, irreversible. */
+  remove: asyncHandler(async (req, res) => {
+    const data = await orderService.deleteByAdmin(req.params.id, req.principal?.id ?? null);
+    ApiResponse.success(res, { data });
+  }),
 };
 
 export default AdminOrderController;

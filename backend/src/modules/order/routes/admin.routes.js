@@ -20,5 +20,8 @@ router.use(...adminGuards);
  */
 router.get('/', validate({ query: listOrdersQuerySchema }), AdminOrderController.list);
 router.get('/:id', validate({ params: idParamSchema }), AdminOrderController.getById);
+// Hard delete — behind adminGuards (Super Admin), and it cascades to the
+// order's kitchen ticket so the KDS is not left showing a ghost card.
+router.delete('/:id', validate({ params: idParamSchema }), AdminOrderController.remove);
 
 export default router;

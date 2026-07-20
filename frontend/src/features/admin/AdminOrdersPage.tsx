@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 
-import { Badge, Button, Icon, Input } from '@/design-system';
+import { Badge, Button, Icon, Input, toast } from '@/design-system';
 import { ExportButton, ManagementPage, ManagementTable, StatusPill, type Column, type StatusTone } from '@/features/management/components';
 import { formatMoney } from '@/features/ordering/format';
-import { qk, usePaginatedResource } from '@/platform/query';
+import { qk, queryClient, usePaginatedResource, useMutationResource } from '@/platform/query';
 import { adminService } from './admin.service';
 import { AdminOrderDetailDrawer } from './AdminOrderDetailDrawer';
 import type { PlatformOrder } from './types';
@@ -56,6 +56,28 @@ export function AdminOrdersPage() {
   const [status, setStatus] = useState<string>('live');
   /** Which order the forensic drawer is showing. */
   const [detailId, setDetailId] = useState<string | null>(null);
+
+  /**
+   * Deleting is irreversible and cascades to the kitchen ticket, so it asks
+   * first and names the order — a mis-tap in a dense table should not silently
+   * destroy a record.
+   */
+  const del = useMutationResource<{ orderNumber: string }, PlatformOrder>(
+    (order) => adminService.deleteOrder(order.id),
+    {
+      onSuccess: (res) => {
+        void queryClient.invalidateQueries({ queryKey: qk('admin', 'orders') });
+        toast.success(`Order #${res.orderNumber} deleted`);
+      },
+      onError: (e) => toast.error('Delete failed', { description: (e as Error).message }),
+    },
+  );
+  const confirmDelete = (order: PlatformOrder) => {
+    if (!window.confirm(`Permanently delete order #${order.orderNumber}?
+
+This removes it from the database along with its kitchen ticket, and cannot be undone.`)) return;
+    del.mutate(order);
+  };
   const [search, setSearch] = useState('');
   const [term, setTerm] = useState('');
   const isLive = status === 'live' || LIVE_STATUSES.includes(status);
@@ -106,14 +128,26 @@ export function AdminOrdersPage() {
       header: '',
       align: 'right',
       render: (o) => (
-        <Button
-          size="sm"
-          variant="ghost"
-          onClick={(e) => { e.stopPropagation(); setDetailId(o.id); }}
-          aria-label={`View full details for order ${o.orderNumber}`}
-        >
-          View details
-        </Button>
+        <div className="flex justify-end gap-1">
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={(e) => { e.stopPropagation(); setDetailId(o.id); }}
+            aria-label={`View full details for order ${o.orderNumber}`}
+          >
+            View details
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            loading={del.isPending}
+            onClick={(e) => { e.stopPropagation(); confirmDelete(o); }}
+            aria-label={`Delete order ${o.orderNumber}`}
+            className="text-danger hover:bg-danger-soft"
+          >
+            Delete
+          </Button>
+        </div>
       ),
     },
   ];
