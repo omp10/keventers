@@ -446,12 +446,29 @@ export class KitchenService extends BaseService {
   async getMyQueue(tenant, userId, query = {}) {
     const scope = await this.resolveScope(tenant, query.restaurantId, query.branchId);
     const page = await this.queue.paginateForBranch(scope, {
-      filter: {
-        'assignment.currentChefId': userId,
-        ...(query.status ? { status: query.status } : {}),
+      filter: query.status ? { status: query.status } : {},
+      /**
+       * MINE **OR** UNCLAIMED. Matching only `currentChefId === me` meant a new
+       * order — which arrives unassigned — never reached any staff phone until
+       * a manager assigned it, so "new orders appear instantly" was impossible
+       * however good the realtime was. Floor staff need to SEE work arriving to
+       * pick it up.
+       *
+       * This is a server-built operator, so it must ride in `trustedFilter`:
+       * `filter` goes through the client sanitizer, which silently drops
+       * non-scalars and would have returned the whole branch's board.
+       */
+      trustedFilter: {
+        ...(query.status ? {} : { status: { $in: ACTIVE_KITCHEN_STATUSES } }),
+        $or: [
+          { 'assignment.currentChefId': userId },
+          { 'assignment.currentChefId': null },
+          { 'assignment.currentChefId': { $exists: false } },
+        ],
       },
-      trustedFilter: query.status ? {} : { status: { $in: ACTIVE_KITCHEN_STATUSES } },
       search: query.search,
+      // Unclaimed work first, then by priority — a waiter opening the app should
+      // see what nobody has taken yet at the top.
       sort: '-priorityWeight timers.queuedAt',
       pagination: { page: query.page, limit: query.limit },
     });
