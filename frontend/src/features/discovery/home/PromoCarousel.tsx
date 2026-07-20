@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
-import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { AnimatePresence, motion, useReducedMotion, type PanInfo } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 
 import { Icon } from '@/design-system';
@@ -21,6 +21,31 @@ type Slide =
   | { id: string; kind: 'loyalty' };
 
 const AUTO_ADVANCE_MS = 5200;
+
+/** A flick past this speed (px/s) commits, however short the drag. */
+const SWIPE_VELOCITY = 400;
+/** …or a deliberate drag past this fraction of the strip's width. */
+const SWIPE_DISTANCE_RATIO = 0.3;
+
+/**
+ * Which slide a released swipe lands on: -1 previous, +1 next, 0 stay put.
+ *
+ * Exported so the thresholds are unit-testable — the gesture itself needs a real
+ * finger, but the DECISION is where the bugs live. Judging by distance alone
+ * misreads how people actually swipe on a phone: a fast flick barely travels but
+ * clearly means "next", so velocity counts too.
+ */
+export function swipeStep(offsetX: number, velocityX: number, width: number): -1 | 0 | 1 {
+  // An unmeasured element (ref not attached yet, display:none) reports 0. Taking
+  // that literally made a 5px twitch clear the threshold and flip the banner, so
+  // fall back to a typical phone width rather than to "any movement wins".
+  const effectiveWidth = width > 0 ? width : 320;
+  const flicked = Math.abs(velocityX) > SWIPE_VELOCITY;
+  const dragged = Math.abs(offsetX) > effectiveWidth * SWIPE_DISTANCE_RATIO;
+  if (!flicked && !dragged) return 0;
+  // Dragging LEFT (negative offset) reveals the NEXT slide.
+  return offsetX < 0 ? 1 : -1;
+}
 
 const slideVariants = {
   enter: (dir: number) => ({ opacity: 0, x: dir * 48 }),
@@ -128,6 +153,14 @@ export function PromoCarousel({ className }: { className?: string }) {
   const banners = usePromoBanners();
   const [[index, direction], setIndex] = useState<[number, number]>([0, 1]);
   const [paused, setPaused] = useState(false);
+  const [dragging, setDragging] = useState(false);
+  const trackRef = useRef<HTMLDivElement>(null);
+  /**
+   * A swipe ends with a pointer-up over the slide, which is a <button> — so
+   * without this the gesture that changed the banner ALSO opened it. Set while
+   * dragging and cleared on the next tick, after the click would have fired.
+   */
+  const swiped = useRef(false);
 
   const slides = useMemo<Slide[]>(() => {
     const admin = [...(banners.data ?? [])].sort((a, b) => a.sortOrder - b.sortOrder);
@@ -141,26 +174,55 @@ export function PromoCarousel({ className }: { className?: string }) {
   const count = slides.length;
   const active = slides[Math.min(index, count - 1)];
 
-  // Auto-advance — skipped entirely under reduced motion or while hovered/focused.
+  /** Move by ±1, wrapping, and remember the direction so the exit matches. */
+  const paginate = useCallback(
+    (step: number) => setIndex(([i]) => [(i + step + count) % count, step]),
+    [count],
+  );
+
+  /**
+   * Commit a swipe on release. Judging by DISTANCE ALONE misreads the gesture
+   * people actually make on a phone — a fast flick travels barely any distance
+   * but clearly means "next". Framer reports velocity, so a flick OR a
+   * deliberate drag past a third of the width both count, and anything else
+   * springs back.
+   */
+  const onDragEnd = useCallback(
+    (_e: unknown, info: PanInfo) => {
+      setDragging(false);
+      const step = swipeStep(info.offset.x, info.velocity.x, trackRef.current?.offsetWidth ?? 0);
+      if (count > 1 && step !== 0) paginate(step);
+      // Let the imminent click land, then stop swallowing taps.
+      setTimeout(() => { swiped.current = false; }, 0);
+    },
+    [count, paginate],
+  );
+
+  const open = useCallback(
+    (slide: Slide) => {
+      if (swiped.current) return; // this was a swipe, not a tap
+      if (slide.kind === 'qr') return navigate('/qr');
+      if (slide.kind === 'loyalty') return navigate('/loyalty');
+      const { banner } = slide;
+      if (banner.cta?.href?.startsWith('/')) return navigate(banner.cta.href);
+      if (banner.branchSlug) return navigate(`/r/${banner.branchSlug}`);
+      navigate('/discover');
+    },
+    [navigate],
+  );
+
+  // Auto-advance — skipped under reduced motion, while hovered/focused, or
+  // mid-swipe: nothing is worse than the strip moving under your thumb.
   useEffect(() => {
-    if (reduced || paused || count <= 1) return;
+    if (reduced || paused || dragging || count <= 1) return;
     const t = setInterval(() => setIndex(([i]) => [(i + 1) % count, 1]), AUTO_ADVANCE_MS);
     return () => clearInterval(t);
-  }, [reduced, paused, count]);
+  }, [reduced, paused, dragging, count]);
 
   // Clamp when the slide set shrinks (banners load in).
   useEffect(() => {
     setIndex(([i, d]) => [Math.min(i, Math.max(0, count - 1)), d]);
   }, [count]);
-
-  const open = (slide: Slide) => {
-    if (slide.kind === 'qr') return navigate('/qr');
-    if (slide.kind === 'loyalty') return navigate('/loyalty');
-    const { banner } = slide;
-    if (banner.cta?.href?.startsWith('/')) return navigate(banner.cta.href);
-    if (banner.branchSlug) return navigate(`/r/${banner.branchSlug}`);
-    navigate('/discover');
-  };
 
   return (
     <section
@@ -172,7 +234,7 @@ export function PromoCarousel({ className }: { className?: string }) {
       onFocusCapture={() => setPaused(true)}
       onBlurCapture={() => setPaused(false)}
     >
-      <div className="relative h-56 overflow-hidden rounded-2xl shadow-md xs:h-52 sm:h-64">
+      <div ref={trackRef} className="relative h-56 overflow-hidden rounded-2xl shadow-md xs:h-52 sm:h-64">
         <AnimatePresence initial={false} custom={direction} mode="popLayout">
           <motion.div
             key={active.id}
@@ -181,7 +243,19 @@ export function PromoCarousel({ className }: { className?: string }) {
             initial="enter"
             animate="center"
             exit="exit"
-            className="absolute inset-0"
+            /* SWIPE. `drag="x"` makes framer set touch-action: pan-y, so a
+               horizontal swipe moves the banner while a vertical one still
+               scrolls the page — the thing that makes carousels miserable on
+               Android when it is got wrong. Constraints are zero-width so the
+               slide rubber-bands back and the pagination does the real move. */
+            drag={count > 1 ? 'x' : false}
+            dragDirectionLock
+            dragConstraints={{ left: 0, right: 0 }}
+            dragElastic={0.18}
+            dragMomentum={false}
+            onDragStart={() => { setDragging(true); swiped.current = true; }}
+            onDragEnd={onDragEnd}
+            className="absolute inset-0 touch-pan-y select-none"
           >
             {active.kind === 'banner' ? (
               <BannerSlide banner={active.banner} onOpen={() => open(active)} />

@@ -28,5 +28,9 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src"]
+  "include": ["src"],
+  // Tests are compiled by vitest (which supplies its own globals/types), not by
+  // the app build. Without this, adding the first *.test.ts to src/ breaks
+  // `npm run build` on a missing 'vitest' module.
+  "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx"]
 }
