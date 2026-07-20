@@ -87,9 +87,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       /* best-effort — the local session is cleared either way */
     } finally {
       clearRefreshTimer();
-      tokenStore.clearSession();
+      // clearAll, NOT clearSession: signing out must drop the TABLE SESSION too.
+      // clearSession left the guest token in localStorage, so after logging out
+      // the app still had a guest identity (you could keep browsing) and that
+      // now-dead token rode along on every request forever — the endless
+      // "invalid or expired guest session token". Logout means logged out.
+      tokenStore.clearAll();
       setUser(null);
-      setStatus(tokenStore.getGuest() ? 'guest' : 'unauthenticated');
+      setStatus('unauthenticated');
       loggingOut.current = false;
     }
   }, []);

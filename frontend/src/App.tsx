@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { Route, Routes } from 'react-router-dom';
 
 import { NotFoundPage } from '@/platform/error';
@@ -17,6 +18,22 @@ import { AdminLayout, AdminLoginPage, adminRoutes } from '@/features/admin';
  * router itself lives in the Frontend Platform's <AppProviders> (BrowserRouter +
  * Suspense), so this only declares the route tree.
  */
+/**
+ * LOGIN IS MANDATORY for the whole customer app.
+ *
+ * Only these customer paths are reachable signed-out — everything else,
+ * including "/" and the QR scanner, redirects to /login and comes back after
+ * sign-in. Guest (QR) sessions are NOT an identity here: RequireAuth defaults
+ * to `allowGuest: false`, so a table session alone no longer opens the app.
+ */
+const PUBLIC_CUSTOMER_PATHS = new Set(['/login', '/403']);
+
+/** Gate a customer route unless it is explicitly public. */
+function gate(path: string, element: ReactNode): ReactNode {
+  if (PUBLIC_CUSTOMER_PATHS.has(path)) return element;
+  return <RequireAuth redirectTo="/login">{element}</RequireAuth>;
+}
+
 export function App() {
   const tabbed = discoveryRoutes.filter((r) => r.chrome === 'tabs');
   const minimal = discoveryRoutes.filter((r) => r.chrome === 'minimal');
@@ -26,18 +43,18 @@ export function App() {
     <Routes>
       <Route element={<DiscoveryTabsLayout />}>
         {tabbed.map((r) => (
-          <Route key={r.path} path={r.path} element={r.element} />
+          <Route key={r.path} path={r.path} element={gate(r.path, r.element)} />
         ))}
       </Route>
       <Route element={<DiscoveryMinimalLayout />}>
         {minimal.map((r) => (
-          <Route key={r.path} path={r.path} element={r.element} />
+          <Route key={r.path} path={r.path} element={gate(r.path, r.element)} />
         ))}
       </Route>
       {/* Ordering flow (F3.2) — menu → cart → checkout → payment → tracking. */}
       <Route element={<OrderingLayout />}>
         {orderingRoutes.map((r) => (
-          <Route key={r.path} path={r.path} element={r.element} />
+          <Route key={r.path} path={r.path} element={gate(r.path, r.element)} />
         ))}
       </Route>
       {/* Restaurant Operations Dashboard (F4.1) — staff app under /dashboard, auth-gated. */}
