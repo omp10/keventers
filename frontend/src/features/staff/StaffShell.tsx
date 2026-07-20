@@ -12,8 +12,11 @@ import { useStaffRealtime } from './hooks';
 /** The staff app's five thumb-reach tabs. Orders is the raised primary action. */
 const TABS = [
   { key: 'home', label: 'Home', icon: 'home', href: '/staff' },
-  { key: 'orders', label: 'Orders', icon: 'order', href: '/staff/orders', emphasized: true },
   { key: 'history', label: 'History', icon: 'clock', href: '/staff/history' },
+  // Orders sits DEAD CENTRE of the five: it is the raised primary action and the
+  // one a waiter reaches for mid-service, so it belongs under the thumb rather
+  // than off to one side.
+  { key: 'orders', label: 'Orders', icon: 'order', href: '/staff/orders', emphasized: true },
   { key: 'alerts', label: 'Alerts', icon: 'bell', href: '/staff/notifications' },
   { key: 'profile', label: 'Profile', icon: 'user', href: '/staff/profile' },
 ] satisfies NavItem[];
