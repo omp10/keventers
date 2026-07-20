@@ -27,7 +27,8 @@ export function resolveCustomerScope(deps = {}) {
 
   return async function resolveCustomerScopeMiddleware(req, _res, next) {
     try {
-      if (req.guest?.customerUserId) {
+      // A valid table session is identity enough — an account link is optional.
+      if (req.guest?.sessionId) {
         req.customerScope = buildCustomerScope(req.guest);
         return next();
       }

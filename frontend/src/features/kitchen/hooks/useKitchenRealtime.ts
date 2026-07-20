@@ -38,7 +38,18 @@ export function useKitchenRealtime() {
   // order.constants.js). This hook used to listen for 'kitchen:order_created',
   // 'order:created' and 'order:status_changed' — none of which the backend has
   // ever emitted, so the new-order chime never once fired.
+  //
+  // RING ONCE PER ORDER. One new order legitimately produces several events:
+  // `order:placed` plus `kitchen:order_queued` delivered to BOTH rooms this
+  // client joined (restaurant + branch). That rang the bell three times per
+  // order — maddening on a kitchen floor. Refreshes still coalesce separately.
+  const rung = useRef<Map<string, number>>(new Map());
   const onNew = (p: KitchenEventPayload) => {
+    const key = p?.orderId ?? p?.orderNumber ?? '';
+    const now = Date.now();
+    for (const [k, at] of rung.current) if (now - at > 30_000) rung.current.delete(k);
+    if (key && rung.current.has(key)) return scheduleRefresh();
+    if (key) rung.current.set(key, now);
     playKitchenSound(p.priority === 'rush' || p.priority === 'vip' ? 'priority' : 'new');
     scheduleRefresh();
   };

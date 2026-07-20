@@ -98,6 +98,7 @@ router.patch('/orders/:id/ready', validate({ params: orderIdParamSchema }), Kitc
 router.patch('/orders/:id/served', validate({ params: orderIdParamSchema }), KitchenController.served);
 router.patch('/orders/:id/recall', validate({ params: orderIdParamSchema, body: reasonSchema }), KitchenController.recall);
 router.patch('/orders/:id/refire', validate({ params: orderIdParamSchema, body: reasonSchema }), KitchenController.refire);
+router.patch('/orders/:id/cancel', validate({ params: orderIdParamSchema, body: reasonSchema }), KitchenController.cancel);
 router.patch('/orders/:id/priority', validate({ params: orderIdParamSchema, body: setPrioritySchema }), KitchenController.setPriority);
 
 export default router;

@@ -55,7 +55,9 @@ export function buildFilter(criteria = {}, { allowedFields } = {}) {
 
     if (!op) {
       // Reject object/array values here — a trusted scope value is always a
-      // scalar; an object would be an injected operator payload.
+      // scalar; an object would be an injected operator payload. Services that
+      // need a real operator (`{ $in: [...] }`) pass it as `trustedFilter`,
+      // which never goes through this client-facing sanitizer.
       if (!isPrimitive(rawValue)) continue;
       filter[field] = coerce(rawValue);
       continue;

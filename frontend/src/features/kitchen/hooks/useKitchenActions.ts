@@ -31,7 +31,14 @@ export function useKitchenActions() {
         void queryClient.invalidateQueries({ queryKey: KK.metrics() });
         toast.success(TOAST[vars.action]);
       },
-      onError: (e) => toast.error('Action failed', { description: (e as Error).message }),
+      onError: (e) => {
+        // A rejected transition almost always means the board is STALE —
+        // someone else (or the staff app) already moved this ticket. Pull the
+        // queue so the card corrects itself instead of leaving a dead button
+        // the operator taps again and again.
+        void queryClient.invalidateQueries({ queryKey: KK.queue() });
+        toast.error('Action failed', { description: (e as Error).message });
+      },
     },
   );
 

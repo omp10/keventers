@@ -1,11 +1,13 @@
-import { Suspense } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 
 import { Logo } from '@/assets';
-import { Badge, Spinner, ThemeToggleButton } from '@/design-system';
+import { Badge, Icon, Spinner, ThemeToggleButton } from '@/design-system';
 import { NotificationCenter } from '@/platform/notifications';
 import { CustomerLayout } from '@/layouts';
 import type { NavItem } from '@/layouts';
+import { isAudioLocked, onAudioLockChange, playOrderAlert } from '@/utils/order-alert';
+import { useStaffRealtime } from './hooks';
 
 /** The staff app's five thumb-reach tabs. Orders is the raised primary action. */
 const TABS = [
@@ -25,6 +27,14 @@ const TABS = [
 export function StaffShell() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
+
+  // Mounted here so an assignment rings on EVERY tab, not just the queue pages.
+  useStaffRealtime();
+
+  // A phone that silently lost autoplay permission looks identical to a quiet
+  // shift. Say so, and make the fix one tap.
+  const [soundBlocked, setSoundBlocked] = useState(isAudioLocked);
+  useEffect(() => onAudioLockChange(setSoundBlocked), []);
 
   const tabs = TABS.map((t) => ({
     ...t,
@@ -52,6 +62,16 @@ export function StaffShell() {
         </button>
       )}
     >
+      {soundBlocked && (
+        <button
+          type="button"
+          onClick={() => void playOrderAlert(1)}
+          className="mb-2 flex w-full items-center justify-center gap-2 rounded-md bg-warning px-3 py-2 text-sm font-semibold text-warning-foreground"
+        >
+          <Icon name="warning" className="h-4 w-4" />
+          Sound is blocked — tap once to enable new-order alerts
+        </button>
+      )}
       <Suspense fallback={<div className="grid min-h-[50vh] place-items-center"><Spinner /></div>}>
         <Outlet />
       </Suspense>

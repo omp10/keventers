@@ -4,7 +4,7 @@ import { ApiResponse } from '#core/http/api-response.js';
 import { customerService } from '../services/customer.service.js';
 import { subscriptionService } from '../services/subscription.service.js';
 import { resolveRestaurantScope } from '../utils/tenant.util.js';
-import { customerScopeOf } from './_helpers.js';
+import { customerScopeOf, registeredScopeOf } from './_helpers.js';
 
 /** Management tenant: the caller's primary restaurant (same rule as loyalty). */
 const tenantOf = async (req) => {
@@ -43,7 +43,7 @@ export const SubscriptionController = {
     ApiResponse.success(res, { data: await subscriptionService.listPublicPlans(scope) });
   }),
   subscribe: asyncHandler(async (req, res) => {
-    const scope = customerScopeOf(req);
+    const scope = registeredScopeOf(req);
     const { customerId } = await customerService.ensureCustomer(
       { organizationId: scope.organizationId, restaurantId: scope.restaurantId },
       scope.userId,
@@ -52,7 +52,7 @@ export const SubscriptionController = {
     ApiResponse.success(res, { data, statusCode: 201 });
   }),
   mine: asyncHandler(async (req, res) => {
-    const scope = customerScopeOf(req);
+    const scope = registeredScopeOf(req);
     const { customerId } = await customerService.ensureCustomer(
       { organizationId: scope.organizationId, restaurantId: scope.restaurantId },
       scope.userId,

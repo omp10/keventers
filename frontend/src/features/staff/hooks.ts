@@ -15,12 +15,22 @@ const HISTORY_KEY = qk('staff', 'my-history');
  * for phones that drop the socket in a pocket.
  */
 export function useMyQueue(search?: string) {
-  const query = useQueryResource(
+  return useQueryResource(
     qk('staff', 'my-queue', search ?? null),
     () => staffService.myQueue({ search: search || undefined }),
     { refetchInterval: 15_000 },
   );
+}
 
+/**
+ * The staff app's ONE realtime engine — mounted by the shell, not by a page.
+ *
+ * It used to live inside useMyQueue, so the bell only existed on tabs that
+ * happened to render the queue: a waiter sitting on Profile or Alerts got an
+ * assignment in total silence. Work landing on a phone must ring wherever the
+ * user is standing in the app.
+ */
+export function useStaffRealtime() {
   // The branch/restaurant room comes from MY context, not from queue data —
   // deriving it from the first assigned order meant an EMPTY queue joined no
   // room, so the very first assignment (the one that matters) never rang.
@@ -42,9 +52,8 @@ export function useMyQueue(search?: string) {
   useRealtimeQuery({
     queryKey: QUEUE_KEY,
     events: ['kitchen:order_updated', 'kitchen:queue_updated', 'kitchen:order_queued'],
+    room,
   });
-
-  return query;
 }
 
 export function useMyHistory(search?: string) {

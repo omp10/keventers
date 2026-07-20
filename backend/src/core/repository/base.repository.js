@@ -99,8 +99,19 @@ export class BaseRepository {
    * @param {object} [options]
    * @returns {Promise<import('#core/types/pagination.js').PageResult<T>>}
    */
+  /**
+   * `filter` is CLIENT-reachable and goes through buildFilter, which drops any
+   * non-scalar value (blocking `?status[$ne]=`) and any field outside
+   * `allowedFilterFields`.
+   *
+   * `trustedFilter` is for conditions the SERVER built literally — e.g.
+   * `{ status: { $in: ACTIVE_STATUSES } }`. Those are real Mongo operators and
+   * the sanitizer silently deleted them, which turned "my active work" into
+   * "every ticket ever" with no error anywhere. It is merged last and is never
+   * derived from request input.
+   */
   async paginate(
-    { filter = {}, search, sort, pagination = {}, allowedFilterFields } = {},
+    { filter = {}, trustedFilter = {}, search, sort, pagination = {}, allowedFilterFields } = {},
     options = {},
   ) {
     const pageRequest = toPageRequest(pagination);
@@ -110,6 +121,7 @@ export class BaseRepository {
         options.includeDeleted,
       ),
       ...buildSearch(search, this.searchableFields),
+      ...trustedFilter,
     };
 
     const [docs, total] = await Promise.all([

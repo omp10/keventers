@@ -6,7 +6,7 @@ import { customerService } from '../services/customer.service.js';
 import { loyaltyService } from '../services/loyalty.service.js';
 import { rewardService } from '../services/reward.service.js';
 
-import { customerScopeOf, idempotencyKeyOf, queryOf } from './_helpers.js';
+import { registeredScopeOf, idempotencyKeyOf, queryOf } from './_helpers.js';
 
 /**
  * Customer-facing endpoints — guest-session authenticated AND linked to a
@@ -17,13 +17,13 @@ import { customerScopeOf, idempotencyKeyOf, queryOf } from './_helpers.js';
 export const CustomerController = {
   /** GET /api/v1/customer/profile */
   getProfile: asyncHandler(async (req, res) => {
-    const data = await customerService.getProfile(customerScopeOf(req));
+    const data = await customerService.getProfile(registeredScopeOf(req));
     ApiResponse.success(res, { data });
   }),
 
   /** PATCH /api/v1/customer/profile */
   updateProfile: asyncHandler(async (req, res) => {
-    const data = await customerService.updateProfile(customerScopeOf(req), req.body);
+    const data = await customerService.updateProfile(registeredScopeOf(req), req.body);
     ApiResponse.success(res, { data });
   }),
 
@@ -36,13 +36,13 @@ export const CustomerController = {
    * principal), never from the client.
    */
   getOrders: asyncHandler(async (req, res) => {
-    const data = await orderService.listForCustomer(customerScopeOf(req).userId, queryOf(req));
+    const data = await orderService.listForCustomer(registeredScopeOf(req).userId, queryOf(req));
     ApiResponse.success(res, { data });
   }),
 
   /** GET /api/v1/customer/loyalty */
   getLoyalty: asyncHandler(async (req, res) => {
-    const scope = customerScopeOf(req);
+    const scope = registeredScopeOf(req);
     const { customerId } = await customerService.ensureCustomer({ organizationId: scope.organizationId, restaurantId: scope.restaurantId }, scope.userId);
     const account = await loyaltyService.getAccountForCustomer({ organizationId: scope.organizationId, restaurantId: scope.restaurantId }, customerId, scope.userId);
     const ledger = await loyaltyService.getLedgerForCustomer(customerId, queryOf(req));
@@ -51,49 +51,49 @@ export const CustomerController = {
 
   /** GET /api/v1/customer/rewards */
   getRewards: asyncHandler(async (req, res) => {
-    const data = await rewardService.listActiveForCustomer(customerScopeOf(req));
+    const data = await rewardService.listActiveForCustomer(registeredScopeOf(req));
     ApiResponse.success(res, { data });
   }),
 
   /** POST /api/v1/customer/redeem */
   redeem: asyncHandler(async (req, res) => {
-    const data = await rewardService.redeem(customerScopeOf(req), req.body.rewardId, { idempotencyKey: idempotencyKeyOf(req) });
+    const data = await rewardService.redeem(registeredScopeOf(req), req.body.rewardId, { idempotencyKey: idempotencyKeyOf(req) });
     ApiResponse.success(res, { data, statusCode: 201 });
   }),
 
   /** GET /api/v1/customer/redemptions */
   getRedemptions: asyncHandler(async (req, res) => {
-    const data = await rewardService.listRedemptionsForCustomer(customerScopeOf(req));
+    const data = await rewardService.listRedemptionsForCustomer(registeredScopeOf(req));
     ApiResponse.success(res, { data });
   }),
 
   /** GET /api/v1/customer/preferences */
   getPreferences: asyncHandler(async (req, res) => {
-    const data = await customerService.getPreferences(customerScopeOf(req));
+    const data = await customerService.getPreferences(registeredScopeOf(req));
     ApiResponse.success(res, { data });
   }),
 
   /** PATCH /api/v1/customer/preferences */
   updatePreferences: asyncHandler(async (req, res) => {
-    const data = await customerService.updatePreferences(customerScopeOf(req), req.body);
+    const data = await customerService.updatePreferences(registeredScopeOf(req), req.body);
     ApiResponse.success(res, { data });
   }),
 
   // --- addresses ---
   listAddresses: asyncHandler(async (req, res) => {
-    const data = await customerService.listAddresses(customerScopeOf(req));
+    const data = await customerService.listAddresses(registeredScopeOf(req));
     ApiResponse.success(res, { data });
   }),
   addAddress: asyncHandler(async (req, res) => {
-    const data = await customerService.addAddress(customerScopeOf(req), req.body);
+    const data = await customerService.addAddress(registeredScopeOf(req), req.body);
     ApiResponse.success(res, { data, statusCode: 201 });
   }),
   updateAddress: asyncHandler(async (req, res) => {
-    const data = await customerService.updateAddress(customerScopeOf(req), req.params.id, req.body);
+    const data = await customerService.updateAddress(registeredScopeOf(req), req.params.id, req.body);
     ApiResponse.success(res, { data });
   }),
   removeAddress: asyncHandler(async (req, res) => {
-    const data = await customerService.removeAddress(customerScopeOf(req), req.params.id);
+    const data = await customerService.removeAddress(registeredScopeOf(req), req.params.id);
     ApiResponse.success(res, { data });
   }),
 };

@@ -1,4 +1,4 @@
-import { Suspense } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 
 import {
@@ -16,6 +16,7 @@ import { cn } from '@/lib/cn';
 import { useKitchenAudio } from './audio';
 import { useKitchenMode } from './fullscreen';
 import { useKitchenMetrics, useKitchenRealtime } from './hooks';
+import { isAudioLocked, onAudioLockChange, playOrderAlert } from '@/utils/order-alert';
 import { KITCHEN_TABS, KitchenTabBar } from './KitchenTabBar';
 import { KitchenFilters, KitchenSearch } from './panels';
 
@@ -38,6 +39,10 @@ export function KitchenShell() {
   const navigate = useNavigate();
   const location = useLocation();
   useKitchenRealtime();
+  // A kitchen that believes it will be alerted but is silently muted by the
+  // browser's autoplay policy misses orders. Surface it and let one tap fix it.
+  const [soundBlocked, setSoundBlocked] = useState(isAudioLocked());
+  useEffect(() => onAudioLockChange(setSoundBlocked), []);
   const mode = useKitchenMode();
   const audio = useKitchenAudio();
   const metrics = useKitchenMetrics();
@@ -182,6 +187,18 @@ export function KitchenShell() {
           </div>
         )}
       </header>
+
+      {/* Browser has audio muted until someone interacts — say so loudly. */}
+      {soundBlocked && (
+        <button
+          type="button"
+          onClick={() => void playOrderAlert(1)}
+          className="flex w-full items-center justify-center gap-2 bg-warning px-3 py-2 text-sm font-semibold text-warning-foreground"
+        >
+          <Icon name="warning" className="h-4 w-4" />
+          Sound is blocked — tap once to enable new-order alerts
+        </button>
+      )}
 
       {/* pb clears the fixed tab bar (its height + the home-indicator inset). */}
       <main className="flex-1 p-3 pb-[calc(4.5rem+env(safe-area-inset-bottom))] md:p-4 md:pb-4">

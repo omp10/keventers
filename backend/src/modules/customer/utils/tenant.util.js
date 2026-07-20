@@ -17,19 +17,24 @@ import { entityId } from './id.util.js';
  */
 
 /**
- * Build a customer scope from a guest principal. Throws if the guest has not yet
- * linked an account (loyalty/profile require a registered customer).
+ * Build a customer scope from a guest principal.
+ *
+ * `userId` is NULL for a guest who never signed in — the ordinary case for
+ * someone who scanned the table QR and ate. That is a complete, legitimate
+ * identity: the signed token names the org, restaurant, branch and session.
+ * Requiring a linked account here 401'd every `/customer/*` route for exactly
+ * those customers, so a table guest could not even rate the meal they just ate.
+ * Endpoints that truly need a registered account use `registeredScopeOf`.
  * @param {object} guest req.guest
  */
 export function buildCustomerScope(guest) {
   if (!guest?.sessionId) throw new ForbiddenError(CUSTOMER_ERRORS.CROSS_TENANT);
-  if (!guest.customerUserId) throw new ForbiddenError(CUSTOMER_ERRORS.NOT_LINKED);
   return {
     organizationId: String(guest.organizationId),
     restaurantId: String(guest.restaurantId),
     branchId: guest.branchId ? String(guest.branchId) : null,
     sessionId: String(guest.sessionId),
-    userId: String(guest.customerUserId),
+    userId: guest.customerUserId ? String(guest.customerUserId) : null,
   };
 }
 

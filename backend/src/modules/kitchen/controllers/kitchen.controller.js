@@ -69,6 +69,11 @@ export const KitchenController = {
     ApiResponse.success(res, { data });
   }),
 
+  cancel: asyncHandler(async (req, res) => {
+    const data = await kitchenService.cancel(req.tenant, req.params.id, req.body ?? {}, actor(req));
+    ApiResponse.success(res, { data });
+  }),
+
   setPriority: asyncHandler(async (req, res) => {
     const data = await kitchenService.setPriority(req.tenant, req.params.id, req.body.priority, actor(req));
     ApiResponse.success(res, { data });

@@ -179,7 +179,9 @@ export class KitchenService extends BaseService {
     if (entry.status === KITCHEN_STATUS.ASSIGNED || entry.status === KITCHEN_STATUS.PREPARING) {
       return this.#reassign(entry, assignment, actorId);
     }
-    throw new ConflictError(KITCHEN_ERRORS.INVALID_TRANSITION);
+    // Say WHICH state blocked it — a bare "Illegal transition" tells the person
+    // holding the tablet nothing about why the button they just tapped failed.
+    throw new ConflictError(`${KITCHEN_ERRORS.INVALID_TRANSITION}: cannot assign an order that is already ${entry.status}`);
   }
 
   async startPreparing(tenant, orderId, actorId = null) {
@@ -218,6 +220,22 @@ export class KitchenService extends BaseService {
       inc: { recallCount: 1 },
     });
     this.audit.success('kitchen.order.recalled', { actorId, targetId: entityId(entry), metadata: { reason } });
+    return updated;
+  }
+
+  /**
+   * Staff-initiated cancel of a kitchen ticket (spoiled, walked-out table…).
+   * The workflow already allowed CANCELLED from every active state — only the
+   * staff-facing entry point was missing, so the KDS's Cancel button 404'd.
+   */
+  async cancel(tenant, orderId, { reason = '' } = {}, actorId = null) {
+    const entry = await this.#loadByOrder(tenant, orderId);
+    const updated = await this.#transition(entry, KITCHEN_STATUS.CANCELLED, {
+      actorId,
+      actorType: ACTOR_TYPE.STAFF,
+      reason,
+    });
+    this.audit.success('kitchen.order.cancelled', { actorId, targetId: entityId(entry), metadata: { reason } });
     return updated;
   }
 
@@ -339,12 +357,15 @@ export class KitchenService extends BaseService {
 
   async getBoard(tenant, restaurantId, branchId, query = {}) {
     const scope = await this.resolveScope(tenant, restaurantId, branchId);
-    const filter = query.status ? { status: query.status } : { status: { $in: ACTIVE_KITCHEN_STATUSES } };
+    const filter = query.status ? { status: query.status } : {};
     if (query.stationId) filter.stationIds = query.stationId;
     if (query.chefId) filter['assignment.currentChefId'] = query.chefId;
     if (query.priority) filter.priority = query.priority;
     const page = await this.queue.paginateForBranch(scope, {
       filter,
+      // Server-built operator — must bypass the client filter sanitizer, which
+      // drops non-scalars and would otherwise return the whole board.
+      trustedFilter: query.status ? {} : { status: { $in: ACTIVE_KITCHEN_STATUSES } },
       search: query.search,
       sort: query.sort ?? '-priorityWeight timers.queuedAt',
       pagination: { page: query.page, limit: query.limit },
@@ -369,8 +390,9 @@ export class KitchenService extends BaseService {
     const page = await this.queue.paginateForBranch(scope, {
       filter: {
         'assignment.currentChefId': userId,
-        status: query.status ? query.status : { $in: ACTIVE_KITCHEN_STATUSES },
+        ...(query.status ? { status: query.status } : {}),
       },
+      trustedFilter: query.status ? {} : { status: { $in: ACTIVE_KITCHEN_STATUSES } },
       search: query.search,
       sort: '-priorityWeight timers.queuedAt',
       pagination: { page: query.page, limit: query.limit },
@@ -382,10 +404,8 @@ export class KitchenService extends BaseService {
   async getMyHistory(tenant, userId, query = {}) {
     const scope = await this.resolveScope(tenant, query.restaurantId, query.branchId);
     const page = await this.queue.paginateForBranch(scope, {
-      filter: {
-        'assignment.currentChefId': userId,
-        status: { $in: TERMINAL_KITCHEN_STATUSES },
-      },
+      filter: { 'assignment.currentChefId': userId },
+      trustedFilter: { status: { $in: TERMINAL_KITCHEN_STATUSES } },
       search: query.search,
       sort: '-timers.servedAt -updatedAt',
       pagination: { page: query.page, limit: query.limit },
