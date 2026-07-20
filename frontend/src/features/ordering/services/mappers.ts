@@ -55,6 +55,8 @@ type WireCart = {
   pricing?: WirePricing;
 };
 type WireOrder = WireCart & {
+  /** Order history now sends the real branch; the cache is only a fallback. */
+  branch?: { id?: string; name?: string; slug?: string } | null;
   orderNumber?: string;
   status?: string;
   channel?: string;
@@ -173,7 +175,13 @@ export function mapCart(raw: WireCart): Cart {
 }
 
 export function mapOrder(raw: WireOrder): Order {
-  const branch = recallBranch();
+  // Prefer the branch the SERVER sent: `recallBranch()` only knows the outlet
+  // this device last visited, so every past order from another outlet rendered
+  // a blank restaurant name in history.
+  const cached = recallBranch();
+  const branch = raw.branch?.name
+    ? { name: raw.branch.name, slug: raw.branch.slug ?? cached.slug }
+    : cached;
   const currency = raw.currency ?? raw.pricing?.currency ?? 'INR';
   return {
     id: raw.id,

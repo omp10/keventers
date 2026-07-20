@@ -9,10 +9,23 @@ import {
   listOrdersQuerySchema,
 } from '../validators/order.validators.js';
 
+import { resolveGuest } from '#modules/qr-ordering/index.js';
+
 import { customerGuards } from './_guards.js';
 
 const router = Router();
 
+/**
+ * History accepts EITHER a live table session OR a signed-in account. It used
+ * to sit behind the strict guest guard and query only the CURRENT session, so
+ * a customer's orders vanished the moment that 2h session ended — even though
+ * the account owned them. `resolveGuest` is non-throwing and the global
+ * `authenticate` already attached any account principal; the controller picks
+ * whichever scope is present, preferring the account (fuller history).
+ */
+router.get('/', resolveGuest, validate({ query: listOrdersQuerySchema }), CustomerOrderController.list);
+
+// Everything below still requires a live table session (placing/cancelling).
 router.use(...customerGuards);
 
 /**

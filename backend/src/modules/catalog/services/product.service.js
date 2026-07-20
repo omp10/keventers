@@ -378,6 +378,15 @@ export class ProductService extends BaseService {
     this.audit.success('catalog.product.image_removed', { actorId, targetId: id });
     return toProductDTO(updated);
   }
+
+  /**
+   * Write a product's DERIVED dish rating. Trusted seam for the Customer
+   * module, which owns the feedback these are computed from — the catalog never
+   * calculates ratings itself, and nothing else may write these fields.
+   */
+  async applyRatingSystem(productId, { rating, ratingCount }) {
+    await this.products.updateById(String(productId), { rating, ratingCount });
+  }
 }
 
 export const productService = new ProductService();

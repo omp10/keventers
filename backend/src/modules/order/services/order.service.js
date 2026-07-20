@@ -398,7 +398,7 @@ export class OrderService extends BaseService {
       sort: query.sort ?? '-createdAt',
       pagination: { page: query.page, limit: query.limit },
     });
-    return this.paginated(page, (o) => toOrderSummaryDTO(o, { forStaff: false }));
+    return this.#summaryPage(page);
   }
 
   /**
@@ -412,7 +412,36 @@ export class OrderService extends BaseService {
       sort: query.sort ?? '-createdAt',
       pagination: { page: query.page, limit: query.limit },
     });
-    return this.paginated(page, (o) => toOrderSummaryDTO(o, { forStaff: false }));
+    return this.#summaryPage(page);
+  }
+
+  /**
+   * Summarize a page and attach each order's BRANCH (name + slug).
+   *
+   * Orders store only a branchId, and the customer app used to fall back to a
+   * client-side cache of the branch you're standing in — so every past order
+   * from another outlet rendered a blank name. One batched lookup per page
+   * fixes it without an N+1.
+   */
+  async #summaryPage(page) {
+    const summaries = (page.items ?? []).map((o) => toOrderSummaryDTO(o, { forStaff: false }));
+    const branchIds = [...new Set(summaries.map((s) => s?.branchId).filter(Boolean))];
+    const byId = new Map();
+    if (branchIds.length) {
+      try {
+        const { branchService } = await import('#modules/organization/index.js');
+        const branches = await Promise.all(branchIds.map((id) => branchService.getPublicById(id).catch(() => null)));
+        for (const b of branches) if (b) byId.set(String(b.id ?? b._id), b);
+      } catch {
+        /* names are a nicety — never fail the history over them */
+      }
+    }
+    const items = summaries.map((s) => {
+      const b = s?.branchId ? byId.get(String(s.branchId)) : null;
+      return { ...s, branch: b ? { id: String(b.id ?? b._id), name: b.name ?? '', slug: b.slug ?? '' } : null };
+    });
+    // Same envelope the rest of the API returns ({ items, pagination }).
+    return { items, pagination: page.meta };
   }
 
   // ==================== STAFF READS ====================

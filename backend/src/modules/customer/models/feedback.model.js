@@ -28,6 +28,25 @@ const feedbackSchema = new Schema(
     serviceRating: rating,
     storeRating: rating,
 
+    /**
+     * PER-DISH ratings — the customer rates each item they actually ordered.
+     * These aggregate into `product.rating`, making feedback the single source
+     * of truth for dish ratings (nothing else may write them).
+     */
+    itemRatings: {
+      type: [
+        new Schema(
+          {
+            productId: { type: Schema.Types.ObjectId, ref: 'Product', required: true },
+            rating: { type: Number, min: 1, max: 5, required: true },
+            comment: { type: String, trim: true, maxlength: 300, default: '' },
+          },
+          { _id: false },
+        ),
+      ],
+      default: [],
+    },
+
     comment: { type: String, trim: true, maxlength: 1000, default: '' },
   },
   baseSchemaOptions,

@@ -103,6 +103,9 @@ function toProduct(product, { currency, variants = [], groups = [], addons = [] 
     veg: vegClass(product.dietaryTags),
     popular: Boolean(product.isPopular ?? product.isFeatured),
     recommended: Boolean(product.isRecommended),
+    // Dish rating, derived from customer feedback (the source of truth).
+    rating: product.rating ?? null,
+    ratingCount: product.ratingCount ?? 0,
     available: isAvailable(product),
     customizable: productVariants.length > 0 || modifierGroups.length > 0,
     variants: productVariants.length ? productVariants : undefined,

@@ -15,9 +15,23 @@ export const CustomerOrderController = {
     ApiResponse.success(res, { data, statusCode: 201 });
   }),
 
+  /**
+   * GET /api/v1/orders — my order history.
+   *
+   * Prefers the ACCOUNT (every order the customer ever placed, across sessions
+   * and outlets) and falls back to the live table session for anonymous
+   * diners. It used to read the session only, so history disappeared the moment
+   * a 2h guest session ended.
+   */
   list: asyncHandler(async (req, res) => {
-    const data = await orderService.listForGuest(scopeOf(req), req.validatedQuery ?? {});
-    ApiResponse.success(res, { data });
+    const query = req.validatedQuery ?? {};
+    const userId = req.principal?.authenticated ? req.principal.id : req.guest?.customerUserId;
+    if (userId) {
+      const data = await orderService.listForCustomer(String(userId), query);
+      return ApiResponse.success(res, { data });
+    }
+    const data = await orderService.listForGuest(scopeOf(req), query);
+    return ApiResponse.success(res, { data });
   }),
 
   getById: asyncHandler(async (req, res) => {

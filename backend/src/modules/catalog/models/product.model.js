@@ -146,6 +146,14 @@ const productSchema = new Schema(
     isRecommended: { type: Boolean, default: false },
     displayOrder: { type: Number, default: 0 },
 
+    /**
+     * Dish rating — DERIVED, never hand-edited. Recomputed from customer
+     * feedback (`Feedback.itemRatings`) on every submission, so feedback stays
+     * the single source of truth.
+     */
+    rating: { type: Number, min: 0, max: 5, default: null },
+    ratingCount: { type: Number, default: 0 },
+
     // --- inventory hook (no inventory logic this phase; extension point only) ---
     trackInventory: { type: Boolean, default: false },
     inventoryRef: { type: String, default: null },

@@ -112,7 +112,14 @@ export function toOrderSummaryDTO(order, { forStaff = false } = {}) {
     orderType: order.orderType,
     currency: order.currency,
     total: order.pricing?.total ?? null,
+    // The order-history list renders the total and lets the customer rate each
+    // DISH, so it needs the priced items and the full pricing block — a bare
+    // `total` rendered as ₹0 and left the rating sheet with nothing to score.
+    pricing: order.pricing ?? null,
+    items: (order.items ?? []).map(toItemDTO),
     itemCount: (order.items ?? []).reduce((n, it) => n + (it.quantity ?? 0), 0),
+    branchId: oid(order.branchId),
+    restaurantId: oid(order.restaurantId),
     tableId: oid(order.tableId),
     customerUserId: forStaff ? oid(order.customerUserId) : undefined,
     placedAt: order.placedAt ?? null,

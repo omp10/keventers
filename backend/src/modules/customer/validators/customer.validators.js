@@ -198,5 +198,16 @@ export const feedbackSchema = z
     serviceRating: z.number().int().min(1).max(5).nullable().optional(),
     storeRating: z.number().int().min(1).max(5).nullable().optional(),
     comment: z.string().trim().max(1000).optional(),
+    /** Per-dish ratings — the source of truth for each product's rating. */
+    itemRatings: z
+      .array(
+        z.object({
+          productId: objectId,
+          rating: z.number().int().min(1).max(5),
+          comment: z.string().trim().max(300).optional(),
+        }),
+      )
+      .max(50)
+      .optional(),
   })
   .strict();

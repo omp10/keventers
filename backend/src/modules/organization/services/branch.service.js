@@ -120,6 +120,17 @@ export class BranchService extends BaseService {
     this.audit.success('branch.deleted', { actorId, targetId: id });
     return { id, deleted: true };
   }
+
+  /**
+   * Write a branch's DERIVED discovery rating. Trusted seam for the Customer
+   * module, which owns the feedback these are computed from.
+   */
+  async applyRatingSystem(branchId, { rating, ratingCount }) {
+    await this.branches.updateById(String(branchId), {
+      'discovery.rating': rating,
+      'discovery.ratingCount': ratingCount,
+    });
+  }
 }
 
 export const branchService = new BranchService();
