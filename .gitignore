@@ -5,3 +5,10 @@ backend/.env.*
 frontend/.env
 frontend/.env.*
 !frontend/.env.example
+
+# Firebase / FCM service-account credentials — NEVER commit. Local dev reads the
+# file via FCM_SERVICE_ACCOUNT_PATH; production passes FCM_SERVICE_ACCOUNT
+# (base64) as a secret env var instead of shipping a file.
+backend/config/firebase-service-account.json
+**/firebase-service-account*.json
+**/*-firebase-adminsdk-*.json
