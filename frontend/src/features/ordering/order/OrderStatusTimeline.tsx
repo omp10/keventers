@@ -23,10 +23,24 @@ const STEP_ICON: Record<OrderStatus, IconName> = {
  */
 export function OrderStatusTimeline({ order }: { order: Order }) {
   if (order.status === 'cancelled') {
+    // "This order was cancelled." and nothing else left the customer guessing
+    // whether they did it, the kitchen did it, or something failed. Show the
+    // reason and who ended it whenever the order carries them.
+    const { reason, source } = order.cancellation ?? {};
+    const by =
+      source === 'customer' ? 'You cancelled this order.'
+      : source === 'restaurant' ? 'The restaurant cancelled this order.'
+      : source === 'system' ? 'This order was cancelled automatically.'
+      : 'This order was cancelled.';
+    const at = order.cancellation?.at ?? order.cancelledAt;
     return (
-      <div className="flex items-center gap-3 rounded-xl border border-danger/30 bg-danger-soft p-4 text-danger">
-        <Icon name="close" className="h-5 w-5" />
-        <span className="text-sm font-medium">This order was cancelled.</span>
+      <div className="flex items-start gap-3 rounded-xl border border-danger/30 bg-danger-soft p-4 text-danger">
+        <Icon name="close" className="mt-0.5 h-5 w-5 shrink-0" />
+        <div className="min-w-0">
+          <p className="text-sm font-medium">{by}</p>
+          {reason ? <p className="mt-1 text-sm opacity-90">Reason: {reason}</p> : null}
+          {at ? <p className="mt-1 text-xs opacity-75">{new Date(at).toLocaleString()}</p> : null}
+        </div>
       </div>
     );
   }

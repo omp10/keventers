@@ -176,10 +176,19 @@ export type OrderChannel = 'dine_in' | 'takeaway' | 'delivery' | 'drive_thru' | 
 
 export type OrderTimelineEntry = { status: OrderStatus; at: string; note?: string };
 
+/** Why an order was cancelled, and by whom — the customer is owed both. */
+export type OrderCancellation = {
+  reason?: string;
+  source?: 'customer' | 'restaurant' | 'system' | string;
+  at?: string;
+};
+
 export type Order = {
   id: string;
   orderNumber: string;
   status: OrderStatus;
+  cancellation?: OrderCancellation | null;
+  cancelledAt?: string | null;
   channel?: OrderChannel;
   branch: { slug: string; name: string; restaurantName?: string };
   items: CartItem[];

@@ -121,6 +121,11 @@ export function toOrderSummaryDTO(order, { forStaff = false } = {}) {
     branchId: oid(order.branchId),
     restaurantId: oid(order.restaurantId),
     tableId: oid(order.tableId),
+    // A cancelled order in the history list said only "cancelled" — the customer
+    // could not see WHY, or whether it was them or the restaurant. The reason is
+    // the whole point of showing the status at all.
+    cancellation: order.cancellation?.source ? order.cancellation : null,
+    cancelledAt: order.cancelledAt ?? null,
     customerUserId: forStaff ? oid(order.customerUserId) : undefined,
     placedAt: order.placedAt ?? null,
     createdAt: order.createdAt ?? null,
