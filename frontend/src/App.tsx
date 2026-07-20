@@ -7,7 +7,7 @@ import { discoveryRoutes, DiscoveryMinimalLayout, DiscoveryTabsLayout } from '@/
 import { orderingRoutes, OrderingLayout } from '@/features/ordering';
 import { restaurantRoutes, RestaurantLayout, RestaurantLoginPage } from '@/features/restaurant';
 import { catalogRoutes, CatalogLayout } from '@/features/catalog';
-import { KitchenShell, KitchenBoardRoute, KitchenDashboardRoute, KitchenOrdersRoute, KitchenStationsRoute, KitchenStaffRoute, KitchenHistoryRoute, KitchenMenuRoute, KitchenProfileRoute, KitchenLoginPage, KitchenOnboardingGate, KitchenOnboardingPage, KitchenRegisterPage } from '@/features/kitchen';
+import { KitchenShell, KitchenBoardRoute, KitchenDashboardRoute, KitchenOrdersRoute, KitchenStationsRoute, KitchenTablesRoute, KitchenStaffRoute, KitchenHistoryRoute, KitchenMenuRoute, KitchenProfileRoute, KitchenLoginPage, KitchenOnboardingGate, KitchenOnboardingPage, KitchenRegisterPage } from '@/features/kitchen';
 import { StaffShell, StaffLoginPage, StaffHomePage, StaffOrdersPage, StaffHistoryPage, StaffNotificationsPage, StaffProfilePage } from '@/features/staff';
 import { Showcase } from '@/app/Showcase';
 import { AdminLayout, AdminLoginPage, adminRoutes } from '@/features/admin';
@@ -111,6 +111,8 @@ export function App() {
         <Route path="dashboard" element={<KitchenDashboardRoute />} />
         <Route path="orders" element={<KitchenOrdersRoute />} />
         <Route path="staff" element={<KitchenStaffRoute />} />
+        <Route path="tables" element={<KitchenTablesRoute />} />
+        {/* Stations stays reachable by URL for multi-line kitchens; it is just off the tab bar. */}
         <Route path="stations" element={<KitchenStationsRoute />} />
         <Route path="history" element={<KitchenHistoryRoute />} />
         <Route path="menu" element={<KitchenMenuRoute />} />

@@ -14,7 +14,7 @@ export const KITCHEN_TABS: KitchenTab[] = [
   { to: '/kitchen/dashboard', label: 'Dashboard', icon: 'dashboard' },
   { to: '/kitchen/orders', label: 'Orders', icon: 'order' },
   { to: '/kitchen/staff', label: 'Staff', icon: 'users' },
-  { to: '/kitchen/stations', label: 'Stations', icon: 'flame' },
+  { to: '/kitchen/tables', label: 'Tables', icon: 'grid' },
   { to: '/kitchen/menu', label: 'Menu', icon: 'utensils' },
   { to: '/kitchen/history', label: 'History', icon: 'clock' },
   { to: '/kitchen/profile', label: 'Profile', icon: 'user' },
