@@ -47,6 +47,7 @@ import {
 } from '../utils/order-state-machine.js';
 import {
   loadForGuest,
+  loadForCustomer,
   loadForStaff,
   resolveStaffScope,
 } from '../utils/tenant.util.js';
@@ -374,10 +375,11 @@ export class OrderService extends BaseService {
 
   // ==================== CUSTOMER ====================
 
-  async cancelByCustomer(guestScope, id, { reason = '' } = {}) {
-    const order = await loadForGuest(this.orders, guestScope, id);
+  /** `access` is { sessionId, userId } — either identity may own the order. */
+  async cancelByCustomer(access, id, { reason = '' } = {}) {
+    const order = await loadForCustomer(this.orders, access, id);
     if (!CUSTOMER_CANCELLABLE.includes(order.status)) throw new BadRequestError(ORDER_ERRORS.NOT_CANCELLABLE);
-    const actor = this.#actor(guestScope);
+    const actor = this.#actor({ customerUserId: access.userId ?? access.customerUserId ?? null });
     const updated = await this.#transition(id, ORDER_STATUS.CANCELLED, {
       actorId: actor.actorId,
       actorType: actor.actorType,
@@ -387,8 +389,8 @@ export class OrderService extends BaseService {
     return toOrderDTO(updated, { forStaff: false });
   }
 
-  async getForGuest(guestScope, id) {
-    const order = await loadForGuest(this.orders, guestScope, id);
+  async getForGuest(access, id) {
+    const order = await loadForCustomer(this.orders, access, id);
     return toOrderDTO(order, { forStaff: false });
   }
 

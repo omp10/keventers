@@ -1,5 +1,6 @@
 import { Worker } from 'bullmq';
 
+import { config } from '#config';
 import { logger } from '#core/logging/logger.js';
 
 import { buildQueueConnection, toBullQueueName } from './queue.factory.js';
@@ -22,9 +23,20 @@ export function startWorker(definition) {
     },
     {
       connection: buildQueueConnection(),
+      // MUST match the prefix the Queue writes under (queue.factory.js), or the
+      // worker listens on BullMQ's default `bull` keyspace while producers
+      // enqueue into `keventers:jobs` — jobs pile up as "waiting" forever and
+      // nothing ever runs: no notification delivery, no outbox relay, no
+      // analytics rebuild. Silent, because both halves look healthy alone.
+      prefix: config.jobs.prefix,
       concurrency: definition.concurrency,
     },
   );
+
+  // Without this, a Redis/connection failure is emitted as an unhandled 'error'
+  // and the worker sits mute — which is how the prefix mismatch above stayed
+  // invisible. Never let a dead worker look like an idle one.
+  worker.on('error', (err) => logger().error({ queue: definition.queue, err }, 'Job worker error'));
 
   worker.on('completed', (job) =>
     logger().debug({ queue: definition.queue, jobId: job.id }, 'Job completed'),

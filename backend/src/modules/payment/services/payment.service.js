@@ -294,17 +294,31 @@ export class PaymentService extends BaseService {
   }
 
   async listForStaff(tenant, restaurantId, branchId, query = {}) {
-    const scope = await this.resolveScope(tenant, restaurantId, branchId);
     const filter = {};
     if (query.status) filter.status = query.status;
     if (query.provider) filter.provider = query.provider;
     if (query.orderId) filter.orderId = query.orderId;
-    const page = await this.payments.paginateForStaff(scope, {
+    const params = {
       filter,
       search: query.search,
       sort: query.sort ?? '-createdAt',
       pagination: { page: query.page, limit: query.limit },
-    });
+    };
+
+    // PLATFORM-WIDE for the Super Admin who named no restaurant. They own no
+    // org or restaurant, so resolving a scope threw "No restaurant is set up
+    // for this account yet" and the admin Payments page was simply a 403.
+    // Every other caller still goes through the tenant-scoped path.
+    if (tenant?.isSuperAdmin && !restaurantId) {
+      const page = await this.payments.paginate({
+        ...params,
+        allowedFilterFields: ['status', 'provider', 'method', 'orderId', 'customerUserId'],
+      });
+      return this.paginated(page, toPaymentDTO);
+    }
+
+    const scope = await this.resolveScope(tenant, restaurantId, branchId);
+    const page = await this.payments.paginateForStaff(scope, params);
     return this.paginated(page, toPaymentDTO);
   }
 }

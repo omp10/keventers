@@ -25,7 +25,14 @@ const router = Router();
  */
 router.get('/', resolveGuest, validate({ query: listOrdersQuerySchema }), CustomerOrderController.list);
 
-// Everything below still requires a live table session (placing/cancelling).
+// Reading and cancelling YOUR OWN order accepts either identity — a signed-in
+// customer away from the table owns these orders just as much as the session
+// does. Ownership is enforced per-order in `assertCustomerAccess`; the strict
+// guest guard above stays on checkout, which genuinely needs a live table.
+router.get('/:id', resolveGuest, validate({ params: idParamSchema }), CustomerOrderController.getById);
+router.post('/:id/cancel', resolveGuest, validate({ params: idParamSchema, body: cancelSchema }), CustomerOrderController.cancel);
+
+// Everything below still requires a live table session (checkout).
 router.use(...customerGuards);
 
 /**
@@ -55,7 +62,5 @@ router
  * /api/v1/orders/{id}/cancel:
  *   post: { tags: [Orders], security: [{ bearerAuth: [] }], summary: Cancel an order (only while PLACED/CONFIRMED), responses: { 200: { description: Cancelled }, 400: { description: Not cancellable } } }
  */
-router.get('/:id', validate({ params: idParamSchema }), CustomerOrderController.getById);
-router.post('/:id/cancel', validate({ params: idParamSchema, body: cancelSchema }), CustomerOrderController.cancel);
 
 export default router;

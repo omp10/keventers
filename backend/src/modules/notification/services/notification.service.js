@@ -169,15 +169,27 @@ export class NotificationService extends BaseService {
   // ==================== STAFF / ADMIN ====================
 
   async listForStaff(tenant, restaurantId, query = {}) {
-    const scope = await this.resolveScope(tenant, restaurantId);
     const filter = {};
     for (const f of ['status', 'category', 'channel', 'audience']) if (query[f]) filter[f] = query[f];
-    const page = await this.notifications.paginateForStaff(scope, {
+    const params = {
       filter,
       search: query.search,
       sort: query.sort ?? '-createdAt',
       pagination: { page: query.page, limit: query.limit },
-    });
+    };
+
+    // PLATFORM-WIDE for a Super Admin who named no restaurant — they own no
+    // restaurant, so scoping threw and the admin Notifications page 403'd.
+    if (tenant?.isSuperAdmin && !restaurantId) {
+      const page = await this.notifications.paginate({
+        ...params,
+        allowedFilterFields: ['status', 'category', 'channel', 'audience'],
+      });
+      return this.paginated(page, (n) => toNotificationDTO(n, { forStaff: true }));
+    }
+
+    const scope = await this.resolveScope(tenant, restaurantId);
+    const page = await this.notifications.paginateForStaff(scope, params);
     return this.paginated(page, (n) => toNotificationDTO(n, { forStaff: true }));
   }
 

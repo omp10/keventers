@@ -6,6 +6,16 @@ import { buildGuestScope } from '../utils/tenant.util.js';
 
 /** Customer orders are scoped to the guest session (req.guest), never the client. */
 const scopeOf = (req) => buildGuestScope(req.guest);
+
+/**
+ * WHO is asking, for endpoints a customer can legitimately reach either way:
+ * still at the table (guest session) or signed in from anywhere (account).
+ * Never trusts a client-supplied id — both values come from verified tokens.
+ */
+const accessOf = (req) => ({
+  sessionId: req.guest?.sessionId ? String(req.guest.sessionId) : null,
+  userId: req.principal?.authenticated ? String(req.principal.id) : (req.guest?.customerUserId ?? null),
+});
 const idempotencyKeyOf = (req) => req.headers['idempotency-key'] || undefined;
 
 export const CustomerOrderController = {
@@ -35,12 +45,12 @@ export const CustomerOrderController = {
   }),
 
   getById: asyncHandler(async (req, res) => {
-    const data = await orderService.getForGuest(scopeOf(req), req.params.id);
+    const data = await orderService.getForGuest(accessOf(req), req.params.id);
     ApiResponse.success(res, { data });
   }),
 
   cancel: asyncHandler(async (req, res) => {
-    const data = await orderService.cancelByCustomer(scopeOf(req), req.params.id, req.body ?? {});
+    const data = await orderService.cancelByCustomer(accessOf(req), req.params.id, req.body ?? {});
     ApiResponse.success(res, { data });
   }),
 };

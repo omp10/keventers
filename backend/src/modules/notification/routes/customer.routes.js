@@ -7,7 +7,7 @@ import { resolveTenant } from '#modules/organization/index.js';
 import { CustomerNotificationController } from '../controllers/customer-notification.controller.js';
 import { deviceTokenSchema, idParamSchema, inboxQuerySchema, updatePreferencesSchema } from '../validators/notification.validators.js';
 
-import { customerGuards } from './_guards.js';
+import { recipientGuards } from './_guards.js';
 
 const router = Router();
 
@@ -16,7 +16,7 @@ const router = Router();
 router.post('/devices', requireAuth, resolveTenant, validate({ body: deviceTokenSchema }), CustomerNotificationController.registerDevice);
 router.delete('/devices', requireAuth, resolveTenant, validate({ body: deviceTokenSchema }), CustomerNotificationController.unregisterDevice);
 
-router.use(...customerGuards);
+router.use(...recipientGuards);
 
 /**
  * @openapi

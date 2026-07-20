@@ -64,6 +64,32 @@ export function assertGuestAccess(guestScope, order) {
   }
 }
 
+/**
+ * Ownership for a CUSTOMER caller, who may arrive either way: still at the
+ * table (guest session) or signed in from anywhere (account).
+ *
+ * Matching only the session meant a signed-in customer could list their orders
+ * but got 401 opening any one of them — and that particular 401 ("invalid or
+ * expired guest session token") makes the client drop the table session, so
+ * tapping your own order logged you out.
+ *
+ * @param {{sessionId?: string|null, userId?: string|null}} access
+ */
+export function assertCustomerAccess(access, order) {
+  if (!order) throw new ForbiddenError(ORDER_ERRORS.CROSS_TENANT);
+  const bySession = access.sessionId && String(order.sessionId) === String(access.sessionId);
+  const byAccount = access.userId && order.customerUserId && String(order.customerUserId) === String(access.userId);
+  if (!bySession && !byAccount) throw new ForbiddenError(ORDER_ERRORS.CROSS_TENANT);
+}
+
+/** Load an order for a customer caller (guest session OR signed-in account). */
+export async function loadForCustomer(repo, access, id) {
+  const order = await repo.findById(id);
+  if (!order) throw new NotFoundError(ORDER_ERRORS.ORDER_NOT_FOUND);
+  assertCustomerAccess(access, order);
+  return order;
+}
+
 /** Load an order for a staff caller (404 → then 403 on cross-tenant). */
 export async function loadForStaff(repo, tenant, id) {
   const order = await repo.findById(id);
