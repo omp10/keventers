@@ -81,7 +81,11 @@ export class DeliveryService extends BaseService {
     const attemptNumber = (n.attemptCount ?? 0) + 1;
     await this.notifications.updateById(id, { status: NOTIFICATION_STATUS.PROCESSING, attemptCount: attemptNumber });
 
-    const message = { to: n.destination ?? undefined, subject: n.subject ?? undefined, body: n.body ?? '', data: { ...(n.data ?? {}), notificationId: id } };
+    // PUSH carries a LIST of device tokens (`destinations`); every other channel
+    // has a single address. Falling back to `destination` alone handed push
+    // providers `undefined` and nothing was ever sent.
+    const to = n.destinations?.length ? n.destinations : (n.destination ?? undefined);
+    const message = { to, subject: n.subject ?? undefined, body: n.body ?? '', data: { ...(n.data ?? {}), notificationId: id } };
     const started = Date.now();
     let result;
     try {
@@ -103,8 +107,26 @@ export class DeliveryService extends BaseService {
       durationMs,
     });
 
+    // A push provider reports device tokens the vendor says are dead (app
+    // uninstalled, token rotated). Left in place they fail on every future
+    // send forever, so drop them here — best-effort, never blocking delivery.
+    if (result?.invalidTokens?.length && n.userId) {
+      await this.#pruneDeadTokens(scope, String(n.userId), result.invalidTokens);
+    }
+
     if (result?.success) return this.#onSuccess(n, result);
     return this.#onFailure(n, result, attemptsMade);
+  }
+
+  /** Drop tokens the push vendor rejected as permanently dead. Best-effort. */
+  async #pruneDeadTokens(scope, userId, tokens) {
+    try {
+      const { preferenceService } = await import('./preference.service.js');
+      for (const token of tokens) await preferenceService.unregisterDevice(scope, userId, token);
+      this.logger.info({ userId, count: tokens.length }, 'Pruned dead push tokens');
+    } catch (err) {
+      this.logger.warn({ err }, 'Pruning dead push tokens failed (continuing)');
+    }
   }
 
   async #onSuccess(n, result) {

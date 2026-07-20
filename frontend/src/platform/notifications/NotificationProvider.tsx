@@ -57,12 +57,18 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   // no-op unless a Firebase project is configured (VITE_FIREBASE_*); a
   // foreground push surfaces as the same toast the socket feed uses.
   useEffect(() => {
-    if (!isAuthenticated && !isGuest) return;
+    // ACCOUNT ONLY. Device tokens are stored against a user, so the backend
+    // guards /notifications/devices with requireAuth — a guest's POST 401s, and
+    // the API client reads any 401 on a guest credential as "table session
+    // dead", wiping the session and bouncing the diner to the scanner. Push
+    // registration must never be able to end someone's meal; guests keep the
+    // in-app + socket alerts they already had.
+    if (!isAuthenticated) return;
     void initPush((payload) => {
       const p = (payload as { notification?: { title?: string; body?: string } })?.notification;
       if (p?.title) toast.info(p.title, { description: p.body });
     });
-  }, [isAuthenticated, isGuest]);
+  }, [isAuthenticated]);
 
   // Live notifications — one subscription for the whole app.
   useSocketEvent<Partial<AppNotification> & { id: string; title: string }>('notification:new', (raw) => {

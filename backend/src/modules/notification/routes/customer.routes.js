@@ -5,7 +5,7 @@ import { requireAuth } from '#platform/auth/index.js';
 import { resolveTenant } from '#modules/organization/index.js';
 
 import { CustomerNotificationController } from '../controllers/customer-notification.controller.js';
-import { deviceTokenSchema, idParamSchema, inboxQuerySchema, updatePreferencesSchema } from '../validators/notification.validators.js';
+import { deviceTokenSchema, idParamSchema, inboxQuerySchema, testPushSchema, updatePreferencesSchema } from '../validators/notification.validators.js';
 
 import { recipientGuards } from './_guards.js';
 
@@ -15,6 +15,8 @@ const router = Router();
 // these are auth-guarded — NOT guest-session — and sit before the guest block.
 router.post('/devices', requireAuth, resolveTenant, validate({ body: deviceTokenSchema }), CustomerNotificationController.registerDevice);
 router.delete('/devices', requireAuth, resolveTenant, validate({ body: deviceTokenSchema }), CustomerNotificationController.unregisterDevice);
+// Prove the whole push chain reaches THIS device. Own devices only.
+router.post('/devices/test', requireAuth, resolveTenant, validate({ body: testPushSchema }), CustomerNotificationController.testDevice);
 
 router.use(...recipientGuards);
 

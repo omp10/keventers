@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+
 /**
  * Notification Engine configuration. Selects the ACTIVE provider per channel
  * (interchangeable) and holds delivery reliability knobs (retries, backoff, rate
@@ -7,6 +9,23 @@
  *
  * @param {import('./env.schema.js').envSchema['_output']} env
  */
+/**
+ * The FCM service account, inline (`FCM_SERVICE_ACCOUNT`, raw JSON or base64) or
+ * from a file on disk (`FCM_SERVICE_ACCOUNT_PATH`). Reading the file here keeps
+ * the credential out of the process environment on servers where a mounted
+ * secret file is the safer option. A missing/unreadable file is not fatal — push
+ * simply reports "not ready" and the rest of the engine carries on.
+ */
+function readServiceAccount(env) {
+  if (env.FCM_SERVICE_ACCOUNT) return env.FCM_SERVICE_ACCOUNT;
+  if (!env.FCM_SERVICE_ACCOUNT_PATH) return null;
+  try {
+    return readFileSync(env.FCM_SERVICE_ACCOUNT_PATH, 'utf8');
+  } catch {
+    return null;
+  }
+}
+
 export function buildNotificationConfig(env) {
   return {
     // Which concrete provider each channel uses.
@@ -38,6 +57,6 @@ export function buildNotificationConfig(env) {
     },
     sms: { twilio: { accountSid: env.TWILIO_ACCOUNT_SID, authToken: env.TWILIO_AUTH_TOKEN, from: env.TWILIO_FROM } },
     whatsapp: { meta: { phoneNumberId: env.META_WA_PHONE_NUMBER_ID, accessToken: env.META_WA_ACCESS_TOKEN } },
-    push: { fcm: { projectId: env.FCM_PROJECT_ID, serverKey: env.FCM_SERVER_KEY } },
+    push: { fcm: { projectId: env.FCM_PROJECT_ID, serviceAccount: readServiceAccount(env) } },
   };
 }

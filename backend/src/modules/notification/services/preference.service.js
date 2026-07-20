@@ -61,6 +61,37 @@ export class PreferenceService extends BaseService {
   }
 
   /**
+   * Send a test push straight to this user's own registered devices, bypassing
+   * the outbox/template pipeline so it isolates the PUSH leg: credentials,
+   * Google, service worker, device. Reports precisely why nothing arrived
+   * ("no_devices" vs "fcm_not_configured" vs an FCM error) — a silent failure
+   * here is what makes push so miserable to debug.
+   */
+  async sendTestPush(scope, userId, { title, body } = {}) {
+    const pref = await this.getForUser(scope, userId).catch(() => null);
+    const tokens = pref?.deviceTokens ?? [];
+    if (!tokens.length) return { sent: false, reason: 'no_devices', deviceCount: 0 };
+
+    const { notificationRegistry } = await import('#platform/notification/index.js');
+    const provider = notificationRegistry.get(CHANNEL.PUSH);
+    if (!provider?.isReady?.()) return { sent: false, reason: 'fcm_not_configured', deviceCount: tokens.length };
+
+    const result = await provider.send({
+      to: tokens,
+      subject: title || 'Test notification',
+      body: body || 'Push is working. This is a test from Keventers.',
+      data: { type: 'test', link: '/' },
+    });
+    return {
+      sent: Boolean(result?.success),
+      deviceCount: tokens.length,
+      reason: result?.success ? null : (result?.error ?? 'unknown'),
+      invalidTokens: result?.invalidTokens?.length ?? 0,
+      response: result?.response ?? null,
+    };
+  }
+
+  /**
    * Is `channel` allowed for `category` given the user's prefs?
    * @param {object|null} pref  the preference doc (may be null → defaults)
    */

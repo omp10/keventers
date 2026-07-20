@@ -66,6 +66,19 @@ export const CustomerNotificationController = {
     await preferenceService.unregisterDevice(scope, req.principal.id, req.body.token);
     ApiResponse.success(res, { data: { ok: true } });
   }),
+
+  /**
+   * POST /api/v1/notifications/devices/test — push a test message to MY devices.
+   *
+   * The only way to prove the whole chain (token → provider credentials →
+   * Google → service worker → the phone in your hand) actually works. Scoped to
+   * the caller's own devices, so it can never be used to message anyone else.
+   */
+  testDevice: asyncHandler(async (req, res) => {
+    const scope = deviceScopeOf(req);
+    const data = await preferenceService.sendTestPush(scope, req.principal.id, req.body ?? {});
+    ApiResponse.success(res, { data });
+  }),
 };
 
 /** Device tokens live on the user's preference for their primary restaurant. */

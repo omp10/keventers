@@ -41,6 +41,11 @@ const notificationSchema = new Schema(
 
     // Resolved destination for external channels (email/phone/token) — non-secret.
     destination: { type: String, default: null },
+    // PUSH fans out to every device a user has, so its destination is a LIST.
+    // It used to be flattened into the single `destination` above, which stores
+    // a String — the token array became null and the provider was handed
+    // nothing to send to, so push could never be delivered.
+    destinations: { type: [String], default: undefined },
 
     status: { type: String, enum: Object.values(NOTIFICATION_STATUS), default: NOTIFICATION_STATUS.QUEUED, index: true },
     provider: { type: String, default: null },

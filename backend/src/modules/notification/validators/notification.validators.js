@@ -130,3 +130,9 @@ export const outboxListQuerySchema = z
 
 /** Register/unregister an FCM device token. */
 export const deviceTokenSchema = z.object({ token: z.string().min(20).max(4096) }).strict();
+
+/** Optional overrides for the self-test push. */
+export const testPushSchema = z.object({
+  title: z.string().trim().min(1).max(120).optional(),
+  body: z.string().trim().min(1).max(400).optional(),
+}).strict();

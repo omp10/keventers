@@ -150,7 +150,11 @@ export const envSchema = z.object({
   META_WA_PHONE_NUMBER_ID: z.string().optional(),
   META_WA_ACCESS_TOKEN: z.string().optional(),
   FCM_PROJECT_ID: z.string().optional(),
-  FCM_SERVER_KEY: z.string().optional(),
+  // FCM HTTP v1 credential: the service-account JSON (raw or base64). The old
+  // FCM_SERVER_KEY drove the legacy API Google shut down in June 2024 and is no
+  // longer read — a key alone can no longer send anything.
+  FCM_SERVICE_ACCOUNT: z.string().optional(),
+  FCM_SERVICE_ACCOUNT_PATH: z.string().optional(),
 
   // --- Analytics (Phase 4.11) ---
   ANALYTICS_DASHBOARD_CACHE_TTL_SECONDS: z.coerce.number().int().positive().default(60),

@@ -122,6 +122,7 @@ export class NotificationService extends BaseService {
         body: rendered.body,
         data: outbox.data ?? {},
         destination: Array.isArray(destination) ? null : destination,
+        destinations: Array.isArray(destination) ? destination : undefined,
         status: NOTIFICATION_STATUS.QUEUED,
         eventName: outbox.eventName,
         outboxId: entityId(outbox),
