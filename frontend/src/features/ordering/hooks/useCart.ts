@@ -33,7 +33,7 @@ export function useCart() {
   const uncoupon = useMutationResource<Cart, void>(() => cartService.removeCoupon(version()), { onSuccess: setCart });
   const notes = useMutationResource<Cart, string>((n) => cartService.setNotes(n, version()), { onSuccess: setCart });
   const clear = useMutationResource<{ abandoned: boolean; id?: string }, void>(() => cartService.clear(), {
-    onSuccess: () => queryClient.setQueryData(cartKey, undefined),
+    onSuccess: () => queryClient.removeQueries({ queryKey: cartKey }),
   });
 
   const cart = query.data;
@@ -65,8 +65,20 @@ export function useCart() {
   };
 }
 
-/** Invalidate the cart cache (e.g. after checkout consumes it). */
+/**
+ * Drop the cart cache entirely — the checked-out cart is GONE, not stale.
+ *
+ * `setQueryData(key, undefined)` does not reliably evict an entry, and
+ * `invalidateQueries` only refetches a query that is currently ENABLED — and
+ * this one is gated on `sessionService.has()`. So after checkout the old
+ * ITEMS survived in the cache: the customer ordered, came back to add
+ * something else, and found the cart still holding the food they had just been
+ * served. Worse, removing one of those items failed silently, because the item
+ * ids belonged to a cart that had already been converted into an order.
+ *
+ * `removeQueries` actually evicts it, so the next read starts from the server's
+ * new, empty cart.
+ */
 export function invalidateCart() {
-  void queryClient.invalidateQueries({ queryKey: cartKey });
-  queryClient.setQueryData(cartKey, undefined);
+  queryClient.removeQueries({ queryKey: cartKey });
 }
