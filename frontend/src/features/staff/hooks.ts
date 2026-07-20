@@ -74,7 +74,11 @@ export function useStaffActions() {
         // queue: on a phone over mobile data that refetch is what the waiter
         // was waiting on. History is only invalidated when the order actually
         // LEFT the queue (served), which is the only time it changes.
-        queryClient.setQueryData<{ items: StaffOrder[] } | StaffOrder[]>(QUEUE_KEY, (cur) => {
+        // setQueriesData (PLURAL) matches by PREFIX. The queue is cached per
+        // search term — qk('staff','my-queue', search) — so writing to the bare
+        // QUEUE_KEY patched a cache entry nobody reads: the button kept showing
+        // its old label until the socket refresh or the 15s poll caught up.
+        queryClient.setQueriesData<{ items: StaffOrder[] } | StaffOrder[]>({ queryKey: QUEUE_KEY }, (cur) => {
           const list = Array.isArray(cur) ? cur : cur?.items;
           if (!list) return cur;
           const next = list.map((o) => (o.orderId === entry.orderId ? entry : o));

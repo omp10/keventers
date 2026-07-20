@@ -80,10 +80,24 @@ function toParams(f?: KitchenFilterState) {
 class KitchenService {
   /** The live queue (bounded — no pagination; realtime-driven). */
   async queue(filters?: KitchenFilterState) {
-    const page = await api.paginate<KitchenWireEntry>(`${BASE}/queue`, {
-      query: { ...toParams(filters), page: 1, limit: 100 },
-    });
-    return page.items.map(normalizeEntry);
+    /**
+     * The board has a SERVED column, but /queue returns only ACTIVE statuses —
+     * served is excluded by design, so that column could never fill and always
+     * read "no orders". Fetch the recently-served page alongside it and merge.
+     *
+     * Capped at 25 and only when the caller has not filtered to a specific
+     * status: a board is a live view, not an archive — the full record lives in
+     * History. Failing to load them must not blank the live board, so a served
+     * error degrades to just the active queue.
+     */
+    const wantsServed = !toParams(filters)?.status;
+    const [active, served] = await Promise.all([
+      api.paginate<KitchenWireEntry>(`${BASE}/queue`, { query: { ...toParams(filters), page: 1, limit: 100 } }),
+      wantsServed
+        ? api.paginate<KitchenWireEntry>(`${BASE}/queue`, { query: { status: 'served', page: 1, limit: 25 } }).catch(() => ({ items: [] as KitchenWireEntry[] }))
+        : Promise.resolve({ items: [] as KitchenWireEntry[] }),
+    ]);
+    return [...active.items, ...served.items].map(normalizeEntry);
   }
 
   get(orderId: string) {
