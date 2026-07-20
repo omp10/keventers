@@ -32,6 +32,17 @@ export function createApp() {
   // by nginx from the upload volume (e.g. /var/www/uploads), so the URL shape
   // stays identical and only the driver/base URL change.
   if (config.storage.driver === 'local') {
+    // Set the cross-origin headers for EVERY /static response, including the
+    // 404 when a file is missing. `setHeaders` below only runs for files that
+    // are actually found, so a missing image inherited helmet's
+    // `Cross-Origin-Resource-Policy: same-origin` and the browser reported it
+    // as ERR_BLOCKED_BY_RESPONSE.NotSameOrigin — hiding the real cause (the
+    // file isn't there) behind a CORS error.
+    app.use('/static', (_req, res, next) => {
+      res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      next();
+    });
     app.use(
       '/static',
       express.static(path.resolve(config.storage.local.dir), {

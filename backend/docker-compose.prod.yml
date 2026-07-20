@@ -11,11 +11,19 @@ services:
       NODE_ENV: production
       PORT: 4000
       HOST: 0.0.0.0
+      # Uploads MUST live on the mounted volume below, not in the image.
+      STORAGE_LOCAL_DIR: /data/storage
     depends_on:
       redis:
         condition: service_healthy
     expose:
       - "4000"
+    volumes:
+      # Uploaded images (banners, product photos, QR PNGs) are written to the
+      # container filesystem, which a rebuild REPLACES — every redeploy silently
+      # deleted every upload and left the stored URLs 404ing. A named volume
+      # outlives the container, so files survive deploys.
+      - upload-data:/data/storage
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:4000/ready >/dev/null || exit 1"]
       interval: 30s
@@ -37,11 +45,15 @@ services:
     environment:
       NODE_ENV: production
       HOST: 0.0.0.0
+      STORAGE_LOCAL_DIR: /data/storage
     depends_on:
       redis:
         condition: service_healthy
     networks:
       - internal
+    volumes:
+      # The worker generates QR images too — same volume, same files.
+      - upload-data:/data/storage
 
   redis:
     image: redis:7-alpine
@@ -73,6 +85,8 @@ services:
 
 volumes:
   redis-data:
+  # Uploaded media — survives image rebuilds/redeploys.
+  upload-data:
 
 networks:
   edge:
