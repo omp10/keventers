@@ -123,28 +123,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   /**
-   * The guest table session died (expired, or the staff closed the table).
+   * The guest table session died (expired, or staff closed the table).
    *
    * Drop the token FIRST — leaving it in storage is what made "Invalid or
-   * expired guest session token" follow the customer around forever — then send
-   * them to the entry screen, which is the only place a new session can be
-   * started (by scanning the table QR again). Signing in would NOT fix this:
-   * the cart is scoped to the table session, not the account, so /login would
-   * hand them an account and still no session.
+   * expired guest session token" follow the customer around forever.
+   *
+   * Then STAY PUT wherever the page can still function. This used to bounce
+   * every pure guest to `/`, which meant a customer who browsed restaurants,
+   * opened a menu and tapped ADD — while holding a stale session from an
+   * earlier visit — was thrown out to the QR scanner mid-order. The menu is
+   * public and the "which table are you at?" prompt already opens a fresh
+   * session on the next action, so the honest recovery is to clear the dead
+   * token and let them carry on, not to restart their journey.
+   *
+   * Only pages that CANNOT render without a session (cart, checkout) are
+   * redirected, and they go back to the branch's menu when we know which
+   * branch — the scanner is the last resort, not the default.
    *
    * A hard navigation rather than useNavigate: this provider is also mounted
-   * with `withRouter={false}`, where router hooks would throw — and a dead
-   * session means every cached cart/order query is garbage anyway, so a clean
-   * reload is the honest reset.
+   * with `withRouter={false}`, where router hooks would throw.
    */
   const expireGuest = useCallback(() => {
     if (!tokenStore.getGuest()) return; // already handled by a concurrent 401
     tokenStore.setGuest(null);
     const signedIn = tokenStore.hasSession();
     setStatus(signedIn ? 'authenticated' : 'unauthenticated');
-    // Only a pure guest gets sent back to the entry screen — a signed-in
-    // customer keeps their page; the API client retries on the account token.
-    if (!signedIn && window.location.pathname !== '/') window.location.assign('/');
+    if (signedIn) return; // account holders keep their page; the client retries
+
+    const path = window.location.pathname;
+    const needsSession = /^\/(cart|checkout)(\/|$)/.test(path);
+    if (!needsSession) return; // menu / discovery / account pages recover on their own
+
+    // Prefer the menu they were ordering from over a cold scanner screen.
+    // Read the key directly: the Auth Platform must not import from a feature.
+    let branch: string | null = null;
+    try { branch = localStorage.getItem('kv-active-branch-slug'); } catch { /* ignore */ }
+    window.location.assign(branch ? `/r/${branch}/menu` : '/');
   }, []);
 
   /* Wire the API client adapter ONCE (decoupled — API never imports auth). */
