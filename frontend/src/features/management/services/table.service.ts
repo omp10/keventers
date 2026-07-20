@@ -9,6 +9,9 @@ import type { QrCode, RestaurantTable, TableGroup } from '../types';
 export type TableFilters = { q?: string; status?: string; groupId?: string };
 
 class TableService {
+  // NOTE: saveLayout/merge/split were removed — /restaurant/tables/layout,
+  // /merge and /:id/split return ROUTE_NOT_FOUND. Re-add them WITH the backend,
+  // not before it.
   list(filters?: TableFilters) {
     return api.list<RestaurantTable>('/restaurant/tables', { query: filters });
   }
@@ -25,16 +28,6 @@ class TableService {
   }
   remove(id: string) {
     return api.delete<{ ok: true }>(`/restaurant/tables/${id}`);
-  }
-  /** Persist floor-layout positions after drag-and-drop. */
-  saveLayout(positions: { id: string; x: number; y: number }[]) {
-    return api.post<{ ok: true }>('/restaurant/tables/layout', { positions });
-  }
-  merge(tableIds: string[]) {
-    return api.post<{ ok: true }>('/restaurant/tables/merge', { tableIds });
-  }
-  split(tableId: string) {
-    return api.post<{ ok: true }>(`/restaurant/tables/${tableId}/split`);
   }
   move(tableId: string, groupId: string | null) {
     return api.patch<RestaurantTable>(`/restaurant/tables/${tableId}`, { groupId });

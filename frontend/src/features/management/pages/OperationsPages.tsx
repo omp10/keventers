@@ -48,16 +48,17 @@ export function TablesPage() {
   const [creating, setCreating] = useState(false);
   const tables = useQueryResource(qk('mgmt', 'tables', q, status), () => tableService.list({ q: q || undefined, status }));
   const rows = tables.data ?? [];
-  const mutate = async (action: 'merge' | 'split') => {
-    if (action === 'merge') await tableService.merge(selected);
-    else await tableService.split(selected[0]);
-    setSelected([]);
-    void queryClient.invalidateQueries({ queryKey: qk('mgmt', 'tables') });
-  };
+  /**
+   * Merge/split were removed: POST /restaurant/tables/merge, .../split and
+   * .../layout do not exist on the backend, so those buttons only ever produced
+   * "Route not found" in the console. A control that cannot work is worse than
+   * no control. Selection is kept — it still drives the status actions — and the
+   * buttons come back the day the endpoints do.
+   */
   return <ManagementPage title="Tables" description="Live floor occupancy, capacity, groups, and table operations." actions={<Button leftIcon="add" onClick={() => setCreating(true)}>Add table</Button>}><TableCreateDrawer open={creating} onClose={() => setCreating(false)} />
     <div className="flex flex-wrap gap-2"><Input className={searchClass} value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search tables..." /><select className={fieldClass + ' max-w-44'} value={status ?? ''} onChange={(e) => setStatus(e.target.value || undefined)}><option value="">All statuses</option><option>available</option><option>occupied</option><option>reserved</option><option>inactive</option></select></div>
     {tables.isLoading ? <Spinner /> : <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">{rows.map((t) => <button type="button" key={t.id} onClick={() => setSelected((ids) => ids.includes(t.id) ? ids.filter((id) => id !== t.id) : [...ids, t.id])} className={`rounded-xl border p-4 text-left transition ${selected.includes(t.id) ? 'border-primary bg-primary-soft' : 'border-border bg-surface hover:border-primary/50'}`}><div className="flex justify-between"><strong>{t.label}</strong><StatusPill tone={t.status === 'available' ? 'success' : t.status === 'occupied' ? 'warning' : 'neutral'}>{t.status}</StatusPill></div><p className="mt-6 text-sm text-foreground-muted">Capacity {t.capacity}</p><p className="text-xs text-foreground-subtle">{t.groupName ?? 'Ungrouped'}</p></button>)}</div>}
-    {selected.length > 0 && <Card padding="sm" className="sticky bottom-4 flex flex-wrap items-center gap-2"><span className="mr-auto text-sm font-medium">{selected.length} selected</span><Button size="sm" variant="secondary" disabled={selected.length < 2} onClick={() => void mutate('merge')}>Merge</Button><Button size="sm" variant="secondary" disabled={selected.length !== 1} onClick={() => void mutate('split')}>Split</Button><Button size="sm" variant="ghost" onClick={() => setSelected([])}>Clear</Button></Card>}
+    {selected.length > 0 && <Card padding="sm" className="sticky bottom-4 flex flex-wrap items-center gap-2"><span className="mr-auto text-sm font-medium">{selected.length} selected</span><Button size="sm" variant="ghost" onClick={() => setSelected([])}>Clear</Button></Card>}
   </ManagementPage>;
 }
 
