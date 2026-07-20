@@ -26,7 +26,7 @@ const FRONTEND = path.resolve(process.argv[2] ?? '../frontend/src');
 const DUMMY_ID = '000000000000000000000000';
 
 /** api.get<T>('/x') · api.post('/x', …) · api.list<T>(`/x/${id}`) */
-const CALL_RE = /\bapi\.(get|post|patch|put|delete|list|paginate|upload)\s*(?:<[^>]*>)?\s*\(\s*(['"`])([^'"`]+)\2/g;
+const CALL_RE = /\bapi\.(get|post|patch|put|delete|list|paginate|upload)\s*(?:<([^>]*)>)?\s*\(\s*(['"`])([^'"`]+)\3/g;
 
 const METHOD = { get: 'GET', list: 'GET', paginate: 'GET', post: 'POST', patch: 'PATCH', put: 'PUT', delete: 'DELETE', upload: 'POST' };
 
@@ -58,14 +58,14 @@ async function collectCalls() {
     for (const b of src.matchAll(/const\s+(\w+)\s*=\s*['"`](\/[^'"`]*)['"`]/g)) bases.set(b[1], b[2]);
 
     for (const m of src.matchAll(CALL_RE)) {
-      const [, fn, , raw] = m;
+      const [, fn, generic, , raw] = m;
       let rawPath = raw;
       const viaBase = rawPath.match(/^\$\{(\w+)\}(.*)$/);
       if (viaBase && bases.has(viaBase[1])) rawPath = bases.get(viaBase[1]) + viaBase[2];
       if (!rawPath.startsWith('/')) continue; // not an API path
       const key = `${METHOD[fn]} ${normalize(rawPath)}`;
-      if (!found.has(key)) found.set(key, new Set());
-      found.get(key).add(path.relative(FRONTEND, file));
+      if (!found.has(key)) found.set(key, { files: new Set(), fn, generic: generic ?? '' });
+      found.get(key).files.add(path.relative(FRONTEND, file));
     }
   }
   return found;
@@ -83,7 +83,7 @@ async function probe(method, endpoint, token) {
     const res = await fetch(url, init);
     const body = await res.json().catch(() => ({}));
     const code = body?.error?.code ?? (body?.success ? 'OK' : '');
-    return { missing: code === 'ROUTE_NOT_FOUND', status: res.status, code: code || String(res.status) };
+    return { missing: code === 'ROUTE_NOT_FOUND', status: res.status, code: code || String(res.status), data: body?.data };
   } catch (err) {
     return { missing: false, status: 0, code: `unreachable: ${err.message}` };
   }
@@ -121,10 +121,24 @@ console.log(`Probing ${calls.size} distinct endpoints against ${API}${PREFIX}\n`
 
 const missing = [];
 const ok = [];
-for (const [key, files] of [...calls].sort()) {
+const shapeBugs = [];
+for (const [key, meta] of [...calls].sort()) {
   const [method, endpoint] = key.split(' ');
   const result = await probe(method, endpoint, token);
-  (result.missing ? missing : ok).push({ key, files: [...files], ...result });
+  const files = [...meta.files];
+  (result.missing ? missing : ok).push({ key, files, ...result });
+
+  /**
+   * SHAPE DRIFT — the crash class behind "c.map is not a function".
+   * A call site typed `T[]` that actually receives `{ items, pagination }`
+   * hands the UI an OBJECT: `data ?? []` keeps it, `.length === 0` is false,
+   * and `.map` throws, killing the page instead of rendering empty.
+   */
+  const declaresArray = /\[\]\s*$/.test(meta.generic.trim());
+  const returnsEnvelope = result.data && !Array.isArray(result.data) && Array.isArray(result.data.items);
+  if (meta.fn === 'get' && declaresArray && returnsEnvelope) {
+    shapeBugs.push({ key, files, detail: `typed ${meta.generic.trim()} but returns { items, pagination } — use api.list<T>()` });
+  }
 }
 
 if (missing.length) {
