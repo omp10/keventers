@@ -10,7 +10,7 @@ export type TableFilters = { q?: string; status?: string; groupId?: string };
 
 class TableService {
   list(filters?: TableFilters) {
-    return api.get<RestaurantTable[]>('/restaurant/tables', { query: filters });
+    return api.list<RestaurantTable>('/restaurant/tables', { query: filters });
   }
   /**
    * Create a table. The backend keys tables to a branch (`?branchId=`) and
@@ -40,7 +40,7 @@ class TableService {
     return api.patch<RestaurantTable>(`/restaurant/tables/${tableId}`, { groupId });
   }
   groups() {
-    return api.get<TableGroup[]>('/restaurant/table-groups');
+    return api.list<TableGroup>('/restaurant/table-groups');
   }
   createGroup(name: string) {
     return api.post<TableGroup>('/restaurant/table-groups', { name });
@@ -51,7 +51,7 @@ export type QrFilters = { q?: string; type?: string; active?: boolean };
 
 class QrService {
   list(filters?: QrFilters) {
-    return api.get<QrCode[]>('/restaurant/qr', { query: filters });
+    return api.list<QrCode>('/restaurant/qr', { query: filters });
   }
   generate(body: { type: string; tableId?: string; label?: string }) {
     return api.post<QrCode>('/restaurant/qr', body);

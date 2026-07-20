@@ -33,28 +33,28 @@ class StaffService {
     return api.post<{ ok: true; affected: number }>('/restaurant/staff/bulk', { action, ids, params });
   }
   sessions(id: string) {
-    return api.get<StaffSession[]>(`/restaurant/staff/${id}/sessions`);
+    return api.list<StaffSession>(`/restaurant/staff/${id}/sessions`);
   }
   devices(id: string) {
-    return api.get<StaffDevice[]>(`/restaurant/staff/${id}/devices`);
+    return api.list<StaffDevice>(`/restaurant/staff/${id}/devices`);
   }
   accessLogs(id: string) {
-    return api.get<AccessLog[]>(`/restaurant/staff/${id}/access-logs`);
+    return api.list<AccessLog>(`/restaurant/staff/${id}/access-logs`);
   }
   assignRoles(id: string, roles: string[]) {
     return api.post<Staff>(`/restaurant/staff/${id}/roles`, { roles });
   }
   effectivePermissions(id: string) {
-    return api.get<string[]>(`/restaurant/staff/${id}/effective-permissions`);
+    return api.list<string>(`/restaurant/staff/${id}/effective-permissions`);
   }
 }
 
 class RoleService {
   list() {
-    return api.get<Role[]>('/restaurant/roles');
+    return api.list<Role>('/restaurant/roles');
   }
   permissions() {
-    return api.get<Permission[]>('/identity/permissions');
+    return api.list<Permission>('/identity/permissions');
   }
   create(body: Partial<Role>) {
     return api.post<Role>('/restaurant/roles', body);

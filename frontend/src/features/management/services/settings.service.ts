@@ -37,7 +37,7 @@ class BranchService {
 
 class DeliveryZoneService {
   list(branchId: string) {
-    return api.get<DeliveryZone[]>(`/restaurant/branches/${branchId}/zones`);
+    return api.list<DeliveryZone>(`/restaurant/branches/${branchId}/zones`);
   }
   create(branchId: string, body: Partial<DeliveryZone>) {
     return api.post<DeliveryZone>(`/restaurant/branches/${branchId}/zones`, body);

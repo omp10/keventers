@@ -78,6 +78,22 @@ export class ApiClient {
     };
   }
 
+  /**
+   * A LIST endpoint, as a plain array — regardless of whether the backend
+   * paginates it.
+   *
+   * Some endpoints return `[...]` and others `{ items, pagination }`, and a
+   * caller cannot tell which without reading the server. Typing the response as
+   * `T[]` and hoping is what crashed /dashboard/tables with "c.map is not a
+   * function": `data ?? []` kept the ENVELOPE (it is not null), `.length === 0`
+   * was false, and `.map` then blew up the page. `paginate` already normalises
+   * both shapes, so this just drops the meta.
+   */
+  async list<T>(path: string, config: RequestConfig = {}): Promise<T[]> {
+    const page = await this.paginate<T>(path, config);
+    return page.items ?? [];
+  }
+
   /** Core request → unwraps the ApiResponse envelope, returns `data`. */
   async request<T>(path: string, config: RequestConfig = {}): Promise<T> {
     return (await this.requestEnvelope<T>(path, config)).data;

@@ -27,7 +27,7 @@ class CouponService {
     return api.delete<{ ok: true }>(`/restaurant/coupons/${id}`);
   }
   redemptions(id: string) {
-    return api.get<CouponRedemption[]>(`/restaurant/coupons/${id}/redemptions`);
+    return api.list<CouponRedemption>(`/restaurant/coupons/${id}/redemptions`);
   }
   analytics(id: string) {
     return api.get<{ used: number; discountTotal: import('../types').Money; series?: { label: string; value: number }[] }>(`/restaurant/coupons/${id}/analytics`);
