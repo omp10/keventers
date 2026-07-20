@@ -38,8 +38,13 @@ export const envSchema = z.object({
   // --- MongoDB ---
   MONGO_URI: z.string().min(1, 'MONGO_URI is required'),
   MONGO_DB_NAME: z.string().min(1).default('keventers'),
-  MONGO_MAX_POOL_SIZE: z.coerce.number().int().positive().default(10),
-  MONGO_MIN_POOL_SIZE: z.coerce.number().int().nonnegative().default(2),
+  // A pool of 10 meant that under a rush the 11th concurrent query WAITED for a
+  // free socket even when the database was idle — the app throttled itself. 50
+  // per process (x2 cluster workers = 100 sockets) sits far inside Atlas's
+  // 500-connection ceiling while removing that self-imposed queue. minPoolSize
+  // keeps sockets warm so a spike does not pay TLS handshakes at the worst moment.
+  MONGO_MAX_POOL_SIZE: z.coerce.number().int().positive().default(50),
+  MONGO_MIN_POOL_SIZE: z.coerce.number().int().nonnegative().default(5),
   MONGO_SERVER_SELECTION_TIMEOUT_MS: z.coerce.number().int().positive().default(5000),
 
   // --- Redis ---

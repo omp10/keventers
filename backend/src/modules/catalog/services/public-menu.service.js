@@ -1,7 +1,9 @@
 import { BaseService } from '#core/service/base.service.js';
 import { NotFoundError } from '#core/errors/app-error.js';
 
-import { AVAILABILITY_STATUS, CATEGORY_STATUS, ENTITY_STATUS, PRODUCT_STATUS } from '../constants/catalog.constants.js';
+import { cacheService } from '#core/cache/cache.service.js';
+
+import { AVAILABILITY_STATUS, CATALOG_CACHE, CATEGORY_STATUS, ENTITY_STATUS, PRODUCT_STATUS } from '../constants/catalog.constants.js';
 import { Addon } from '../models/addon.model.js';
 import { Category } from '../models/category.model.js';
 import { Modifier } from '../models/modifier.model.js';
@@ -10,6 +12,10 @@ import { Product } from '../models/product.model.js';
 import { Variant } from '../models/variant.model.js';
 
 const id = (doc) => String(doc?._id ?? doc?.id ?? '');
+
+/** Branch docs are near-static; a minute bounds staleness while killing the
+ *  per-request round trip to a remote database on every public read. */
+const BRANCH_CACHE_TTL_SECONDS = 60;
 
 /**
  * Catalog stores prices as plain numbers in the restaurant's currency (major
@@ -160,10 +166,22 @@ export class PublicMenuService extends BaseService {
     this.branchLookup = lookup;
   }
 
-  /** Resolve the branch (and its restaurant) from a public slug. */
+  /**
+   * Resolve the branch (and its restaurant) from a public slug.
+   *
+   * CACHED, because this runs before every public menu/search/product read and
+   * each miss is a round trip to a REMOTE database — which dominated the
+   * endpoint's latency even once the menu payload itself was cached. A branch's
+   * name/slug/currency changes about never, so a short TTL is a safe trade;
+   * live signals like opening hours are computed elsewhere, not from this doc.
+   */
   async #branch(slug) {
     if (!this.branchLookup) throw new NotFoundError('Menu not available');
-    const branch = await this.branchLookup(String(slug).toLowerCase());
+    const key = `${CATALOG_CACHE.PUBLIC_MENU_PREFIX}:branch-slug:${String(slug).toLowerCase()}`;
+    const branch = await cacheService.getOrSet(key, BRANCH_CACHE_TTL_SECONDS, async () => {
+      const found = await this.branchLookup(String(slug).toLowerCase());
+      return found ?? null; // cache the miss too — a bad slug must not hammer the DB
+    });
     if (!branch) throw new NotFoundError('Branch not found');
     return branch;
   }
@@ -220,8 +238,25 @@ export class PublicMenuService extends BaseService {
   }
 
   /** GET /public/branches/:slug/menu — the full browsable menu. */
+  /**
+   * The single hottest endpoint on the platform: EVERY QR scan loads it, and the
+   * payload is identical for every diner at a branch. Uncached it cost ~310ms of
+   * Mongo work per request, so a rush (or a spike) multiplied one restaurant's
+   * menu by every phone in the room and queued them all behind a small Atlas
+   * connection pool.
+   *
+   * Cached under the EXISTING `public-menu:<restaurantId>` key prefix, which the
+   * catalog event handlers already invalidate on every menu/category/product/
+   * modifier mutation — so a staff edit still appears immediately; the TTL is
+   * only a backstop. Cache failures fall through to a live read.
+   */
   async branchMenu(slug) {
     const branch = await this.#branch(slug);
+    const key = `${CATALOG_CACHE.PUBLIC_MENU_PREFIX}:${branch.restaurantId}:branch:${branch.slug}`;
+    return cacheService.getOrSet(key, CATALOG_CACHE.TTL_SECONDS, () => this.#buildBranchMenu(branch));
+  }
+
+  async #buildBranchMenu(branch) {
     const currency = this.#currencyOf(branch);
     const restaurantId = branch.restaurantId;
 

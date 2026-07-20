@@ -1,0 +1,73 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# SPIKE HARDENING for keventers.appzeto.com  —  REVIEW BEFORE APPLYING
+#
+# This host also runs an unrelated project (buy-together / buytogetherindia.conf).
+# Everything below is scoped to the keventers server block or uses keventers-
+# prefixed names, so nothing here touches that project. The two `proxy_cache_path`
+# lines go in the http{} context (nginx.conf) — check the zone names don't clash
+# with anything already defined there.
+#
+# Apply with:
+#   nginx -t && systemctl reload nginx      # -t FIRST; reload never drops connections
+# Roll back by removing the added lines and reloading again.
+#
+# WHY THIS IS THE LEVER: the app now marks the public menu
+# `Cache-Control: public, max-age=30, stale-while-revalidate=120`. With the cache
+# below, nginx answers repeat requests from memory and Node sees ONE request per
+# menu per 30s instead of one per diner. A 2-vCPU box cannot serve 10k requests
+# from Node; it can trivially serve them from an nginx cache.
+# ─────────────────────────────────────────────────────────────────────────────
+
+# ── http{} context (nginx.conf) ──────────────────────────────────────────────
+# 100 MB of cached menus is far more than this catalogue needs.
+proxy_cache_path /var/cache/nginx/keventers levels=1:2 keys_zone=keventers_cache:20m
+                 max_size=100m inactive=10m use_temp_path=off;
+
+# Per-IP CONNECTION cap (not a request-rate cap). A restaurant's diners share one
+# NAT IP over the venue wifi, so rate-limiting requests per IP would throttle real
+# customers; capping concurrent connections still stops a single abusive client.
+limit_conn_zone $binary_remote_addr zone=keventers_conn:10m;
+
+# ── inside `server { server_name keventers.appzeto.com; ... }` ───────────────
+
+# Public, cacheable reads. Node is hit once per key per TTL.
+location ~ ^/api/v1/public/branches/[^/]+/(menu|products)(/|$) {
+    proxy_pass http://127.0.0.1:5001;
+    proxy_http_version 1.1;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+
+    proxy_cache keventers_cache;
+    # Vary on encoding so a gzipped body is never served to a client that
+    # cannot decode it.
+    proxy_cache_key "$scheme$request_method$host$request_uri$http_accept_encoding";
+    proxy_cache_valid 200 30s;
+    # THE STAMPEDE GUARD: when an entry expires, ONE request refreshes it while
+    # everyone else keeps getting the slightly-stale copy. Without this, every
+    # expiry sends the whole crowd to Node at once — exactly the spike you are
+    # trying to survive.
+    proxy_cache_use_stale updating error timeout http_500 http_502 http_503 http_504;
+    proxy_cache_background_update on;
+    proxy_cache_lock on;
+    proxy_cache_lock_timeout 5s;
+    # Never serve a cached body to a credentialed request.
+    proxy_cache_bypass $http_authorization;
+    proxy_no_cache    $http_authorization;
+    add_header X-Cache-Status $upstream_cache_status always;
+
+    limit_conn keventers_conn 50;
+}
+
+# Everything else keeps the existing behaviour — the app's own guards (auth rate
+# limiting, tenancy, idempotency) own correctness; nginx only sheds load here.
+# Add to the EXISTING `location / { ... }` block if you want the connection cap
+# platform-wide:
+#     limit_conn keventers_conn 50;
+
+# ── verifying it works ───────────────────────────────────────────────────────
+#   curl -sI https://keventers.appzeto.com/api/v1/public/branches/raddison-main/menu \
+#     | grep -i x-cache-status
+# First call MISS, subsequent calls HIT. A menu edit shows within 30s (the app
+# also clears its own Redis entry immediately on any catalog mutation).

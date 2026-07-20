@@ -1,5 +1,7 @@
 import { Router } from 'express';
 
+import { publicCache } from '#core/http/public-cache.middleware.js';
+
 import { PublicMenuController } from '../controllers/public-menu.controller.js';
 
 /**
@@ -19,10 +21,22 @@ import { PublicMenuController } from '../controllers/public-menu.controller.js';
  */
 const router = Router();
 
+/**
+ * The menu is the hottest public read on the platform and identical for every
+ * diner at a branch: let nginx/CDN/browsers serve the repeats so a QR rush never
+ * reaches Node.
+ *
+ * Attached PER ROUTE, not via `router.use('/:slug/menu')` — that matches by
+ * prefix, which also tagged `/menu/recent` (a per-caller list) as publicly
+ * cacheable and would have let a shared cache serve one diner's recent orders
+ * to another.
+ */
+const cacheable = publicCache({ maxAge: 30, staleWhileRevalidate: 120 });
+
 // Static sub-paths BEFORE the product wildcard so they're never swallowed.
 router.get('/:slug/menu/search', PublicMenuController.search);
 router.get('/:slug/menu/recent', PublicMenuController.recent);
-router.get('/:slug/menu', PublicMenuController.branchMenu);
-router.get('/:slug/products/:productSlug', PublicMenuController.product);
+router.get('/:slug/menu', cacheable, PublicMenuController.branchMenu);
+router.get('/:slug/products/:productSlug', cacheable, PublicMenuController.product);
 
 export default router;
