@@ -12,6 +12,7 @@ export type KitchenTab = { to: string; label: string; icon: IconName; end?: bool
 export const KITCHEN_TABS: KitchenTab[] = [
   { to: '/kitchen', label: 'Board', icon: 'grid', end: true },
   { to: '/kitchen/dashboard', label: 'Dashboard', icon: 'dashboard' },
+  { to: '/kitchen/orders', label: 'Orders', icon: 'order' },
   { to: '/kitchen/staff', label: 'Staff', icon: 'users' },
   { to: '/kitchen/stations', label: 'Stations', icon: 'flame' },
   { to: '/kitchen/menu', label: 'Menu', icon: 'utensils' },

@@ -435,7 +435,11 @@ export class OrderService extends BaseService {
 
   async getForStaff(tenant, id) {
     const order = await loadForStaff(this.orders, tenant, id);
-    return toOrderDTO(order, { forStaff: true });
+    // Resolve the outlet NAME, not just its id. The staff detail drawer shows
+    // "Branch", and shipping only `branchId` meant it read `order.branch.name`
+    // off an object that was never sent — every order detail crashed the drawer.
+    const [dto] = await this.#withOutletNames([toOrderDTO(order, { forStaff: true })]);
+    return dto;
   }
 
   /**

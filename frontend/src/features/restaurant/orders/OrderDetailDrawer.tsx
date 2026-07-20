@@ -94,7 +94,10 @@ export function OrderDetailDrawer({ orderId, onClose }: { orderId: string | null
                 <Meta label="Table" value={order.table?.label} />
                 <Meta label="QR / code" value={order.qrCode ?? order.table?.code} />
                 <Meta label="Channel" value={order.channel} />
-                <Meta label="Branch" value={order.branch.name} />
+                {/* Optional-chained like `customer` above: the staff detail DTO
+                    carries only `branchId` unless the API resolves the name, and
+                    a missing outlet must not blank the whole drawer. */}
+                <Meta label="Branch" value={order.branch?.name ?? '—'} />
                 <Meta label="Session" value={order.guestSessionId ? order.guestSessionId.slice(0, 8) : undefined} />
               </dl>
 

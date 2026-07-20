@@ -17,6 +17,9 @@ import { useKitchenAudio } from './audio';
 import { useKitchenMode } from './fullscreen';
 import { useKitchenMetrics, useKitchenRealtime } from './hooks';
 import { isAudioLocked, onAudioLockChange, playOrderAlert } from '@/utils/order-alert';
+import { OrderDetailDrawer } from '@/features/restaurant/orders';
+import { useOrderDrawer } from '@/features/restaurant/hooks';
+
 import { KITCHEN_TABS, KitchenTabBar } from './KitchenTabBar';
 import { KitchenFilters, KitchenSearch } from './panels';
 
@@ -38,6 +41,7 @@ import { KitchenFilters, KitchenSearch } from './panels';
 export function KitchenShell() {
   const navigate = useNavigate();
   const location = useLocation();
+  const orderDrawer = useOrderDrawer();
   useKitchenRealtime();
   // A kitchen that believes it will be alerted but is silently muted by the
   // browser's autoplay policy misses orders. Surface it and let one tap fix it.
@@ -212,6 +216,12 @@ export function KitchenShell() {
           <Outlet />
         </Suspense>
       </main>
+
+      {/* The order detail drawer is deep-linked by `?order=` (useOrderDrawer just
+          sets the param). It lives in the dashboard shell, so without mounting it
+          here too, tapping an order on /kitchen/orders changed the URL and opened
+          nothing. */}
+      <OrderDetailDrawer orderId={orderDrawer.orderId} onClose={orderDrawer.close} />
 
       <KitchenTabBar className="md:hidden" />
     </div>

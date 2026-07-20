@@ -25,7 +25,10 @@ export function PriceBreakdown({ pricing, className }: { pricing: PricingBreakdo
       <Row label="Item total" value={formatMoney(pricing.subtotal)} />
       {hasDiscount && <Row label="Discount" value={`− ${formatMoney(pricing.discount!)}`} muted />}
       {hasCoupon && <Row label="Coupon" value={`− ${formatMoney(pricing.couponDiscount!)}`} muted />}
-      {pricing.taxes.map((t) => (
+      {/* `taxes` is absent on some order snapshots (and on any order priced
+          before taxes were itemised). This component is shared with the STAFF
+          order drawer, where one missing array was blanking the whole panel. */}
+      {(pricing.taxes ?? []).map((t) => (
         <Row key={t.label} label={t.label} value={formatMoney(t.amount)} muted />
       ))}
       {pricing.serviceCharge && pricing.serviceCharge.amount > 0 && <Row label="Service charge" value={formatMoney(pricing.serviceCharge)} muted />}
