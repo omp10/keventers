@@ -16,9 +16,36 @@ import { ScanGate } from '../home/ScanGate';
  * Someone mid-session (`resume-session`) skips the gate — they've already
  * scanned; re-asking would be theatre.
  */
+/**
+ * "I chose to browse" survives a RELOAD but not a new visit.
+ *
+ * This lived in plain component state, so refreshing "/" threw the diner back
+ * to the camera they had already dismissed — every reload re-gated them. Session
+ * storage is the exact scope wanted: the QR is still the front door when someone
+ * opens the site, but pressing refresh (or coming back via the tab bar) keeps
+ * them where they were.
+ */
+const BROWSING_KEY = 'kv-entry-browsing';
+const readBrowsing = () => {
+  try {
+    return sessionStorage.getItem(BROWSING_KEY) === '1';
+  } catch {
+    return false;
+  }
+};
+
 export function EntryPage() {
   const { decision } = useEntryDecision();
-  const [browsing, setBrowsing] = useState(false);
+  const [browsing, setBrowsing] = useState(readBrowsing);
+
+  const startBrowsing = () => {
+    try {
+      sessionStorage.setItem(BROWSING_KEY, '1');
+    } catch {
+      /* private mode — the choice just won't survive a reload */
+    }
+    setBrowsing(true);
+  };
 
   switch (decision.kind) {
     case 'open-branch':
@@ -29,6 +56,6 @@ export function EntryPage() {
       // Already at a table — straight to the home they know.
       return <HomeScreen />;
     default:
-      return browsing ? <HomeScreen /> : <ScanGate onBrowse={() => setBrowsing(true)} />;
+      return browsing ? <HomeScreen /> : <ScanGate onBrowse={startBrowsing} />;
   }
 }
