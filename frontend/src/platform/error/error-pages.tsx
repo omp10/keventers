@@ -1,5 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 
+import { useAuth } from '@/platform/auth';
+
 import { Button, EmptyState, ErrorState, OfflineState } from '@/design-system';
 
 /** Full-page wrappers around the F1 state components, for use as route elements. */
@@ -22,14 +24,46 @@ export function NotFoundPage() {
   );
 }
 
+/**
+ * 403 — reached by someone SIGNED IN with the wrong role, most often a customer
+ * opening /admin or /dashboard. Since login became mandatory that is a common
+ * accident, and "Go back" only returns them to the page that just rejected
+ * them: a dead end.
+ *
+ * The real fix is to say WHICH account they are on and let them switch. It
+ * cannot redirect to the admin login automatically — those pages bounce an
+ * authenticated user back, which loops forever — so signing out first is the
+ * honest route, and it is one tap.
+ */
 export function ForbiddenPage() {
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
+  const signedInAs = user?.email || user?.phone || null;
+
   return (
     <PageShell>
       <ErrorState
         title="Access denied"
-        description="You don't have permission to view this page."
-        action={<Button variant="secondary" onClick={() => navigate(-1)}>Go back</Button>}
+        description={
+          signedInAs
+            ? `This area needs a different account. You are signed in as ${signedInAs}.`
+            : "You don't have permission to view this page."
+        }
+        action={
+          <div className="flex flex-wrap justify-center gap-2">
+            <Button
+              onClick={async () => {
+                await logout();
+                navigate('/login', { replace: true });
+              }}
+            >
+              Sign in as someone else
+            </Button>
+            <Button variant="secondary" onClick={() => navigate('/', { replace: true })}>
+              Go home
+            </Button>
+          </div>
+        }
       />
     </PageShell>
   );

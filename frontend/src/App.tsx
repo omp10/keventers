@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { Route, Routes } from 'react-router-dom';
 
-import { NotFoundPage } from '@/platform/error';
+import { ForbiddenPage, NotFoundPage } from '@/platform/error';
 import { RequireAuth, RequireRole } from '@/platform/auth';
 import { discoveryRoutes, DiscoveryMinimalLayout, DiscoveryTabsLayout } from '@/features/discovery';
 import { orderingRoutes, OrderingLayout } from '@/features/ordering';
@@ -116,11 +116,20 @@ export function App() {
         <Route path="menu" element={<KitchenMenuRoute />} />
         <Route path="profile" element={<KitchenProfileRoute />} />
       </Route>
+      {/* Wrong-role users go to /403, NOT to the login page: the login pages bounce
+          an already-authenticated user back here, which loops forever. The 403
+          page itself offers the way out (sign out, then sign in as an admin). */}
       <Route element={<RequireRole roles={['super_admin']} redirectTo="/admin/login"><AdminLayout /></RequireRole>}>
         {adminRoutes.map((r) => <Route key={r.path} path={r.path} element={r.element} />)}
       </Route>
       {/* The F1 component gallery stays available for design QA. */}
       <Route path="/showcase" element={<Showcase />} />
+      {/* /403 is where every role guard sends a signed-in user who lacks the
+          role (`forbiddenTo` defaults to it). It was never ROUTED, so it fell
+          through to the catch-all and rendered "Page not found" — telling a
+          customer who opened /admin that the page does not exist, when it does
+          and they simply cannot see it. */}
+      <Route path="/403" element={<ForbiddenPage />} />
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
     </>
