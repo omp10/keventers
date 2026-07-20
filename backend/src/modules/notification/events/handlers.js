@@ -2,7 +2,7 @@ import { eventBus as sharedEventBus } from '#core/eventbus/index.js';
 import { logger } from '#core/logging/logger.js';
 import { orderService } from '#modules/order/index.js';
 
-import { CONSUMED_EVENTS, specForEvent } from '../constants/event-map.js';
+import { CONSUMED_EVENTS, specForEvent, staffSpecForEvent } from '../constants/event-map.js';
 import { dedupeKey } from '../utils/dedupe.util.js';
 import { outboxService } from '../services/outbox.service.js';
 
@@ -43,6 +43,71 @@ export function registerNotificationEventHandlers(bus = sharedEventBus, deps = {
       data: { orderId: String(order.id ?? order._id), orderNumber: order.orderNumber, kind: 'order', status: order.status },
       dedupeKey: dedupeKey(eventName, recipientKey, `${payload.orderId}:${eventName}`),
     };
+  }
+
+  /**
+   * STAFF / KITCHEN notifications — a FAN-OUT, not a single recipient.
+   *
+   * A customer notification has one obvious addressee; "a new order arrived" has
+   * to reach whoever is on the floor. So this resolves the people who actually
+   * reach this branch and returns ONE outbox row each: every staff member then
+   * gets their own preference check, their own dedupe key and their own delivery
+   * retry, exactly like a customer would. One row addressed to a group would
+   * have none of that.
+   *
+   * `target: 'assignee'` is the exception — being handed an order is personal,
+   * so it goes to that chef alone rather than buzzing the whole kitchen.
+   */
+  async function staffRequests(eventName, payload) {
+    const spec = staffSpecForEvent(eventName);
+    if (!spec || !payload?.orderId) return [];
+    const order = await orders.getByIdSystem(payload.orderId).catch(() => null);
+    if (!order) return [];
+
+    const scope = {
+      organizationId: String(order.organizationId),
+      restaurantId: String(order.restaurantId),
+      branchId: order.branchId ? String(order.branchId) : null,
+    };
+
+    let userIds = [];
+    if (spec.target === 'assignee') {
+      const chefId = payload.chefId ?? payload.assignment?.currentChefId ?? null;
+      userIds = chefId ? [String(chefId)] : [];
+    } else {
+      const { staffService } = await import('#modules/organization/index.js');
+      const staff = await staffService.listForBranchSystem(scope).catch(() => []);
+      userIds = [...new Set(staff.map((m) => String(m.userId ?? m.user?.id ?? '')).filter(Boolean))];
+    }
+    if (!userIds.length) return [];
+
+    // The order stores only `tableId`, but "Table 10" is the single most useful
+    // token on a busy floor — resolve it rather than shipping "the counter".
+    const tableLabel = order.tableLabel ?? order.table?.name ?? order.table?.number ?? null;
+
+    const variables = {
+      orderNumber: order.orderNumber,
+      tableLabel: tableLabel ?? 'the counter',
+      itemCount: order.itemCount ?? (order.items?.length ?? 0),
+      restaurantName: order.restaurantName ?? 'the restaurant',
+    };
+    // Deep-link staff straight at the board rather than the customer app.
+    const data = { orderId: String(order.id ?? order._id), orderNumber: order.orderNumber, kind: 'staff_order', link: '/kitchen/orders' };
+
+    return userIds.map((userId) => ({
+      scope,
+      eventName,
+      templateKey: spec.template,
+      category: spec.category,
+      priority: spec.priority,
+      audience: spec.audience,
+      channels: spec.channels,
+      recipient: { userId, role: 'staff' },
+      variables,
+      data,
+      // Per-recipient: two staff must not dedupe each other out.
+      dedupeKey: dedupeKey(eventName, userId, `${payload.orderId}:${eventName}:staff`),
+    }));
   }
 
   /** Payment/refund notification (enriches the order for recipient + amount). */
@@ -155,15 +220,27 @@ export function registerNotificationEventHandlers(bus = sharedEventBus, deps = {
 
   for (const eventName of CONSUMED_EVENTS) {
     const router = ROUTERS[eventName];
-    if (!router) continue;
+    const notifiesStaff = Boolean(staffSpecForEvent(eventName));
+    if (!router && !notifiesStaff) continue;
     bus.subscribe(
       eventName,
       async (payload) => {
-        try {
-          const request = await router(eventName, payload);
-          if (request) await enqueue(request);
-        } catch (err) {
-          log.warn({ err, event: eventName }, 'notification handler failed (continuing)');
+        // The two audiences are enqueued INDEPENDENTLY: a failure resolving the
+        // staff roster must never cost the customer their order update.
+        if (router) {
+          try {
+            const request = await router(eventName, payload);
+            if (request) await enqueue(request);
+          } catch (err) {
+            log.warn({ err, event: eventName }, 'notification handler failed (continuing)');
+          }
+        }
+        if (notifiesStaff) {
+          try {
+            for (const request of await staffRequests(eventName, payload)) await enqueue(request);
+          } catch (err) {
+            log.warn({ err, event: eventName }, 'staff notification handler failed (continuing)');
+          }
         }
       },
       { name: `notification.on.${eventName}` },

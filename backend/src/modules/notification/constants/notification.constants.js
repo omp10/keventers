@@ -61,6 +61,12 @@ export const TEMPLATE_KEY = Object.freeze({
   LOYALTY_EARNED: 'loyalty_earned',
   TIER_UPGRADED: 'tier_upgraded',
   RESTAURANT_APPROVED: 'restaurant_approved',
+  // Staff/kitchen-facing. Deliberately separate keys from the customer ones:
+  // "Order ready" means "collect it" to a diner and "carry it out" to a waiter.
+  STAFF_ORDER_NEW: 'staff_order_new',
+  STAFF_ORDER_ASSIGNED: 'staff_order_assigned',
+  STAFF_ORDER_READY: 'staff_order_ready',
+  STAFF_SLA_BREACHED: 'staff_sla_breached',
 });
 
 // ==================== STATUS MACHINES ====================

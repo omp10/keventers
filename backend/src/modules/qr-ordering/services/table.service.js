@@ -83,6 +83,19 @@ export class TableService extends BaseService {
     return toTableDTO(table);
   }
 
+  /**
+   * Trusted read by id, NO tenant check — for internal, event-driven consumers
+   * (the Notification Engine labelling a staff alert "Table 10"). The caller is
+   * a system context reacting to an order that already owns this table id, and
+   * a table's number is not sensitive. Mirrors `branchService.getPublicById`.
+   * Returns null if absent rather than throwing: a missing label must never
+   * cost the kitchen its notification.
+   */
+  async getPublicById(id) {
+    const table = await this.tables.findById(id).catch(() => null);
+    return table ? toTableDTO(table) : null;
+  }
+
   async updateTable(tenant, id, data, actorId = null) {
     const table = await loadOwned(this.tables, tenant, id, QR_ERRORS.TABLE_NOT_FOUND);
     const scope = {

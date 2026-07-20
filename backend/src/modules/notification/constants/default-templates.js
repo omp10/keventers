@@ -22,6 +22,14 @@ export const DEFAULT_TEMPLATES = Object.freeze({
   [TEMPLATE_KEY.LOYALTY_EARNED]: { category: CATEGORY.LOYALTY, subject: 'You earned {{ points }} points', body: 'You earned {{ points }} points at {{ restaurantName }}. Balance: {{ balance }} points.' },
   [TEMPLATE_KEY.TIER_UPGRADED]: { category: CATEGORY.LOYALTY, subject: 'You reached {{ tier }} tier!', body: 'Congratulations {{ name }} — you are now a {{ tier }} member at {{ restaurantName }}.' },
   [TEMPLATE_KEY.RESTAURANT_APPROVED]: { category: CATEGORY.SYSTEM, subject: 'Your restaurant is approved', body: '{{ restaurantName }} has been approved and is now live on Keventers.' },
+
+  // ---- Staff / kitchen ----
+  // Written for someone glancing at a lock screen mid-service: what, where, how
+  // many. The table is the single most useful token on a busy floor.
+  [TEMPLATE_KEY.STAFF_ORDER_NEW]: { category: CATEGORY.ORDER_UPDATES, subject: 'New order · {{ tableLabel }}', body: '{{ orderNumber }} — {{ itemCount }} item(s) for {{ tableLabel }}. Tap to open the kitchen board.' },
+  [TEMPLATE_KEY.STAFF_ORDER_ASSIGNED]: { category: CATEGORY.ORDER_UPDATES, subject: 'Assigned to you · {{ orderNumber }}', body: '{{ orderNumber }} for {{ tableLabel }} is yours. Tap to start preparing.' },
+  [TEMPLATE_KEY.STAFF_ORDER_READY]: { category: CATEGORY.ORDER_UPDATES, subject: 'Ready to serve · {{ tableLabel }}', body: '{{ orderNumber }} is ready to carry out to {{ tableLabel }}.' },
+  [TEMPLATE_KEY.STAFF_SLA_BREACHED]: { category: CATEGORY.ORDER_UPDATES, subject: 'Running late · {{ orderNumber }}', body: '{{ orderNumber }} for {{ tableLabel }} has passed its prep target. Check the board.' },
 });
 
 /** Fallback lookup used by the template service when no DB template exists. */

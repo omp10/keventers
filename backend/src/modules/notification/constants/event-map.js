@@ -40,9 +40,37 @@ export const EVENT_NOTIFICATION_MAP = Object.freeze({
   'customer.tier.changed': { template: TEMPLATE_KEY.TIER_UPGRADED, category: CATEGORY.LOYALTY, priority: PRIORITY.NORMAL, channels: [CHANNEL.IN_APP, CHANNEL.PUSH], audience: AUDIENCE.CUSTOMER },
 });
 
-/** Every event name the Notification Engine subscribes to. */
-export const CONSUMED_EVENTS = Object.freeze(Object.keys(EVENT_NOTIFICATION_MAP));
+/**
+ * STAFF / KITCHEN notifications — a SEPARATE map because the same event has to
+ * reach two different audiences saying two different things: `order.ready` tells
+ * the diner "come and collect it" and the waiter "carry it out". Keying one map
+ * by event name could only ever express one of those.
+ *
+ * These are PUSH-first by design. Staff already get Socket.IO updates while the
+ * app is on screen; the entire point here is reaching a phone that is in a
+ * pocket or a tablet that has gone to sleep.
+ */
+export const STAFF_EVENT_NOTIFICATION_MAP = Object.freeze({
+  // A new order landing is the one every kitchen must never miss.
+  'order.placed': { template: TEMPLATE_KEY.STAFF_ORDER_NEW, category: CATEGORY.ORDER_UPDATES, priority: PRIORITY.CRITICAL, channels: [CHANNEL.IN_APP, CHANNEL.PUSH], audience: AUDIENCE.STAFF, target: 'branch' },
+  // Ready = someone has to carry it to the table.
+  'kitchen.order.ready': { template: TEMPLATE_KEY.STAFF_ORDER_READY, category: CATEGORY.ORDER_UPDATES, priority: PRIORITY.HIGH, channels: [CHANNEL.IN_APP, CHANNEL.PUSH], audience: AUDIENCE.STAFF, target: 'branch' },
+  // A breach is an escalation — the whole branch should see it.
+  'kitchen.sla.breached': { template: TEMPLATE_KEY.STAFF_SLA_BREACHED, category: CATEGORY.ORDER_UPDATES, priority: PRIORITY.CRITICAL, channels: [CHANNEL.IN_APP, CHANNEL.PUSH], audience: AUDIENCE.STAFF, target: 'branch' },
+  // Assignment is personal: it goes to the ONE chef, not the whole floor.
+  'kitchen.order.assigned': { template: TEMPLATE_KEY.STAFF_ORDER_ASSIGNED, category: CATEGORY.ORDER_UPDATES, priority: PRIORITY.HIGH, channels: [CHANNEL.IN_APP, CHANNEL.PUSH], audience: AUDIENCE.STAFF, target: 'assignee' },
+});
+
+/** Every event name the Notification Engine subscribes to (both audiences). */
+export const CONSUMED_EVENTS = Object.freeze([
+  ...new Set([...Object.keys(EVENT_NOTIFICATION_MAP), ...Object.keys(STAFF_EVENT_NOTIFICATION_MAP)]),
+]);
 
 export function specForEvent(eventName) {
   return EVENT_NOTIFICATION_MAP[eventName] ?? null;
+}
+
+/** The staff-facing spec for an event, if it has one. */
+export function staffSpecForEvent(eventName) {
+  return STAFF_EVENT_NOTIFICATION_MAP[eventName] ?? null;
 }
