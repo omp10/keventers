@@ -70,8 +70,17 @@ export function useStaffActions() {
     {
       onSuccess: (entry) => {
         toast.success(`Order ${entry.orderNumber} → ${entry.status}`);
-        void queryClient.invalidateQueries({ queryKey: QUEUE_KEY });
-        void queryClient.invalidateQueries({ queryKey: HISTORY_KEY });
+        // Patch the row from the response instead of refetching the whole
+        // queue: on a phone over mobile data that refetch is what the waiter
+        // was waiting on. History is only invalidated when the order actually
+        // LEFT the queue (served), which is the only time it changes.
+        queryClient.setQueryData<{ items: StaffOrder[] } | StaffOrder[]>(QUEUE_KEY, (cur) => {
+          const list = Array.isArray(cur) ? cur : cur?.items;
+          if (!list) return cur;
+          const next = list.map((o) => (o.orderId === entry.orderId ? entry : o));
+          return Array.isArray(cur) ? next : { ...cur, items: next };
+        });
+        if (entry.status === 'served') void queryClient.invalidateQueries({ queryKey: HISTORY_KEY });
       },
       onError: (err) => toast.error('Could not update the order', { description: err.message }),
     },

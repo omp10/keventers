@@ -26,9 +26,15 @@ export function useKitchenActions() {
     ({ orderId, action, payload }) => kitchenService.transition(orderId, action, payload),
     {
       onSuccess: (entry, vars) => {
+        // The response IS the updated entry, so patch it straight into the
+        // board — the card changes the instant the request returns.
         queryClient.setQueryData<KitchenEntry[]>(KK.queue(), (cur) => (cur ? cur.map((e) => (e.orderId === entry.orderId ? entry : e)) : cur));
-        void queryClient.invalidateQueries({ queryKey: KK.queue() });
-        void queryClient.invalidateQueries({ queryKey: KK.metrics() });
+        // NO invalidate here. Every tap used to trigger a full board refetch
+        // AND a /metrics request that 404s (the endpoint does not exist), and
+        // then the socket fired a SECOND board refetch 250ms later — three
+        // extra round trips per tap, which is what made the KDS and staff app
+        // feel sluggish. `useKitchenRealtime` already coalesces one refresh per
+        // event burst, so reconciliation still happens, just once.
         toast.success(TOAST[vars.action]);
       },
       onError: (e) => {
