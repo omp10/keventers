@@ -93,6 +93,23 @@ export class PaymentService extends BaseService {
       throw new ForbiddenError(PAYMENT_ERRORS.SIGNATURE_INVALID);
     }
 
+    // The signature check is pure crypto — it proves the handshake is genuine but
+    // says nothing about whether the money is captured. Most gateways (Razorpay
+    // with auto-capture, which is the default) have ALREADY captured by the time
+    // the client hands us the payload, so assuming 'authorized' and firing a
+    // capture blew up with "already been captured" and failed a payment the
+    // customer had genuinely made. Ask the gateway for the real status.
+    let preCaptured = verdict.status === 'captured';
+    if (!preCaptured && verdict.providerPaymentRef && typeof adapter.fetchPayment === 'function') {
+      const live = await adapter
+        .fetchPayment({ providerPaymentRef: verdict.providerPaymentRef })
+        .catch((err) => {
+          this.logger.warn({ err }, 'provider fetchPayment failed; falling back to capture');
+          return null;
+        });
+      if (live?.status === 'captured') preCaptured = true;
+    }
+
     return this.#settle(scope, {
       order,
       intent,
@@ -101,7 +118,7 @@ export class PaymentService extends BaseService {
       method: intent.method,
       amount: intent.amount,
       providerPaymentRef: verdict.providerPaymentRef,
-      preCaptured: verdict.status === 'captured',
+      preCaptured,
       providerResponse: { via: 'confirm' },
     });
   }

@@ -84,7 +84,18 @@ export class RazorpayProvider extends PaymentProvider {
       headers: this.#authHeader(),
       body: { amount, currency },
     });
-    if (!res.ok) throw new Error(`Razorpay capture failed (${res.status})`);
+    if (!res.ok) {
+      const description = res.data?.error?.description ?? '';
+      // AUTO-CAPTURE: most Razorpay accounts capture at Checkout, so the payment
+      // is often already captured before we get here. That is SUCCESS — treating
+      // it as a failure threw away payments the customer had actually made.
+      // Capture is meant to be idempotent from our side, so report captured.
+      if (/already been captured/i.test(description)) {
+        return { captured: true, providerTxnRef: providerPaymentRef, raw: res.data, alreadyCaptured: true };
+      }
+      // Surface the gateway's reason — a bare status code told us nothing.
+      throw new Error(`Razorpay capture failed (${res.status})${description ? `: ${description}` : ''}`);
+    }
     return { captured: res.data.status === 'captured', providerTxnRef: res.data.id, raw: res.data };
   }
 
