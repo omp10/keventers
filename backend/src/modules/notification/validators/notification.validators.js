@@ -131,6 +131,18 @@ export const outboxListQuerySchema = z
 /** Register/unregister an FCM device token. */
 export const deviceTokenSchema = z.object({ token: z.string().min(20).max(4096) }).strict();
 
+/**
+ * FCM registration from any of our apps. `platform` is free-form on purpose —
+ * clients report "web" / "android" / "ios" and we normalise onto the two
+ * surfaces we store, rather than 400ing a device that spells itself differently.
+ */
+export const fcmTokenSchema = z
+  .object({
+    token: z.string().trim().min(20).max(4096),
+    platform: z.string().trim().max(20).optional(),
+  })
+  .strict();
+
 /** Optional overrides for the self-test push. */
 export const testPushSchema = z.object({
   title: z.string().trim().min(1).max(120).optional(),

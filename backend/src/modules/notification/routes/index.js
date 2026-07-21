@@ -6,6 +6,7 @@ import {
   adminOutboxRouter,
 } from './admin.routes.js';
 import customerRoutes from './customer.routes.js';
+import { buildFcmTokenRouter } from './fcm-token.routes.js';
 import {
   campaignsRouter,
   notificationsRouter,
@@ -18,12 +19,18 @@ import {
  * BEFORE organization, so these exact paths win).
  *
  *   /api/v1/notifications/...                                   (customer)
+ *   /api/v1/{customer,staff,kitchen}/fcm-token                  (push tokens)
  *   /api/v1/restaurant/{notifications,notification-templates,notification-campaigns}
  *   /api/v1/admin/{notifications,notification-campaigns,notification-outbox}
  */
 const router = Router();
 
 router.use('/notifications', customerRoutes);
+
+// One FCM registration endpoint per app (same handler — see fcm-token.routes.js).
+router.use('/customer/fcm-token', buildFcmTokenRouter());
+router.use('/staff/fcm-token', buildFcmTokenRouter());
+router.use('/kitchen/fcm-token', buildFcmTokenRouter());
 
 router.use('/restaurant/notifications', notificationsRouter);
 router.use('/restaurant/notification-templates', templatesRouter);

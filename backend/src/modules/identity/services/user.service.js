@@ -1,5 +1,5 @@
 import { BaseService } from '#core/service/base.service.js';
-import { ConflictError, NotFoundError, ValidationError } from '#core/errors/app-error.js';
+import { BadRequestError, ConflictError, NotFoundError, ValidationError } from '#core/errors/app-error.js';
 import { SecureToken } from '#core/security/secure-token.js';
 import { HashHelper } from '#core/security/hash.helper.js';
 import { passwordService, sessionService } from '#platform/auth/index.js';
@@ -116,6 +116,18 @@ export class UserService extends BaseService {
 
   async getUser(id) {
     return toUserDTO(await this.#getOrThrow(id));
+  }
+
+  /**
+   * Store one FCM registration token on the user. `field` is whitelisted to the
+   * two surface columns so a caller can never write an arbitrary path.
+   */
+  async setFcmToken(id, field, token) {
+    if (field !== 'fcmTokenWeb' && field !== 'fcmTokenMobile') {
+      throw new BadRequestError('Unsupported push token field');
+    }
+    await this.#getOrThrow(id);
+    return toUserDTO(await this.users.updateById(id, { [field]: String(token ?? '').trim() }));
   }
 
   /** Look up a user by email (read-only). Returns a DTO or null. */

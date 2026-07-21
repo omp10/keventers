@@ -1,3 +1,4 @@
+import { BadRequestError } from '#core/errors/app-error.js';
 import { BaseService } from '#core/service/base.service.js';
 import { userService } from '#modules/identity/index.js';
 
@@ -7,6 +8,7 @@ import {
 } from '../constants/notification.constants.js';
 import { toPreferenceDTO } from '../dto/notification.dto.js';
 import { preferenceRepository } from '../repositories/preference.repository.js';
+import { normalizePushPlatform } from '../utils/push-platform.util.js';
 
 /**
  * Notification preference service. Resolves — per (user, category, channel) —
@@ -52,6 +54,33 @@ export class PreferenceService extends BaseService {
   async registerDevice(scope, userId, token) {
     const pref = await this.preferences.addDeviceToken(scope, userId, token);
     return toPreferenceDTO(pref);
+  }
+
+  /**
+   * Register an FCM token for a SURFACE (web vs mobile) — the shape the user,
+   * staff and kitchen apps all post. Writes the dedicated field on the user AND
+   * keeps the legacy deviceTokens array in step, so delivery works whichever a
+   * client registered through.
+   *
+   * Re-registering the same surface REPLACES its token: FCM rotates tokens, and
+   * appending forever would leave us pushing to dead registrations.
+   */
+  async registerFcmToken(scope, userId, { token, platform } = {}) {
+    const value = String(token ?? '').trim();
+    if (!value) throw new BadRequestError('A device token is required');
+    const surface = normalizePushPlatform(platform);
+    const field = surface === 'mobile' ? 'fcmTokenMobile' : 'fcmTokenWeb';
+
+    const previous = await this.users.getUser(userId).catch(() => null);
+    const stale = previous?.[field];
+    await this.users.setFcmToken(userId, field, value);
+
+    // Legacy array: swap the stale token for the new one so it can't go stale.
+    if (stale && stale !== value) {
+      await this.preferences.removeDeviceToken(scope, userId, stale).catch(() => null);
+    }
+    const pref = await this.preferences.addDeviceToken(scope, userId, value);
+    return { platform: surface, field, registered: true, preferences: toPreferenceDTO(pref) };
   }
 
   /** Drop a device token (logout / permission revoked). */
@@ -118,13 +147,18 @@ export class PreferenceService extends BaseService {
   async resolveContact(pref, userId) {
     let email = pref?.email ?? null;
     let phone = pref?.phone ?? null;
-    const deviceTokens = pref?.deviceTokens ?? [];
-    if ((!email || !phone) && userId) {
+    // Push targets come from BOTH stores: the per-surface fields the apps
+    // register (web + mobile) and the legacy array. Deduped, because a client
+    // that used the old /devices endpoint will appear in both.
+    const tokens = new Set((pref?.deviceTokens ?? []).filter(Boolean));
+    if (userId) {
       const user = await this.users.getUser(userId).catch(() => null);
       email = email ?? user?.email ?? null;
       phone = phone ?? user?.phone ?? user?.phoneNumber ?? null;
+      if (user?.fcmTokenWeb) tokens.add(user.fcmTokenWeb);
+      if (user?.fcmTokenMobile) tokens.add(user.fcmTokenMobile);
     }
-    return { email, phone, deviceTokens };
+    return { email, phone, deviceTokens: [...tokens] };
   }
 }
 

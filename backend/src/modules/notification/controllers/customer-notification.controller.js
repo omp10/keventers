@@ -60,6 +60,23 @@ export const CustomerNotificationController = {
     ApiResponse.success(res, { data, statusCode: 201 });
   }),
 
+  /**
+   * POST /{customer,staff,kitchen}/fcm-token — register this surface's FCM token.
+   *
+   * One handler for all three apps: identity is global here, so a chef, a waiter
+   * and a diner are the same kind of principal — only the guard in front differs.
+   * The token is filed under web or mobile so a user signed in on both a phone
+   * and a desk browser keeps receiving on both.
+   */
+  registerFcmToken: asyncHandler(async (req, res) => {
+    const scope = deviceScopeOf(req);
+    const data = await preferenceService.registerFcmToken(scope, req.principal.id, {
+      token: req.body.token,
+      platform: req.body.platform,
+    });
+    ApiResponse.success(res, { data, statusCode: 201 });
+  }),
+
   /** DELETE /api/v1/notifications/devices — drop this device's FCM token. */
   unregisterDevice: asyncHandler(async (req, res) => {
     const scope = deviceScopeOf(req);

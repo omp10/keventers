@@ -21,6 +21,9 @@ export function toUserDTO(user) {
     status: user.status,
     type: user.type,
     emailVerified: Boolean(user.emailVerified),
+    // Push registrations, read by the Notification Engine when fanning out.
+    fcmTokenWeb: user.fcmTokenWeb ?? '',
+    fcmTokenMobile: user.fcmTokenMobile ?? '',
     profile: user.profile
       ? {
           avatarUrl: user.profile.avatarUrl ?? null,

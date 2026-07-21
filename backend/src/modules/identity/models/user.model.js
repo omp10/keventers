@@ -31,6 +31,16 @@ const userSchema = new Schema(
       lowercase: true,
     },
     phone: { type: String, trim: true, default: null },
+
+    /**
+     * FCM registration tokens, one per surface. A person can be signed in on the
+     * phone AND a desk browser at once (a chef on the kitchen screen, a manager
+     * on their laptop), so one field would silently drop one of them. Identity is
+     * global here, so these live on the user and serve the customer, staff and
+     * kitchen apps alike.
+     */
+    fcmTokenWeb: { type: String, trim: true, default: '' },
+    fcmTokenMobile: { type: String, trim: true, default: '' },
     passwordHash: { type: String, required: true, select: false },
     /**
      * Not required: a phone-first signup has no name until onboarding asks for
