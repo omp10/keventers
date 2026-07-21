@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
+import { DotLottieReact } from '@lottiefiles/dotlottie-react';
+import { useReducedMotion } from 'framer-motion';
 
 import { Button, Icon, Spinner, Textarea, EmptyState } from '@/design-system';
 import { formatMinutes, formatMoney } from '../format';
@@ -30,6 +32,7 @@ export function CartView({
   const { isAuthenticated } = useAuth();
   const loyalty = useLoyalty();
   const [sheetOpen, setSheetOpen] = useState(false);
+  const reduced = Boolean(useReducedMotion());
   // One celebration owner for BOTH the code field and the sheet: fire whenever a
   // coupon goes from none → applied. A ref of the previous code detects it
   // without re-firing on every render.
@@ -55,7 +58,13 @@ export function CartView({
   if (cart.isEmpty) {
     return (
       <EmptyState
-        icon={<Icon name="cart" className="mb-3 h-8 w-8 text-muted-foreground" />}
+        // An ILLUSTRATED empty state (self-hosted dotLottie), not a grey icon —
+        // the moment the cart empties is exactly when the app looks deadest.
+        icon={
+          <div className="mx-auto mb-2 h-40 w-40">
+            <DotLottieReact src="/animations/empty-cart.lottie" loop={!reduced} autoplay={!reduced} className="h-full w-full" />
+          </div>
+        }
         title="Your cart is empty"
         description="Add items from the menu to get started."
         action={<Button onClick={onBrowse}>Browse menu</Button>}

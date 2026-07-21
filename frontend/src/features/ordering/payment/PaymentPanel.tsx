@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import { DotLottieReact } from '@lottiefiles/dotlottie-react';
+
 import { Button, Icon, Spinner } from '@/design-system';
 import { formatMoney } from '../format';
 import { usePayment } from '../hooks';
@@ -91,10 +93,12 @@ export function PaymentPanel({ order, provider, method, onBack, onCaptured }: { 
   return (
     <div className="rounded-2xl border border-border bg-surface p-5 text-center">
       {phase === 'success' && (
-        <div className="flex flex-col items-center gap-3 py-4">
-          <span className="grid h-14 w-14 place-items-center rounded-full bg-success/15 text-success">
-            <Icon name="checkCircle" className="h-8 w-8" />
-          </span>
+        <div className="flex flex-col items-center gap-2 py-3">
+          {/* One-shot celebratory tick (loop=false) — a looping success reads
+              as the app being stuck, not as a celebration. */}
+          <div className="h-28 w-28">
+            <DotLottieReact src="/animations/payment-success.lottie" loop={false} autoplay className="h-full w-full" />
+          </div>
           <p className="text-base font-semibold text-foreground">Payment successful</p>
           <p className="text-sm text-foreground-muted">Taking you to your order…</p>
         </div>

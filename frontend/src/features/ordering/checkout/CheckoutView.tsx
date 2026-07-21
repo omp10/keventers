@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
+import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 
 import { transitions } from '@/animations';
 
@@ -96,6 +97,12 @@ export function CheckoutView({ onPlaced, onPaymentStep }: { onPlaced: (order: Or
     return (
       <div className="mx-auto max-w-lg space-y-5 px-1 py-4">
         <div className="text-center">
+          {/* The chef, waiting to start — pay and the kitchen fires. Same
+              self-hosted asset as the tracking page, same white tile (the
+              artwork carries its own light backdrop). */}
+          <div className="mx-auto mb-3 grid h-32 w-36 place-items-center overflow-hidden rounded-2xl border border-black/10 bg-white dark:border-white/15">
+            <DotLottieReact src="/animations/chef.lottie" loop autoplay className="h-full w-full" />
+          </div>
           <h2 className="text-lg font-bold text-foreground">Complete your payment</h2>
           <p className="mt-1 text-sm text-foreground-muted">Order #{placedOrder.orderNumber} is placed — pay now to send it to the kitchen.</p>
         </div>
