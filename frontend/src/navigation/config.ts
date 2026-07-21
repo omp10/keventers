@@ -100,7 +100,7 @@ export const adminNav: NavConfig = {
         { key: 'organizations', label: 'Organizations', icon: 'store', path: '/admin/organizations', access: { anyRole: ['super_admin'] } },
         { key: 'approvals', label: 'Approvals', icon: 'check', path: '/admin/approvals', access: { anyRole: ['super_admin'] } },
         { key: 'onboarding-fields', label: 'Onboarding fields', icon: 'settings', path: '/admin/onboarding-fields', access: { anyRole: ['super_admin'] } },
-        { key: 'restaurants', label: 'Restaurants', icon: 'utensils', path: '/admin/restaurants', access: { anyRole: ['super_admin'] } },
+        { key: 'restaurants', label: 'Brands', icon: 'utensils', path: '/admin/restaurants', access: { anyRole: ['super_admin'] } },
         { key: 'users', label: 'Users & RBAC', icon: 'users', path: '/admin/users', access: { anyRole: ['super_admin'] } },
       ],
     },
@@ -122,7 +122,7 @@ export const adminNav: NavConfig = {
       // Everything the CUSTOMER app renders, curated by admins.
       title: 'Storefront',
       items: [
-        { key: 'kitchens', label: 'Kitchens', icon: 'store', path: '/admin/kitchens', access: { anyRole: ['super_admin'] } },
+        { key: 'kitchens', label: 'Outlets', icon: 'store', path: '/admin/kitchens', access: { anyRole: ['super_admin'] } },
         { key: 'banners', label: 'Banners', icon: 'image', path: '/admin/banners', access: { anyRole: ['super_admin'] } },
         { key: 'categories', label: 'Categories', icon: 'grid', path: '/admin/categories', access: { anyRole: ['super_admin'] } },
         { key: 'zones', label: 'Zones', icon: 'mapPin', path: '/admin/zones', access: { anyRole: ['super_admin'] } },

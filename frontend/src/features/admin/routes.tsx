@@ -24,10 +24,12 @@ const scoped = (title: string, description: string, Page: ComponentType) => (
   <AdminRestaurantScoped title={title} description={description} Page={Page} />
 );
 const AdminCatalog = lazyRoute(() => import('./AdminCatalogPage').then((m) => ({ default: m.AdminCatalogPage })));
+const AdminBrands = lazyRoute(() => import('./AdminBrandsPage').then((m) => ({ default: m.AdminBrandsPage })));
+const AdminBrandDetail = lazyRoute(() => import('./AdminBrandDetailPage').then((m) => ({ default: m.AdminBrandDetailPage })));
 const AdminOrders = lazyRoute(() => import('./AdminOrdersPage').then((m) => ({ default: m.AdminOrdersPage })));
 
 export const adminRoutes: AdminRoute[] = [
-  { path: '/admin', element: <Dashboard /> }, { path: '/admin/organizations', element: <Organizations /> }, { path: '/admin/approvals', element: <Approvals /> }, { path: '/admin/onboarding-fields', element: <OnboardingFields /> }, { path: '/admin/restaurants', element: <Organizations /> }, { path: '/admin/users', element: <Users /> },
+  { path: '/admin', element: <Dashboard /> }, { path: '/admin/organizations', element: <Organizations /> }, { path: '/admin/approvals', element: <Approvals /> }, { path: '/admin/onboarding-fields', element: <OnboardingFields /> }, { path: '/admin/restaurants', element: <AdminBrands /> }, { path: '/admin/restaurants/:id', element: <AdminBrandDetail /> }, { path: '/admin/users', element: <Users /> },
   { path: '/admin/banners', element: <Banners /> }, { path: '/admin/categories', element: <Categories /> }, { path: '/admin/zones', element: <Zones /> }, { path: '/admin/kitchens', element: <Kitchens /> }, { path: '/admin/kitchens/:id', element: <KitchenDetail /> }, { path: '/admin/payments', element: <Payments /> }, { path: '/admin/analytics', element: <Analytics /> }, { path: '/admin/notifications', element: <Notifications /> }, { path: '/admin/flags', element: <Flags /> }, { path: '/admin/audit', element: <Audit /> }, { path: '/admin/monitoring', element: <Monitoring /> }, { path: '/admin/settings', element: <Settings /> },
   { path: '/admin/subscriptions', element: scoped('Subscriptions', 'Create and manage subscription plans per restaurant.', SubscriptionsPage) },
   { path: '/admin/journeys', element: scoped('Customer journeys', 'Every customer visit and the conversion funnel, per restaurant.', JourneysPage) },

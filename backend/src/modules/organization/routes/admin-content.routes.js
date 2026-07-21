@@ -10,6 +10,7 @@ import {
   MediaController,
   ZoneAdminController,
 } from '../controllers/admin-content.controller.js';
+import { AdminRestaurantController } from '../controllers/admin-restaurant.controller.js';
 import { singleMediaUpload } from '../middleware/media-upload.middleware.js';
 import { idParamSchema } from '../validators/common.validators.js';
 import {
@@ -24,6 +25,12 @@ import {
   updateKitchenSchema,
   updateZoneSchema,
 } from '../validators/discovery.validators.js';
+import {
+  brandIdParamSchema,
+  createBrandSchema,
+  listBrandsQuerySchema,
+  updateBrandSchema,
+} from '../validators/restaurant.validators.js';
 
 /**
  * PLATFORM CONTENT admin routers — storefront categories, operating zones,
@@ -102,3 +109,28 @@ kitchenAdminRouter
 export const mediaAdminRouter = Router();
 mediaAdminRouter.use(...guard);
 mediaAdminRouter.post('/upload', singleMediaUpload, MediaController.upload);
+
+/**
+ * BRAND (restaurant) administration — the layer between an Organization and its
+ * outlets, and the one that owns the shared menu, coupons and loyalty rule.
+ * The admin panel had no route to it before; "Restaurants" in the nav pointed at
+ * the Organizations page.
+ *
+ * @openapi
+ * /api/v1/admin/restaurants:
+ *   get:  { tags: [Brands/Admin], security: [{ bearerAuth: [] }], summary: List brands with their outlet counts, responses: { 200: { description: Paginated brands } } }
+ *   post: { tags: [Brands/Admin], security: [{ bearerAuth: [] }], summary: Create a brand under an organization, responses: { 201: { description: Created } } }
+ * /api/v1/admin/restaurants/{id}:
+ *   get:   { tags: [Brands/Admin], security: [{ bearerAuth: [] }], summary: One brand plus its attached outlets, responses: { 200: { description: Brand } } }
+ *   patch: { tags: [Brands/Admin], security: [{ bearerAuth: [] }], summary: Update a brand (profile + branding), responses: { 200: { description: Updated } } }
+ */
+export const restaurantAdminRouter = Router();
+restaurantAdminRouter.use(...guard);
+restaurantAdminRouter
+  .route('/')
+  .get(validate({ query: listBrandsQuerySchema }), AdminRestaurantController.list)
+  .post(validate({ body: createBrandSchema }), AdminRestaurantController.create);
+restaurantAdminRouter
+  .route('/:id')
+  .get(validate({ params: brandIdParamSchema }), AdminRestaurantController.getById)
+  .patch(validate({ params: brandIdParamSchema, body: updateBrandSchema }), AdminRestaurantController.update);

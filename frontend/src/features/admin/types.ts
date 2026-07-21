@@ -134,6 +134,24 @@ export type AdminKitchen = {
   tableCount: number;
 };
 
+/** A BRAND (restaurant): owns the shared menu, coupons and loyalty rule, and
+ *  has one or more outlets (branches) attached. */
+export type Brand = {
+  id: string;
+  name: string;
+  slug: string;
+  type?: string;
+  cuisines?: string[];
+  status: string;
+  organizationId: string;
+  organization?: { id: string; name: string };
+  outletCount?: number;
+  branding?: { logoUrl?: string | null; coverImageUrl?: string | null; primaryColor?: string | null; secondaryColor?: string | null };
+  createdAt?: string;
+};
+export type BrandOutlet = { id: string; name: string; slug?: string | null; status: string; city?: string | null };
+export type BrandDetail = Brand & { outlets: BrandOutlet[] };
+
 export type RestaurantOption = { id: string; name: string; slug: string; status: string };
 
 /* ── Kitchen detail ───────────────────────────────────────────────────────────

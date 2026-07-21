@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { ONBOARDING_STEPS, RESTAURANT_TYPE } from '../constants/organization.constants.js';
+import { ONBOARDING_STEPS, RESTAURANT_STATUS, RESTAURANT_TYPE } from '../constants/organization.constants.js';
 
 import { addressSchema } from './common.validators.js';
 
@@ -97,3 +97,43 @@ export const onboardingStepSchema = z.object({
   step: z.enum(ONBOARDING_STEPS),
   data: z.record(z.any()).optional(),
 });
+
+/* ── Platform-admin brand management ─────────────────────────────────────── */
+
+const objectId = z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid id format');
+export const brandIdParamSchema = z.object({ id: objectId });
+
+export const listBrandsQuerySchema = z.object({
+  page: z.coerce.number().int().positive().optional(),
+  limit: z.coerce.number().int().positive().max(100).optional(),
+  sort: z.string().max(120).optional(),
+  search: z.string().trim().max(200).optional(),
+  status: z.nativeEnum(RESTAURANT_STATUS).optional(),
+  organizationId: objectId.optional(),
+});
+
+const brandingSchema = z.object({
+  logoUrl: z.string().url().nullable().optional(),
+  coverImageUrl: z.string().url().nullable().optional(),
+  primaryColor: z.string().max(20).optional(),
+  secondaryColor: z.string().max(20).optional(),
+});
+
+export const createBrandSchema = z.object({
+  organizationId: objectId,
+  name: z.string().trim().min(2).max(120),
+  slug: z.string().trim().max(120).optional(),
+  type: z.nativeEnum(RESTAURANT_TYPE).optional(),
+  cuisines: z.array(z.string().trim().max(60)).max(20).optional(),
+  status: z.nativeEnum(RESTAURANT_STATUS).optional(),
+});
+
+export const updateBrandSchema = z
+  .object({
+    name: z.string().trim().min(2).max(120).optional(),
+    type: z.nativeEnum(RESTAURANT_TYPE).optional(),
+    cuisines: z.array(z.string().trim().max(60)).max(20).optional(),
+    status: z.nativeEnum(RESTAURANT_STATUS).optional(),
+    branding: brandingSchema.optional(),
+  })
+  .refine((v) => Object.keys(v).length > 0, { message: 'No updatable fields provided' });

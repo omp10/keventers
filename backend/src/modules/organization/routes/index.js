@@ -5,7 +5,7 @@ import {
   kitchenAdminRouter,
   mediaAdminRouter,
   zoneAdminRouter,
-} from './admin-content.routes.js';
+  restaurantAdminRouter,} from './admin-content.routes.js';
 import adminOnboardingRoutes from './admin-onboarding.routes.js';
 import adminOrganizationRoutes from './admin-organization.routes.js';
 import bannerAdminRoutes from './banner-admin.routes.js';
@@ -19,6 +19,7 @@ import restaurantRoutes from './restaurant.routes.js';
  *   /api/v1/public/...            (public onboarding)
  *   /api/v1/admin/onboarding/...  (super-admin review)
  *   /api/v1/admin/organizations/… (super-admin org management)
+ *   /api/v1/admin/restaurants/…   (super-admin BRAND management)
  *   /api/v1/restaurant/...        (tenant-scoped restaurant management)
  */
 const router = Router();
@@ -30,6 +31,7 @@ router.use('/admin/organizations', adminOrganizationRoutes);
 router.use('/admin/banners', bannerAdminRoutes);
 router.use('/admin/categories', categoryAdminRouter);
 router.use('/admin/zones', zoneAdminRouter);
+router.use('/admin/restaurants', restaurantAdminRouter);
 router.use('/admin/kitchens', kitchenAdminRouter);
 router.use('/admin/media', mediaAdminRouter);
 router.use('/restaurant', restaurantRoutes);

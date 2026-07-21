@@ -1,5 +1,5 @@
 import { api, type Paginated } from '@/platform/api';
-import type { AdminBanner, AdminCategory, AdminKitchen, AdminZone, BannerPayload, CatalogCategory, CatalogCategoryPayload, CatalogProduct, CatalogProductPayload, CatalogStats, CategoryPayload, KitchenCatalog, KitchenOrder, KitchenQrCode, KitchenStaffResponse, KitchenTable, NotificationRecord, OnboardingApplication, OnboardingFieldDefinition, OnboardingFormConfig, Organization, PlatformKpis, PlatformOrder, PlatformPayment, PlatformUser, RestaurantOption, UploadedMedia } from './types';
+import type { Brand, BrandDetail, AdminBanner, AdminCategory, AdminKitchen, AdminZone, BannerPayload, CatalogCategory, CatalogCategoryPayload, CatalogProduct, CatalogProductPayload, CatalogStats, CategoryPayload, KitchenCatalog, KitchenOrder, KitchenQrCode, KitchenStaffResponse, KitchenTable, NotificationRecord, OnboardingApplication, OnboardingFieldDefinition, OnboardingFormConfig, Organization, PlatformKpis, PlatformOrder, PlatformPayment, PlatformUser, RestaurantOption, UploadedMedia } from './types';
 
 export type AdminFilters = { search?: string; status?: string; type?: string; provider?: string; from?: string; to?: string };
 
@@ -68,6 +68,17 @@ export const adminService = {
   updateKitchen: (id: string, body: Record<string, unknown>) => api.patch<AdminKitchen>(`/admin/kitchens/${id}`, body),
   deleteKitchen: (id: string) => api.delete<{ id: string }>(`/admin/kitchens/${id}`),
   kitchenRestaurants: () => api.get<RestaurantOption[]>('/admin/kitchens/restaurants'),
+
+  /* ── Brands (restaurants) ──
+     The layer between an organization and its outlets — it owns the shared
+     menu, coupons and loyalty rule. */
+  brands: (filters: AdminFilters = {}, p = 1, limit = 25): Promise<Paginated<Brand>> =>
+    api.paginate('/admin/restaurants', { query: page(filters, p, limit) }),
+  brand: (id: string) => api.get<BrandDetail>(`/admin/restaurants/${id}`),
+  createBrand: (body: { organizationId: string; name: string; type?: string; cuisines?: string[] }) =>
+    api.post<Brand>('/admin/restaurants', body),
+  updateBrand: (id: string, body: Partial<Brand> & { branding?: Brand['branding'] }) =>
+    api.patch<Brand>(`/admin/restaurants/${id}`, body),
 
   /* ── One kitchen, every angle (the kitchen detail page) ──
      Catalog is RESTAURANT-scoped — every outlet of a brand serves the same menu.
