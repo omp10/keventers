@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 
 import {
+  PAYMENT_PURPOSE,
   PAYMENT_METHOD,
   PAYMENT_STATUS,
   PROVIDER,
@@ -29,8 +30,14 @@ const attemptSchema = new Schema(
 const paymentSchema = new Schema(
   {
     ...tenantFields,
-    orderId: { type: Schema.Types.ObjectId, ref: 'Order', required: true, index: true },
-    orderNumber: { type: String, required: true },
+    // A SUBSCRIPTION is restaurant-scoped and belongs to no branch, so this
+    // one tenant field is relaxed here (order payments still always set it).
+    branchId: { type: Schema.Types.ObjectId, ref: 'Branch', default: null, index: true },
+    // See payment-intent.model: order fields apply to ORDER purchases only.
+    purpose: { type: String, enum: Object.values(PAYMENT_PURPOSE), default: PAYMENT_PURPOSE.ORDER, index: true },
+    orderId: { type: Schema.Types.ObjectId, ref: 'Order', default: null, index: true },
+    orderNumber: { type: String, default: null },
+    subscriptionId: { type: Schema.Types.ObjectId, ref: 'Subscription', default: null, index: true },
     intentId: { type: Schema.Types.ObjectId, ref: 'PaymentIntent', default: null },
     sessionId: { type: String, default: null, index: true },
     customerUserId: { type: Schema.Types.ObjectId, ref: 'User', default: null, index: true },

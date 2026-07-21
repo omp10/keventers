@@ -52,6 +52,16 @@ class PaymentService {
     return toIntent(dto);
   }
 
+  /**
+   * Intent for a SUBSCRIPTION bought on the spot. Same handshake as an order —
+   * the amount comes from the plan price frozen on the subscription, never from
+   * here — and capture activates the plan server-side.
+   */
+  async createSubscriptionIntent(subscriptionId: string, provider: PaymentProvider = 'razorpay', method?: PaymentMethod) {
+    const dto = await api.post<IntentDTO>('/payments/create-intent', { subscriptionId, provider, method }, GUEST);
+    return toIntent(dto);
+  }
+
   /** Confirm after the provider handshake (Razorpay success payload / return). */
   confirm(intentId: string, providerPayload: Record<string, unknown>) {
     return api.post<{ status: PaymentStatus }>('/payments/confirm', { intentId, providerPayload }, GUEST);

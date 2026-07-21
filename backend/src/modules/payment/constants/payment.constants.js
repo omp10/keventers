@@ -28,6 +28,16 @@ export const PAYMENT_METHOD = Object.freeze({
 });
 
 /** Payment Intent lifecycle (the entry point of every payment). */
+/**
+ * What a payment is FOR. Everything predating this is an order payment, so
+ * ORDER is the default and existing rows/flows are unaffected; SUBSCRIPTION
+ * settles by activating a customer's plan instead of syncing an order.
+ */
+export const PAYMENT_PURPOSE = Object.freeze({
+  ORDER: 'order',
+  SUBSCRIPTION: 'subscription',
+});
+
 export const INTENT_STATUS = Object.freeze({
   CREATED: 'created',
   PENDING: 'pending',

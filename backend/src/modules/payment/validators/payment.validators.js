@@ -12,12 +12,18 @@ export const idParamSchema = z.object({ id: objectId });
 /** Create a payment intent. Amount (minor units) is OPTIONAL — omit for the full
  * remaining balance; provide for multi-payment/partial. Clients never set the
  * price; it is validated against the order's snapshot server-side. */
-export const createIntentSchema = z.object({
-  orderId: objectId,
-  provider: z.nativeEnum(PROVIDER).optional(),
-  method: z.nativeEnum(PAYMENT_METHOD).optional(),
-  amount: z.number().int().positive().optional(),
-});
+export const createIntentSchema = z
+  .object({
+    // Exactly one payable: an order, or a subscription bought on the spot.
+    orderId: objectId.optional(),
+    subscriptionId: objectId.optional(),
+    provider: z.nativeEnum(PROVIDER).optional(),
+    method: z.nativeEnum(PAYMENT_METHOD).optional(),
+    amount: z.number().int().positive().optional(),
+  })
+  .refine((v) => Boolean(v.orderId) !== Boolean(v.subscriptionId), {
+    message: 'Provide exactly one of orderId or subscriptionId',
+  });
 
 /** Confirm — the gateway handshake result is passed through opaquely to the
  * provider adapter for signature verification. */

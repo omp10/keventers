@@ -12,6 +12,9 @@ export { loyaltyService, computeEarnPoints } from './services/loyalty.service.js
 export { rewardService } from './services/reward.service.js';
 export { referralService } from './services/referral.service.js';
 export { customerAnalyticsService } from './services/customer-analytics.service.js';
+// Exported for the Payment Engine: subscriptions are now paid on the spot,
+// so payment settlement activates the plan directly.
+export { subscriptionService } from './services/subscription.service.js';
 
 // Extension-point contracts (register future providers here — no service change).
 export {

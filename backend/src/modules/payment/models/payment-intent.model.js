@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 
-import { INTENT_STATUS, PAYMENT_METHOD, PROVIDER } from '../constants/payment.constants.js';
+import { PAYMENT_PURPOSE,
+  INTENT_STATUS, PAYMENT_METHOD, PROVIDER } from '../constants/payment.constants.js';
 import { baseSchemaOptions, moneyField, tenantFields } from '../utils/schema.util.js';
 
 const { Schema } = mongoose;
@@ -14,8 +15,16 @@ const { Schema } = mongoose;
 const paymentIntentSchema = new Schema(
   {
     ...tenantFields,
-    orderId: { type: Schema.Types.ObjectId, ref: 'Order', required: true, index: true },
-    orderNumber: { type: String, required: true },
+    // A SUBSCRIPTION is restaurant-scoped and belongs to no branch, so this
+    // one tenant field is relaxed here (order payments still always set it).
+    branchId: { type: Schema.Types.ObjectId, ref: 'Branch', default: null, index: true },
+    // Order fields are required only for ORDER purchases (see `purpose`); a
+    // subscription payment carries subscriptionId instead. Enforced in the
+    // service, not the schema, so one model serves both payables.
+    purpose: { type: String, enum: Object.values(PAYMENT_PURPOSE), default: PAYMENT_PURPOSE.ORDER, index: true },
+    orderId: { type: Schema.Types.ObjectId, ref: 'Order', default: null, index: true },
+    orderNumber: { type: String, default: null },
+    subscriptionId: { type: Schema.Types.ObjectId, ref: 'Subscription', default: null, index: true },
     sessionId: { type: String, default: null, index: true },
     customerUserId: { type: Schema.Types.ObjectId, ref: 'User', default: null, index: true },
 

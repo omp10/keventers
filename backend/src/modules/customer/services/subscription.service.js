@@ -119,7 +119,43 @@ class SubscriptionService {
     return subs.map((s) => ({ ...s, id: String(s._id), customer: s.customerId, customerId: String(s.customerId?._id ?? s.customerId) }));
   }
 
-  /** Staff settles payment at the counter → the period starts NOW. */
+  /**
+   * Load a subscription for PAYMENT, proving it belongs to the caller. Used by
+   * the Payment Engine to price the intent from the frozen plan price — the
+   * amount is never taken from the client.
+   */
+  async getOwnedForPayment(guestScope, subscriptionId) {
+    const sub = await Subscription.findById(subscriptionId).lean();
+    if (!sub) return null;
+    const owner = String(sub.userId ?? '');
+    if (!owner || owner !== String(guestScope.customerUserId ?? '')) return null;
+    if (sub.status === SUBSCRIPTION_STATUS.ACTIVE) return null; // already paid for
+    return sub;
+  }
+
+  /**
+   * Activate off a CAPTURED payment — the on-the-spot path. Idempotent: an
+   * already-active subscription is returned untouched, so a replayed webhook or
+   * a double confirm can't extend someone's period twice.
+   */
+  async activateFromPayment(subscriptionId) {
+    const sub = await Subscription.findById(subscriptionId);
+    if (!sub) throw new NotFoundError('Subscription not found');
+    if (sub.status === SUBSCRIPTION_STATUS.ACTIVE) return sub.toJSON();
+    const plan = await SubscriptionPlan.findById(sub.planId);
+    const now = new Date();
+    sub.status = SUBSCRIPTION_STATUS.ACTIVE;
+    sub.startedAt = now;
+    sub.expiresAt = new Date(now.getTime() + (plan?.periodDays ?? 30) * 24 * 3600 * 1000);
+    await sub.save();
+    return sub.toJSON();
+  }
+
+  /**
+   * Manual activation from the dashboard. Customers now pay on the spot and are
+   * activated automatically by the Payment Engine, so this is only a staff
+   * OVERRIDE (comps, a card that failed after the fact) — not the normal path.
+   */
   async activate(tenant, id) {
     const sub = await Subscription.findOne({ _id: id, ...matchOf(tenant) });
     if (!sub) throw new NotFoundError('Subscription not found');

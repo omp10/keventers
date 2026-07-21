@@ -8,6 +8,7 @@ import { orderService } from '#modules/order/index.js';
 import {
   INTENT_STATUS,
   PAYMENT_ERRORS,
+  PAYMENT_PURPOSE,
   REDIS_KEYS,
 } from '../constants/payment.constants.js';
 import { toIntentDTO } from '../dto/payment.dto.js';
@@ -74,7 +75,62 @@ export class PaymentIntentService extends BaseService {
     return total.subtract(settled).max(Money.zero(currency));
   }
 
-  async createIntent(guestScope, { orderId, provider = null, method = null, amount = null, idempotencyKey = null } = {}) {
+  /**
+   * SUBSCRIPTION purchase — paid on the spot, no order involved. The amount is
+   * the plan price frozen on the subscription row (never client-supplied), and
+   * the subscription must belong to the caller. Settlement activates the plan
+   * (see PaymentService#settle), so a customer is never left with a paid-but-
+   * inactive subscription waiting on staff.
+   */
+  async createSubscriptionIntent(guestScope, { subscriptionId, provider = null, method = null, idempotencyKey = null } = {}) {
+    const { subscriptionService } = await import('#modules/customer/index.js');
+    const sub = await subscriptionService.getOwnedForPayment(guestScope, subscriptionId);
+    if (!sub) throw new NotFoundError(PAYMENT_ERRORS.ORDER_NOT_FOUND);
+
+    const scope = { organizationId: String(sub.organizationId), restaurantId: String(sub.restaurantId) };
+    const currency = sub.currency ?? 'INR';
+    const requested = Money.of(Math.trunc(sub.pricePaid ?? 0), currency);
+    if (requested.isZero() || requested.isNegative()) throw new BadRequestError(PAYMENT_ERRORS.INVALID_AMOUNT);
+
+    return this.lock.withLock(
+      `${REDIS_KEYS.PAYMENT_LOCK}:sub:${subscriptionId}`,
+      async () => {
+        const { provider: adapter, config: cfg } = await this.configs.resolveProvider(scope, provider);
+        let intent = await this.intents.createScoped(scope, {
+          purpose: PAYMENT_PURPOSE.SUBSCRIPTION,
+          subscriptionId,
+          sessionId: guestScope.sessionId,
+          customerUserId: guestScope.customerUserId,
+          provider: cfg.provider,
+          method,
+          amount: requested.amount,
+          currency,
+          status: INTENT_STATUS.PENDING,
+          idempotencyKey,
+          expiresAt: new Date(Date.now() + this.paymentConfig.intentTtlSeconds * 1000),
+        });
+        const result = await adapter.createPaymentIntent({
+          amount: requested.amount,
+          currency,
+          orderNumber: `SUB-${String(subscriptionId).slice(-8)}`,
+          method,
+          notes: { subscriptionId: String(subscriptionId), plan: sub.planName ?? '' },
+        });
+        intent = await this.intents.updateById(entityId(intent), {
+          providerIntentRef: result.providerIntentRef,
+          checkoutPayload: result.checkoutPayload,
+        });
+        this.audit.success('payment.intent.created', { targetId: entityId(intent), metadata: { subscriptionId: String(subscriptionId), provider: cfg.provider, amount: requested.amount } });
+        return toIntentDTO(intent);
+      },
+      { ttlMs: this.paymentConfig.lockTtlMs },
+    );
+  }
+
+  async createIntent(guestScope, { orderId, subscriptionId = null, provider = null, method = null, amount = null, idempotencyKey = null } = {}) {
+    // A subscription purchase takes an entirely different path: no order, no
+    // partial tender, amount fixed by the plan.
+    if (subscriptionId) return this.createSubscriptionIntent(guestScope, { subscriptionId, provider, method, idempotencyKey });
     const order = await this.#loadOrder(guestScope, orderId);
     const scope = this.#scopeOf(order);
 

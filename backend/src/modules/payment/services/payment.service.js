@@ -8,6 +8,7 @@ import {
   INTENT_STATUS,
   PAYMENT_ERRORS,
   PAYMENT_METHOD,
+  PAYMENT_PURPOSE,
   PAYMENT_STATUS,
   REDIS_KEYS,
   SOCKET_EVENTS,
@@ -78,9 +79,18 @@ export class PaymentService extends BaseService {
     if (!intent) throw new NotFoundError(PAYMENT_ERRORS.INTENT_NOT_FOUND);
     if (String(intent.sessionId ?? '') !== guestScope.sessionId) throw new ForbiddenError(PAYMENT_ERRORS.CROSS_TENANT);
 
-    const order = await this.orders.getByIdSystem(String(intent.orderId));
-    if (!order) throw new NotFoundError(PAYMENT_ERRORS.ORDER_NOT_FOUND);
-    const scope = this.#scopeOf(order);
+    // A SUBSCRIPTION intent has no order behind it — its scope lives on the
+    // intent itself and settlement activates the plan instead of syncing an order.
+    const isSubscription = intent.purpose === PAYMENT_PURPOSE.SUBSCRIPTION;
+    let order = null;
+    let scope;
+    if (isSubscription) {
+      scope = { organizationId: String(intent.organizationId), restaurantId: String(intent.restaurantId) };
+    } else {
+      order = await this.orders.getByIdSystem(String(intent.orderId));
+      if (!order) throw new NotFoundError(PAYMENT_ERRORS.ORDER_NOT_FOUND);
+      scope = this.#scopeOf(order);
+    }
 
     const { provider: adapter } = await this.configs.resolveProvider(
       { organizationId: scope.organizationId, restaurantId: scope.restaurantId },
@@ -89,7 +99,7 @@ export class PaymentService extends BaseService {
 
     const verdict = adapter.verifyPayment({ payload: providerPayload, headers });
     if (!verdict.valid) {
-      await this.#recordFailure(scope, { order, intent, provider: intent.provider, reason: verdict.reason ?? 'signature_invalid' });
+      if (order) await this.#recordFailure(scope, { order, intent, provider: intent.provider, reason: verdict.reason ?? 'signature_invalid' });
       throw new ForbiddenError(PAYMENT_ERRORS.SIGNATURE_INVALID);
     }
 
@@ -110,6 +120,15 @@ export class PaymentService extends BaseService {
       if (live?.status === 'captured') preCaptured = true;
     }
 
+    if (isSubscription) {
+      return this.#settleSubscription(scope, {
+        intent,
+        adapter,
+        providerPaymentRef: verdict.providerPaymentRef,
+        preCaptured,
+      });
+    }
+
     return this.#settle(scope, {
       order,
       intent,
@@ -121,6 +140,59 @@ export class PaymentService extends BaseService {
       preCaptured,
       providerResponse: { via: 'confirm' },
     });
+  }
+
+  /**
+   * Settle a SUBSCRIPTION payment: capture if the gateway hasn't already, record
+   * the Payment against the subscription (so it still lands in the one payment
+   * ledger admins report on), then ACTIVATE the plan. Idempotent — a replayed
+   * confirm/webhook finds the existing payment and re-activation is a no-op.
+   */
+  async #settleSubscription(scope, { intent, adapter, providerPaymentRef, preCaptured = false }) {
+    const intentId = entityId(intent);
+    const subscriptionId = String(intent.subscriptionId);
+    const currency = intent.currency ?? 'INR';
+    const amount = intent.amount;
+
+    return this.lock.withLock(
+      `${REDIS_KEYS.PAYMENT_LOCK}:sub:${subscriptionId}`,
+      async () => {
+        const existing = await this.payments.findOne({ intentId, status: PAYMENT_STATUS.CAPTURED });
+        if (existing) return toPaymentDTO(existing);
+
+        let captured = preCaptured;
+        if (!captured) {
+          const cap = await adapter.capturePayment({ providerPaymentRef, amount, currency });
+          captured = Boolean(cap.captured);
+        }
+        const now = new Date();
+        const payment = await this.payments.createScoped(scope, {
+          purpose: PAYMENT_PURPOSE.SUBSCRIPTION,
+          subscriptionId,
+          intentId,
+          provider: intent.provider,
+          method: intent.method,
+          amount,
+          currency,
+          status: captured ? PAYMENT_STATUS.CAPTURED : PAYMENT_STATUS.AUTHORIZED,
+          providerPaymentRef,
+          customerUserId: intent.customerUserId ?? null,
+          authorizedAt: now,
+          capturedAt: captured ? now : null,
+        });
+        await this.intents.updateById(intentId, { status: captured ? INTENT_STATUS.CAPTURED : INTENT_STATUS.AUTHORIZED });
+
+        if (captured) {
+          const { subscriptionService } = await import('#modules/customer/index.js');
+          await subscriptionService
+            .activateFromPayment(subscriptionId)
+            .catch((err) => this.logger.warn({ err, subscriptionId }, 'subscription activation failed (payment captured)'));
+        }
+        this.audit.success('payment.captured', { targetId: entityId(payment), metadata: { subscriptionId, amount, provider: intent.provider } });
+        return toPaymentDTO(payment);
+      },
+      { ttlMs: 8000 },
+    );
   }
 
   // ==================== SETTLE (shared: confirm + webhook) ====================
