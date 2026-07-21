@@ -50,7 +50,11 @@ class SessionService {
    * `skipAuth` because a guest scanning a table has no account yet.
    */
   async scan(code: string): Promise<ScanResult> {
-    const result = await api.post<ScanResult>('/public/qr/scan', { code }, { skipAuth: true });
+    // NOT skipAuth: a signed-in customer's account token rides along ('auto'
+    // prefers the access token) so the backend stamps their customerUserId on
+    // the session — orders, loyalty and coupon targeting then attribute to the
+    // account. A pure guest sends no account token and stays anonymous.
+    const result = await api.post<ScanResult>('/public/qr/scan', { code }, { auth: 'auto' });
     tokenStore.setGuest(result.guestToken);
     if (result.context?.branch?.slug) setActiveBranchSlug(result.context.branch.slug);
     rememberBranchName(result.context?.branch?.name);
@@ -59,7 +63,9 @@ class SessionService {
 
   /** Open (or reuse) a guest ordering session for a branch. */
   async open(branchSlug: string, opts: { tableNumber: string }): Promise<OrderingSession> {
-    const session = await api.post<OrderingSession>(`${BASE}/open`, { branchSlug, ...opts }, { skipAuth: true });
+    // 'auto' (not skipAuth): carry the account token when signed in so the
+    // session captures customerUserId — see scan() above.
+    const session = await api.post<OrderingSession>(`${BASE}/open`, { branchSlug, ...opts }, { auth: 'auto' });
     tokenStore.setGuest(session.token);
     setActiveBranchSlug(session.branchSlug);
     rememberBranchName(session.branchName);

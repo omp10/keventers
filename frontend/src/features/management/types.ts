@@ -115,6 +115,10 @@ export type Coupon = {
   usageLimit?: number | null;
   usageCount?: number;
   perCustomerLimit?: number | null;
+  /** Customer targeting within the restaurant. */
+  audience?: 'all' | 'new_customers';
+  /** Minimum order subtotal in MINOR units (paise) required to redeem. */
+  minSubtotal?: number | null;
   conditions?: { minOrder?: Money; firstOrderOnly?: boolean; channels?: string[] };
   createdAt?: string;
 };

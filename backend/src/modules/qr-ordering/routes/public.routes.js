@@ -1,7 +1,7 @@
 import { Router } from 'express';
 
 import { validate } from '#core/validation/validate.middleware.js';
-import { requireAuth } from '#platform/auth/index.js';
+import { authenticate, requireAuth } from '#platform/auth/index.js';
 
 import { PublicScanController } from '../controllers/public-scan.controller.js';
 import { PublicSessionController } from '../controllers/public-session.controller.js';
@@ -29,7 +29,11 @@ import {
  *     responses: { 201: { description: Guest session + token + context }, 403: { description: Invalid/expired/tampered QR or closed }, 429: { description: Rate limited } }
  */
 export const publicQrRouter = Router();
-publicQrRouter.post('/scan', scanRateLimit(), validate({ body: scanSchema }), PublicScanController.scan);
+// `authenticate` is OPTIONAL: if a signed-in customer sends their account token,
+// the session captures their customerUserId (so orders, loyalty AND coupon
+// audience/per-customer targeting attribute to the account); a pure guest stays
+// anonymous. A guest token in the header simply fails the access check → anon.
+publicQrRouter.post('/scan', authenticate, scanRateLimit(), validate({ body: scanSchema }), PublicScanController.scan);
 
 /**
  * Public session router (mounted at /api/v1/public/session). Optional guest
@@ -55,6 +59,9 @@ publicQrRouter.post('/scan', scanRateLimit(), validate({ body: scanSchema }), Pu
  *   post: { tags: [Public/Session], summary: End the guest ordering session, responses: { 200: { description: Ended session } } }
  */
 export const publicSessionRouter = Router();
+// Optional account auth (see scan router) THEN optional guest resolution — so a
+// signed-in customer who opens a table session is captured on it.
+publicSessionRouter.use(authenticate);
 publicSessionRouter.use(resolveGuest);
 publicSessionRouter.post('/open', scanRateLimit(), validate({ body: openSessionSchema }), PublicSessionController.open);
 // Static paths BEFORE the :sessionId wildcard so they're never swallowed.

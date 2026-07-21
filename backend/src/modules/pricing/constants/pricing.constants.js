@@ -44,6 +44,13 @@ export const COUPON_STATUS = Object.freeze({
   EXPIRED: 'expired',
 });
 
+/** Who a coupon is offered to. Restaurant scoping is orthogonal (every coupon
+ *  already belongs to one restaurant); this narrows WITHIN that by customer. */
+export const COUPON_AUDIENCE = Object.freeze({
+  ALL: 'all', // any customer of the restaurant
+  NEW_CUSTOMERS: 'new_customers', // customers with no prior order
+});
+
 /** Reasons a coupon can be rejected (returned by the evaluator). */
 export const COUPON_REJECTION = Object.freeze({
   NOT_FOUND: 'not_found',
@@ -54,6 +61,8 @@ export const COUPON_REJECTION = Object.freeze({
   USAGE_LIMIT: 'usage_limit_reached',
   NOT_ELIGIBLE: 'no_eligible_items',
   CURRENCY_MISMATCH: 'currency_mismatch',
+  NOT_NEW_CUSTOMER: 'not_a_new_customer',
+  PER_CUSTOMER_LIMIT: 'per_customer_limit_reached',
 });
 
 /** Charge kinds reserved as future-ready EXTENSION POINTS (all default to 0 —
@@ -90,6 +99,8 @@ export const PRICING_ERRORS = Object.freeze({
   COUPON_NOT_FOUND: 'Coupon not found',
   DUPLICATE_COUPON: 'A coupon with this code already exists in this restaurant',
   INVALID_COUPON: 'Coupon cannot be applied',
+  NOT_NEW_CUSTOMER: 'This coupon is only for first-time customers',
+  PER_CUSTOMER_LIMIT: "You've already used this coupon the maximum number of times",
   CURRENCY_MISMATCH: 'Currency mismatch in pricing request',
   CROSS_TENANT: 'Access to this coupon is not allowed',
 });

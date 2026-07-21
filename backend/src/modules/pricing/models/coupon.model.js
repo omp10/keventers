@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 
 import {
+  COUPON_AUDIENCE,
   COUPON_STATUS,
   COUPON_TYPE,
 } from '../constants/pricing.constants.js';
@@ -45,6 +46,11 @@ const couponSchema = new Schema(
 
     usageLimit: { type: Number, default: null, min: 0 },
     usageCount: { type: Number, default: 0, min: 0 },
+
+    /** Customer targeting within the restaurant (all vs first-time). */
+    audience: { type: String, enum: Object.values(COUPON_AUDIENCE), default: COUPON_AUDIENCE.ALL },
+    /** Max times ONE customer may redeem this code (null = unlimited). */
+    perCustomerLimit: { type: Number, default: null, min: 1 },
 
     metadata: { type: Schema.Types.Mixed, default: () => ({}) },
     deletedAt: { type: Date, default: null },

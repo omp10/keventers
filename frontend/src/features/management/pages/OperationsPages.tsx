@@ -2,9 +2,11 @@ import { useState } from 'react';
 
 import { Badge, Button, Card, Icon, Input, Spinner, Switch, Tabs, TabsContent, TabsList, TabsTrigger, Textarea, toast } from '@/design-system';
 import { formatMoney } from '@/features/ordering';
+import { useScopedApi } from '@/features/restaurant';
 import { qk, queryClient, usePaginatedResource, useQueryResource } from '@/platform/query';
+import type { Paginated } from '@/platform/api';
 import { EntityDrawer, ExportButton, ManagementPage, ManagementTable, StatusPill, type Column } from '../components';
-import { branchService, couponService, deliveryZoneService, notificationPrefService, paymentReportService, qrService, restaurantSettingsService, securityService, subscriptionService, tableService } from '../services';
+import { branchService, deliveryZoneService, notificationPrefService, paymentReportService, qrService, restaurantSettingsService, securityService, subscriptionService, tableService } from '../services';
 import type { Branch, Coupon, DeliveryZone, NotificationPreferences, PaymentRow, QrCode, RestaurantProfile } from '../types';
 
 const searchClass = 'min-w-56 flex-1';
@@ -106,11 +108,17 @@ export function QrManagementPage() {
 }
 
 function CouponCreateDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
+  // Scoped API: in the manager dashboard it sends no restaurantId (the backend
+  // resolves the tenant); under the admin picker it injects ?restaurantId=, so
+  // the SAME drawer creates coupons for any outlet.
+  const scoped = useScopedApi();
   const [code, setCode] = useState('');
   const [type, setType] = useState<'percentage' | 'fixed'>('percentage');
   const [value, setValue] = useState('');
   const [minSubtotal, setMinSubtotal] = useState('');
   const [usageLimit, setUsageLimit] = useState('');
+  const [audience, setAudience] = useState<'all' | 'new_customers'>('all');
+  const [perCustomerLimit, setPerCustomerLimit] = useState('');
   const [busy, setBusy] = useState(false);
 
   const submit = async () => {
@@ -119,14 +127,16 @@ function CouponCreateDrawer({ open, onClose }: { open: boolean; onClose: () => v
     try {
       // percentage → basis points (10% → 1000); fixed → minor units (₹ → paise).
       const v = type === 'percentage' ? Math.round(Number(value) * 100) : Math.round(Number(value) * 100);
-      await couponService.create({
+      await scoped.post<Coupon>('/restaurant/coupons', {
         code: code.trim().toUpperCase(),
         type,
         value: v,
+        audience,
         ...(minSubtotal ? { minSubtotal: Math.round(Number(minSubtotal) * 100) } : {}),
         ...(usageLimit ? { usageLimit: Number(usageLimit) } : {}),
+        ...(perCustomerLimit ? { perCustomerLimit: Number(perCustomerLimit) } : {}),
         status: 'active',
-      } as Partial<Coupon>);
+      });
       toast.success('Coupon created');
       void queryClient.invalidateQueries({ queryKey: qk('mgmt', 'coupons') });
       onClose();
@@ -141,18 +151,24 @@ function CouponCreateDrawer({ open, onClose }: { open: boolean; onClose: () => v
       <label className="block text-sm">Code<Input value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} placeholder="WELCOME20" className="mt-1" /></label>
       <label className="block text-sm">Type<select className={fieldClass + ' mt-1'} value={type} onChange={(e) => setType(e.target.value as 'percentage' | 'fixed')}><option value="percentage">Percentage off</option><option value="fixed">Flat amount off</option></select></label>
       <label className="block text-sm">{type === 'percentage' ? 'Percent (%)' : 'Amount (₹)'}<Input type="number" min={0} value={value} onChange={(e) => setValue(e.target.value)} className="mt-1" /></label>
+      <label className="block text-sm">Who can use it<select className={fieldClass + ' mt-1'} value={audience} onChange={(e) => setAudience(e.target.value as 'all' | 'new_customers')}><option value="all">All customers</option><option value="new_customers">New customers only (first order)</option></select></label>
       <label className="block text-sm">Min order (₹) <span className="text-foreground-subtle">optional</span><Input type="number" min={0} value={minSubtotal} onChange={(e) => setMinSubtotal(e.target.value)} className="mt-1" /></label>
       <label className="block text-sm">Total uses <span className="text-foreground-subtle">optional</span><Input type="number" min={1} value={usageLimit} onChange={(e) => setUsageLimit(e.target.value)} className="mt-1" /></label>
+      <label className="block text-sm">Uses per customer <span className="text-foreground-subtle">optional</span><Input type="number" min={1} value={perCustomerLimit} onChange={(e) => setPerCustomerLimit(e.target.value)} placeholder="e.g. 1" className="mt-1" /></label>
       <Button className="w-full" onClick={() => void submit()} loading={busy} disabled={!code.trim() || !value}>Create coupon</Button>
     </EntityDrawer>
   );
 }
 
 export function CouponsPage() {
+  const scoped = useScopedApi();
   const [q, setQ] = useState('');
   const [status, setStatus] = useState<string>();
   const [creating, setCreating] = useState(false);
-  const list = usePaginatedResource<Coupon>(qk('mgmt', 'coupons', q, status), (page, limit) => couponService.list({ q: q || undefined, status }, page, limit));
+  // restaurantId in the key so the admin's per-outlet lists never collide.
+  const list = usePaginatedResource<Coupon>(qk('mgmt', 'coupons', scoped.restaurantId ?? 'self', q, status), (page, limit) =>
+    scoped.paginate<Coupon>('/restaurant/coupons', { query: { q: q || undefined, status, page, limit } }) as Promise<Paginated<Coupon>>,
+  );
   const columns: Column<Coupon>[] = [{ key: 'code', header: 'Coupon', render: (c) => <div><strong>{c.code}</strong><p className="text-xs text-foreground-muted">{c.type}</p></div> }, { key: 'status', header: 'Status', render: (c) => <StatusPill tone={c.status === 'active' ? 'success' : c.status === 'scheduled' ? 'info' : 'neutral'}>{c.status}</StatusPill> }, { key: 'usage', header: 'Usage', align: 'right', render: (c) => `${c.usageCount ?? 0}${c.usageLimit ? ` / ${c.usageLimit}` : ''}` }, { key: 'schedule', header: 'Schedule', render: (c) => <span className="text-sm text-foreground-muted">{c.startsAt ? new Date(c.startsAt).toLocaleDateString() : 'Immediate'}</span> }];
   return <ManagementPage title="Coupons" description="Schedule campaigns and review backend-calculated redemption performance." actions={<Button leftIcon="add" onClick={() => setCreating(true)}>Create coupon</Button>}><div className="flex gap-2"><Input className={searchClass} value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search coupon code..." /><select className={fieldClass + ' max-w-44'} value={status ?? ''} onChange={(e) => setStatus(e.target.value || undefined)}><option value="">All statuses</option><option>active</option><option>scheduled</option><option>draft</option><option>archived</option></select></div><ManagementTable rows={list.items} columns={columns} getId={(c) => c.id} loading={list.isLoading} emptyTitle="No coupons" /><CouponCreateDrawer open={creating} onClose={() => setCreating(false)} /></ManagementPage>;
 }

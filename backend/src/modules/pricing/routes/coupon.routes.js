@@ -18,7 +18,9 @@ router.use(
   requireAuth,
   resolveTenant,
   requireTenant,
-  requireRole(ORG_ROLES.ORGANIZATION_ADMIN, ORG_ROLES.RESTAURANT_MANAGER),
+  // SUPER_ADMIN manages coupons for any restaurant from the admin panel by
+  // passing ?restaurantId= explicitly (same pattern as catalog writes).
+  requireRole(ORG_ROLES.SUPER_ADMIN, ORG_ROLES.ORGANIZATION_ADMIN, ORG_ROLES.RESTAURANT_MANAGER),
 );
 
 /**

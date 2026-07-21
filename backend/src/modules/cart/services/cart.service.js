@@ -307,6 +307,10 @@ export class CartService extends BaseService {
       if (!preview.discounts.couponApplied) {
         throw new BadRequestError(`${CART_ERRORS.COUPON_INVALID}: ${preview.discounts.couponReason ?? 'not eligible'}`);
       }
+      // Customer-targeting gate (new-customers-only / per-customer cap). Uses the
+      // signed-in customer on this cart's scope; throws a friendly error if not
+      // eligible. Done after the cart-fit check so the message is the most useful.
+      await this.coupons.assertCustomerEligible(coupon, scope);
       this.audit.success('cart.coupon.applied', { targetId: this.#cartId(cart), metadata: { code } });
       return {
         coupon: { couponId: coupon._id ?? coupon.id, code: coupon.code },

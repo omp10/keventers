@@ -78,6 +78,7 @@ export function CartView({
         onRemove={async () => { await cart.removeCoupon(); }}
         applying={cart.isMutating}
         error={cart.couponError ? cart.couponError.message : null}
+        savedLabel={cart.pricing?.savings && cart.pricing.savings.amount > 0 ? formatMoney(cart.pricing.savings) : null}
       />
 
       {/* Notes */}

@@ -70,6 +70,8 @@ export function toCouponDTO(c) {
     validUntil: c.validUntil ?? null,
     usageLimit: c.usageLimit ?? null,
     usageCount: c.usageCount ?? 0,
+    audience: c.audience ?? 'all',
+    perCustomerLimit: c.perCustomerLimit ?? null,
     createdAt: c.createdAt ?? null,
   };
 }

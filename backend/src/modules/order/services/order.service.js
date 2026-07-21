@@ -224,6 +224,24 @@ export class OrderService extends BaseService {
     }
   }
 
+  /**
+   * Customer stats the coupon engine needs to enforce audience + per-customer
+   * caps: how many (non-cancelled) orders this customer has placed at the
+   * restaurant, and how many of them redeemed a given coupon code. Cheap read
+   * over the `{ customerUserId }` index; cancelled orders don't count as a
+   * "prior order" (a first order that failed shouldn't burn a first-timer offer).
+   */
+  async getCustomerCouponStats(customerUserId, restaurantId, couponCode = null) {
+    if (!customerUserId || !restaurantId) return { orderCount: 0, couponUses: 0 };
+    const orders = await this.orders.findByCustomer(String(restaurantId), String(customerUserId), { limit: 500 });
+    const active = orders.filter((o) => o.status !== ORDER_STATUS.CANCELLED);
+    const wanted = couponCode ? String(couponCode).toUpperCase() : null;
+    const couponUses = wanted
+      ? active.filter((o) => String(o.coupon?.code ?? '').toUpperCase() === wanted).length
+      : 0;
+    return { orderCount: active.length, couponUses };
+  }
+
   // ==================== TRANSITIONS (Aggregate) ====================
 
   /**
