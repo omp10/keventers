@@ -20,6 +20,7 @@ import { JOURNEY, useJourney } from '@/platform/analytics';
 import { ProductDetailDrawer } from '../components';
 import { MenuBoard, MenuHero, MenuSearch, ProductRail } from '../menu';
 import { FloatingCart } from '../cart';
+import { useActiveLiveOrder } from '../components/LiveOrderTracker';
 import { useCart, useMenu, useProduct, usePrefetchProduct } from '../hooks';
 import { sessionService } from '../services';
 import type { CartItemSelection, Product } from '../types';
@@ -36,6 +37,11 @@ export function MenuScreen() {
   const branch = useBranchDetail(branchSlug);
   const menu = useMenu(branchSlug);
   const cart = useCart();
+  // While an order is LIVE, the floating dock above the tabs carries the cart
+  // as a swipeable slide — rendering this bar too stacked two pop-ups on a
+  // phone. No live order → this bar is the sole (and best) cart CTA.
+  const activeOrder = useActiveLiveOrder(true);
+  const dockOwnsCart = Boolean(activeOrder.data);
   const prefetch = usePrefetchProduct(branchSlug);
   const journey = useJourney();
 
@@ -181,12 +187,14 @@ export function MenuScreen() {
         cartQuantities={cartQuantities}
       />
 
+      {!dockOwnsCart && (
       <FloatingCart
         itemCount={cart.itemCount}
         total={cart.pricing?.total}
         onClick={() => navigate('/cart')}
         className="bottom-[calc(4rem+env(safe-area-inset-bottom))] lg:bottom-0"
       />
+      )}
 
       <ProductDetailDrawer
         product={productQ.data}

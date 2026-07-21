@@ -114,6 +114,11 @@ export class ApiClient {
 
     for (;;) {
       try {
+        // Snapshot the credential THIS attempt will send, before executing.
+        // Judging a 401 by re-reading it at response time lies during boot: the
+        // auth adapter is wired in a React effect the first queries can race,
+        // so the request goes out bare while the re-read sees a token.
+        const cred = this.credentialFor(config);
         const res = await this.execute(path, config);
 
         if (res.status === 401 && !config.skipAuth) {
@@ -122,8 +127,21 @@ export class ApiClient {
           // token afterwards. It stayed in localStorage and rode along on every
           // subsequent request, which is why "expired guest session" reappeared
           // on every single call until storage was wiped by hand.
-          if (this.credentialFor(config).kind === 'guest') {
-            this.auth.onGuestExpired();
+          if (cred.kind === 'guest') {
+            // Only declare the guest session dead if we actually SENT its token.
+            // On a cold reload the first queries race the AuthProvider effect
+            // that wires the auth adapter, so this request can go out with NO
+            // Authorization header at all — the backend answers "invalid guest
+            // session", and expiring here deleted a perfectly VALID token from
+            // storage. That was the vanishing cart-after-refresh bug.
+            if (cred.token) {
+              this.auth.onGuestExpired();
+            } else if (!didRefresh) {
+              // No token was attached — by now the adapter is almost certainly
+              // wired, so one retry sends the real credentials.
+              didRefresh = true;
+              continue;
+            }
             // A signed-in customer whose TABLE session died still owns their
             // account: with the dead guest token gone, retry once on the access
             // token (the backend links session data to the account) instead of

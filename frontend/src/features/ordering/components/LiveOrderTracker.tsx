@@ -22,6 +22,26 @@ const STATUS_LINE: Record<string, string> = {
 };
 
 /**
+ * The one active-order query, shared. MenuScreen reads it too (same cache
+ * entry, no extra request) to decide whether its own FloatingCart bar should
+ * yield to the dock.
+ */
+export function useActiveLiveOrder(enabled: boolean) {
+  return useQueryResource<Order | null>(
+    qk('ordering', 'active-order'),
+    async () => {
+      const page = await orderService.list(1, 10);
+      return page.items.find((o) => LIVE.includes(o.status)) ?? null;
+    },
+    {
+      enabled,
+      // Poll only while something is actually live; the socket is primary.
+      refetchInterval: (q) => (q.state.data ? 15_000 : 60_000),
+    },
+  );
+}
+
+/**
  * LiveOrderTracker — the floating DOCK pinned above the customer tab bar.
  *
  * It used to be a single track-order pill; now it is a swipeable carousel of
@@ -47,18 +67,7 @@ export function LiveOrderTracker() {
   // bounce the visitor to the entry screen) — so don't even ask.
   const enabled = status === 'guest' || status === 'authenticated';
 
-  const query = useQueryResource<Order | null>(
-    qk('ordering', 'active-order'),
-    async () => {
-      const page = await orderService.list(1, 10);
-      return page.items.find((o) => LIVE.includes(o.status)) ?? null;
-    },
-    {
-      enabled,
-      // Poll only while something is actually live; the socket is primary.
-      refetchInterval: (q) => (q.state.data ? 15_000 : 60_000),
-    },
-  );
+  const query = useActiveLiveOrder(enabled);
 
   useRealtimeQuery({
     queryKey: qk('ordering', 'active-order'),
@@ -108,10 +117,11 @@ export function LiveOrderTracker() {
     });
   }
 
-  // The cart card — except where a cart surface already owns the screen: the
-  // menu page renders its own full-width FloatingCart, and /cart//checkout ARE
-  // the cart. Duplicating it there would show the same button twice.
-  if (cart.itemCount > 0 && !isMenuPage && !onCartSurface) {
+  // The cart card. /cart and /checkout ARE the cart — never duplicate there.
+  // On the MENU page the full-width FloatingCart bar owns the cart CTA, so the
+  // dock only absorbs the cart when a live order is ALSO on screen — two
+  // stacked pop-ups was exactly the complaint; MenuScreen hides its bar then.
+  if (cart.itemCount > 0 && !onCartSurface && (order && !onOrderPage ? true : !isMenuPage)) {
     slides.push({
       key: 'cart',
       node: (
@@ -136,8 +146,9 @@ export function LiveOrderTracker() {
 
   if (!enabled || slides.length === 0) return null;
 
-  // On the menu page the FloatingCart bar owns the bottom edge — sit above it.
-  const lifted = isMenuPage && cart.itemCount > 0;
+  // Sit above the FloatingCart bar only when it is actually rendered — the
+  // menu page hides it while the dock carries the cart slide itself.
+  const lifted = isMenuPage && cart.itemCount > 0 && !slides.some((s2) => s2.key === 'cart');
 
   return (
     <div
