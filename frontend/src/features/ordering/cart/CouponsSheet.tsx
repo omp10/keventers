@@ -1,3 +1,5 @@
+import { useState } from 'react';
+
 import { Badge, Button, Dialog, DialogBody, DialogContent, DialogHeader, DialogTitle, Icon, Spinner } from '@/design-system';
 import { qk, useQueryResource } from '@/platform/query';
 import { formatMoney } from '../format';
@@ -20,12 +22,26 @@ function benefit(c: PublicCoupon): string {
 export function CouponsSheet({ open, onClose, onApply, appliedCode, applying }: {
   open: boolean;
   onClose: () => void;
+  /** MUST reject on failure — the rejection message is shown under the coupon. */
   onApply: (code: string) => void | Promise<void>;
   appliedCode?: string | null;
   applying?: boolean;
 }) {
   const q = useQueryResource(qk('ordering', 'coupons'), () => cartService.availableCoupons(), { enabled: open });
   const coupons = q.data ?? [];
+  // Why a coupon could not be applied, keyed by code — shown INSIDE the sheet.
+  // The cart's own error line renders BEHIND this dialog, so a rejection
+  // ("only for first-time customers") looked like a silent dead tap.
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const apply = async (code: string) => {
+    setErrors((e) => ({ ...e, [code]: '' }));
+    try {
+      await onApply(code);
+    } catch (err) {
+      setErrors((e) => ({ ...e, [code]: (err as Error).message || 'This coupon cannot be applied' }));
+    }
+  };
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
@@ -64,11 +80,17 @@ export function CouponsSheet({ open, onClose, onApply, appliedCode, applying }: 
                       size="sm"
                       variant={isApplied ? 'ghost' : 'secondary'}
                       disabled={isApplied || applying}
-                      onClick={() => void onApply(c.code)}
+                      onClick={() => void apply(c.code)}
                     >
                       {isApplied ? 'Applied' : 'Apply'}
                     </Button>
                   </div>
+                  {errors[c.code] ? (
+                    <p className="mt-2 flex items-start gap-1.5 rounded-lg bg-danger-soft px-2 py-1.5 text-xs font-medium text-danger">
+                      <Icon name="info" className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                      {errors[c.code]}
+                    </p>
+                  ) : null}
                 </div>
               );
             })

@@ -112,9 +112,8 @@ export function CartView({
         onClose={() => setSheetOpen(false)}
         appliedCode={cart.coupon?.code ?? null}
         applying={cart.isMutating}
-        onApply={async (code) => {
-          try { await cart.applyCoupon(code); } catch { /* error shown via couponError */ }
-        }}
+        // No catch: the sheet displays the rejection reason next to the coupon.
+        onApply={async (code) => { await cart.applyCoupon(code); }}
       />
 
       {/* Notes */}

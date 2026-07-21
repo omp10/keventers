@@ -1,3 +1,4 @@
+import { useRef, useState, type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 import { Icon } from '@/design-system';
@@ -5,6 +6,7 @@ import { useAuth } from '@/platform/auth';
 import { qk, useQueryResource } from '@/platform/query';
 import { useRealtimeQuery } from '@/platform/socket';
 import { cn } from '@/lib/cn';
+import { formatMoney } from '../format';
 import { useCart } from '../hooks';
 import { orderService } from '../services';
 import type { Order, OrderStatus } from '../types';
@@ -20,17 +22,26 @@ const STATUS_LINE: Record<string, string> = {
 };
 
 /**
- * LiveOrderTracker — the Zomato-style floating pill pinned above the customer
- * tab bar on every tabbed page. While an order is in flight it shows the live
- * status (socket-driven, with a slow poll as the resilience net) and tapping it
- * opens the full tracking page. It renders nothing when there's no active order,
- * no session, or the user is already on the tracking page.
+ * LiveOrderTracker — the floating DOCK pinned above the customer tab bar.
+ *
+ * It used to be a single track-order pill; now it is a swipeable carousel of
+ * every floating surface that wants that slot (live order, cart), because two
+ * fixed pills stacked on a phone ate half the viewport. One slot, swipe to
+ * switch, with the same dot language as the promo banner so the affordance is
+ * already familiar.
+ *
+ * Swiping is native scroll-snap (not a gesture library): it inherits momentum,
+ * rubber-banding and accessibility from the platform, and the active dot is
+ * derived from scroll position so it stays honest however the user scrolls.
  */
 export function LiveOrderTracker() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const { status } = useAuth();
   const cart = useCart();
+
+  const scroller = useRef<HTMLDivElement>(null);
+  const [active, setActive] = useState(0);
 
   // Without a guest session or account the list call can only 401 (which would
   // bounce the visitor to the entry screen) — so don't even ask.
@@ -55,51 +66,157 @@ export function LiveOrderTracker() {
     events: ['order:placed', 'order:confirmed', 'order:preparing', 'order:ready', 'order:served', 'order:completed', 'order:cancelled'],
   });
 
-  const order = query.data;
-  // The tracking page IS the expanded view of this pill — showing both is noise.
-  if (!enabled || !order || pathname.startsWith('/order/')) return null;
-
-  const hasCartItems = cart.itemCount > 0;
+  const order = query.data ?? null;
   const isMenuPage = pathname.includes('/menu');
-  const isCartVisible = hasCartItems && isMenuPage;
+  const onOrderPage = pathname.startsWith('/order/');
+  const onCartSurface = pathname === '/cart' || pathname === '/checkout';
 
-  const line = STATUS_LINE[order.status] ?? 'Order in progress';
-  const eta = order.status !== 'ready' && order.estimatedMinutes ? `~${order.estimatedMinutes} min` : null;
-  // The LIST endpoint returns slim rows — items/branch may be absent, and
-  // "0 items" from an empty array is a lie. Fall back to the order number.
-  const count = (order.items ?? []).reduce((n, i) => n + i.quantity, 0);
-  const detail = [
-    order.branch?.name || order.orderNumber,
-    count > 0 ? `${count} item${count === 1 ? '' : 's'}` : null,
-    eta,
-  ].filter(Boolean).join(' · ');
+  /* ── Which cards want the slot ─────────────────────────────────────────── */
+
+  const slides: { key: string; node: ReactNode }[] = [];
+
+  // The tracking page IS the expanded view of the order pill — showing both is noise.
+  if (order && !onOrderPage) {
+    const line = STATUS_LINE[order.status] ?? 'Order in progress';
+    const eta = order.status !== 'ready' && order.estimatedMinutes ? `~${order.estimatedMinutes} min` : null;
+    // The LIST endpoint returns slim rows — items/branch may be absent, and
+    // "0 items" from an empty array is a lie. Fall back to the order number.
+    const count = (order.items ?? []).reduce((n, i) => n + i.quantity, 0);
+    const detail = [
+      order.branch?.name || order.orderNumber,
+      count > 0 ? `${count} item${count === 1 ? '' : 's'}` : null,
+      eta,
+    ].filter(Boolean).join(' · ');
+
+    slides.push({
+      key: 'order',
+      node: (
+        <Pill
+          onClick={() => navigate(`/order/${order.id}`)}
+          ariaLabel={`Track order ${order.orderNumber}`}
+          icon={
+            <span className="relative grid h-10 w-10 shrink-0 place-items-center rounded-full bg-primary/10">
+              <span className="absolute h-3 w-3 animate-ping rounded-full bg-primary/50" />
+              <span className="relative h-2.5 w-2.5 rounded-full bg-primary" />
+            </span>
+          }
+          title={line}
+          detail={detail}
+          cta="Track"
+        />
+      ),
+    });
+  }
+
+  // The cart card — except where a cart surface already owns the screen: the
+  // menu page renders its own full-width FloatingCart, and /cart//checkout ARE
+  // the cart. Duplicating it there would show the same button twice.
+  if (cart.itemCount > 0 && !isMenuPage && !onCartSurface) {
+    slides.push({
+      key: 'cart',
+      node: (
+        <Pill
+          onClick={() => navigate('/cart')}
+          ariaLabel={`View cart, ${cart.itemCount} items`}
+          icon={
+            <span className="relative grid h-10 w-10 shrink-0 place-items-center rounded-full bg-accent/15">
+              <Icon name="cart" className="h-5 w-5 text-accent" />
+              <span className="absolute -right-1 -top-1 grid h-4.5 min-w-[1.125rem] place-items-center rounded-full bg-primary px-1 text-[0.625rem] font-bold text-primary-foreground">
+                {cart.itemCount}
+              </span>
+            </span>
+          }
+          title={`${cart.itemCount} item${cart.itemCount === 1 ? '' : 's'} in your cart`}
+          detail={cart.pricing?.total ? formatMoney(cart.pricing.total) : 'Ready when you are'}
+          cta="View"
+        />
+      ),
+    });
+  }
+
+  if (!enabled || slides.length === 0) return null;
+
+  // On the menu page the FloatingCart bar owns the bottom edge — sit above it.
+  const lifted = isMenuPage && cart.itemCount > 0;
 
   return (
-    <button
-      type="button"
-      onClick={() => navigate(`/order/${order.id}`)}
-      aria-label={`Track order ${order.orderNumber}`}
-      className={cn(
-        'fixed inset-x-3 z-[110] mx-auto flex w-auto max-w-xl items-center gap-3 rounded-2xl border border-border',
-        'bg-surface/95 p-3 text-left shadow-xl backdrop-blur transition active:scale-[0.99] lg:hidden',
-      )}
+    <div
+      className="fixed inset-x-3 z-[110] mx-auto w-auto max-w-xl lg:hidden"
       style={{
-        bottom: isCartVisible
+        bottom: lifted
           ? 'calc(8.5rem + max(env(safe-area-inset-bottom), 1.25rem) + 0.625rem)'
           : 'calc(4.5rem + max(env(safe-area-inset-bottom), 1.25rem) + 0.625rem)',
       }}
     >
-      {/* Pulsing live dot */}
-      <span className="relative grid h-10 w-10 shrink-0 place-items-center rounded-full bg-primary/10">
-        <span className="absolute h-3 w-3 animate-ping rounded-full bg-primary/50" />
-        <span className="relative h-2.5 w-2.5 rounded-full bg-primary" />
-      </span>
+      <div
+        ref={scroller}
+        onScroll={(e) => {
+          const el = e.currentTarget;
+          // Which slide the viewport is (mostly) resting on.
+          setActive(Math.round(el.scrollLeft / Math.max(1, el.clientWidth)));
+        }}
+        className={cn(
+          'flex snap-x snap-mandatory overflow-x-auto scroll-smooth',
+          '[scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
+          slides.length > 1 ? 'gap-2' : '',
+        )}
+      >
+        {slides.map((s) => (
+          <div key={s.key} className="w-full shrink-0 snap-center">
+            {s.node}
+          </div>
+        ))}
+      </div>
+
+      {/* Dots — the promo carousel's exact language, so the affordance reads. */}
+      {slides.length > 1 && (
+        <div className="mt-1.5 flex justify-center gap-1.5" role="tablist" aria-label="Floating cards">
+          {slides.map((s, i) => (
+            <button
+              key={s.key}
+              type="button"
+              role="tab"
+              aria-selected={i === active}
+              aria-label={`Card ${i + 1} of ${slides.length}`}
+              onClick={() => scroller.current?.scrollTo({ left: i * scroller.current.clientWidth, behavior: 'smooth' })}
+              className={cn(
+                'h-1.5 rounded-full transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none',
+                i === active ? 'w-5 bg-primary' : 'w-1.5 bg-border-strong hover:bg-foreground-subtle',
+              )}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** One dock card: icon · two lines · CTA. Shared by every slide. */
+function Pill({ onClick, ariaLabel, icon, title, detail, cta }: {
+  onClick: () => void;
+  ariaLabel: string;
+  icon: ReactNode;
+  title: string;
+  detail: string;
+  cta: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={ariaLabel}
+      className={cn(
+        'flex w-full items-center gap-3 rounded-2xl border border-border',
+        'bg-surface/95 p-3 text-left shadow-xl backdrop-blur transition active:scale-[0.99]',
+      )}
+    >
+      {icon}
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-sm font-semibold text-foreground">{line}</span>
+        <span className="block truncate text-sm font-semibold text-foreground">{title}</span>
         <span className="block truncate text-xs text-foreground-subtle">{detail}</span>
       </span>
       <span className="flex shrink-0 items-center gap-1 text-xs font-semibold text-primary">
-        Track
+        {cta}
         <Icon name="chevronRight" className="h-4 w-4" />
       </span>
     </button>
