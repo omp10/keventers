@@ -10,8 +10,10 @@ export type ProductCardVariant = 'grid' | 'list' | 'carousel';
 export type ProductCardProps = {
   product: Product;
   variant?: ProductCardVariant;
-  /** ADD pressed — parent decides open-detail (customizable) vs quick-add. */
+  /** ADD / increment pressed — parent decides open-detail (customizable) vs quick-add. */
   onAdd: (product: Product) => void;
+  /** Decrement pressed. Only wired where a stepper makes sense (the menu). */
+  onDecrement?: (product: Product) => void;
   /** Open the product detail drawer. */
   onOpen?: (product: Product) => void;
   onPrefetch?: (slug: string) => void;
@@ -26,7 +28,7 @@ export type ProductCardProps = {
  * computed). The ADD affordance defers customization/pricing to the detail drawer +
  * cart.
  */
-export function ProductCard({ product, variant = 'list', onAdd, onOpen, onPrefetch, inCartQty, className }: ProductCardProps) {
+export function ProductCard({ product, variant = 'list', onAdd, onDecrement, onOpen, onPrefetch, inCartQty, className }: ProductCardProps) {
   const horizontal = variant === 'list';
   const unavailable = !product.available;
   const optionCount = (product.variants?.length ?? 0) + (product.modifierGroups?.length ?? 0);
@@ -43,30 +45,57 @@ export function ProductCard({ product, variant = 'list', onAdd, onOpen, onPrefet
           <Icon name="utensils" className="h-6 w-6 text-primary/50" />
         </div>
       )}
-      {/* ADD button overlaps the image bottom */}
-      <div className="absolute inset-x-0 -bottom-0 flex justify-center pb-1">
-        {inCartQty ? (
-          <Badge tone="primary" variant="solid" className="shadow">{inCartQty} in cart · Add more</Badge>
-        ) : null}
+    </div>
+  );
+
+  // In the cart → a stepper, not an Add button. A stepper is only meaningful
+  // when the parent can actually change quantity, so it needs onDecrement wired;
+  // where it isn't (search overlay), we fall back to the plain Add button and a
+  // count. For CUSTOMIZABLE products "+" opens the drawer (a new line may be a
+  // different size/modifier), while "-" removes one via the parent — it drops
+  // the most recently added line.
+  const stepper = (
+    <div className="relative z-10 flex flex-col items-center">
+      <div className="flex h-11 min-w-24 items-center justify-between rounded-md bg-primary px-1 font-semibold text-primary-foreground shadow-sm">
+        <button
+          type="button"
+          aria-label={`Remove one ${product.name}`}
+          onClick={(e) => { e.stopPropagation(); onDecrement?.(product); }}
+          className="grid h-9 w-9 touch-manipulation place-items-center rounded active:scale-95"
+        >
+          <Icon name={inCartQty === 1 ? 'delete' : 'remove'} className="h-4 w-4" />
+        </button>
+        <span className="min-w-6 text-center tabular-nums" aria-live="polite">{inCartQty}</span>
+        <button
+          type="button"
+          aria-label={`Add one ${product.name}`}
+          onClick={(e) => { e.stopPropagation(); onAdd(product); }}
+          className="grid h-9 w-9 touch-manipulation place-items-center rounded active:scale-95"
+        >
+          <Icon name="add" className="h-4 w-4" />
+        </button>
       </div>
+      {product.customizable && <span className="mt-0.5 text-[0.625rem] text-foreground-subtle">Customizable</span>}
     </div>
   );
 
   const addButton = (
     <div className="relative z-10 flex flex-col items-center">
-      <Button
-        size="sm"
-        variant={unavailable ? 'ghost' : 'secondary'}
-        disabled={unavailable}
-        onClick={(e) => {
-          e.stopPropagation();
-          onAdd(product);
-        }}
-        className="h-11 min-w-24 touch-manipulation font-semibold uppercase"
-      >
-        {unavailable ? 'Unavailable' : inCartQty ? 'Add +' : 'Add'}
-      </Button>
-      {product.customizable && !unavailable && <span className="mt-0.5 text-[0.625rem] text-foreground-subtle">Customizable</span>}
+      {inCartQty && onDecrement ? stepper : (
+        <Button
+          size="sm"
+          variant={unavailable ? 'ghost' : 'secondary'}
+          disabled={unavailable}
+          onClick={(e) => {
+            e.stopPropagation();
+            onAdd(product);
+          }}
+          className="h-11 min-w-24 touch-manipulation font-semibold uppercase"
+        >
+          {unavailable ? 'Unavailable' : inCartQty ? `Add +${inCartQty > 1 ? ` (${inCartQty})` : ''}` : 'Add'}
+        </Button>
+      )}
+      {product.customizable && !unavailable && !(inCartQty && onDecrement) && <span className="mt-0.5 text-[0.625rem] text-foreground-subtle">Customizable</span>}
     </div>
   );
 

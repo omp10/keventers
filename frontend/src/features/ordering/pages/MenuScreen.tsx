@@ -84,6 +84,24 @@ export function MenuScreen() {
     }
   };
 
+  // Stepper "−". The cart merges identical configs into one line, so a simple
+  // product is a single line: drop qty by one, or remove it at one. A
+  // customizable product can span several lines; there is no one "the" line to
+  // decrement, so we take the most recently added — the reverse of the last
+  // "Add". "+" stays onAdd (opens the drawer for customizable, quick-adds
+  // otherwise).
+  const onDecrement = async (p: Product) => {
+    const lines = cart.items.filter((i) => i.productId === p.id);
+    const line = lines[lines.length - 1];
+    if (!line) return;
+    try {
+      if (line.quantity > 1) await cart.setQuantity(line.id, line.quantity - 1);
+      else await cart.removeItem(line.id);
+    } catch (e) {
+      toast.error('Could not update cart', { description: (e as Error).message });
+    }
+  };
+
   const onOpen = (p: Product) => {
     journey(JOURNEY.PRODUCT_OPENED, { outletSlug: branchSlug, productId: p.id, productSlug: p.slug });
     setOpenSlug(p.slug);
@@ -143,8 +161,8 @@ export function MenuScreen() {
         onOpenSearch={() => setSearchOpen(true)}
       />
 
-      <ProductRail title="Popular" icon="trend" products={data.popular ?? []} onAdd={onAdd} onOpen={onOpen} onPrefetch={prefetch} />
-      <ProductRail title="Recommended" icon="star" products={data.recommended ?? []} onAdd={onAdd} onOpen={onOpen} onPrefetch={prefetch} />
+      <ProductRail title="Popular" icon="trend" products={data.popular ?? []} onAdd={onAdd} onDecrement={onDecrement} onOpen={onOpen} onPrefetch={prefetch} cartQuantities={cartQuantities} />
+      <ProductRail title="Recommended" icon="star" products={data.recommended ?? []} onAdd={onAdd} onDecrement={onDecrement} onOpen={onOpen} onPrefetch={prefetch} cartQuantities={cartQuantities} />
 
       <MenuBoard
         menu={data}
@@ -157,6 +175,7 @@ export function MenuScreen() {
           navigate(path, { replace: true });
         }}
         onAdd={onAdd}
+        onDecrement={onDecrement}
         onOpen={onOpen}
         onPrefetch={prefetch}
         cartQuantities={cartQuantities}

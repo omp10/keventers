@@ -11,15 +11,19 @@ export function ProductRail({
   icon,
   products,
   onAdd,
+  onDecrement,
   onOpen,
   onPrefetch,
+  cartQuantities,
 }: {
   title: string;
   icon: IconName;
   products: Product[];
   onAdd: (p: Product) => void;
+  onDecrement?: (p: Product) => void;
   onOpen: (p: Product) => void;
   onPrefetch?: (slug: string) => void;
+  cartQuantities?: Record<string, number>;
 }) {
   if (!products || products.length === 0) return null;
   return (
@@ -31,7 +35,7 @@ export function ProductRail({
       <div className="-mx-4 flex snap-x gap-3 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {products.map((p) => (
           <div key={p.id} className="w-44 shrink-0 snap-start">
-            <ProductCard product={p} variant="grid" onAdd={onAdd} onOpen={onOpen} onPrefetch={onPrefetch} className="h-full" />
+            <ProductCard product={p} variant="grid" onAdd={onAdd} onDecrement={onDecrement} onOpen={onOpen} onPrefetch={onPrefetch} inCartQty={cartQuantities?.[p.id]} className="h-full" />
           </div>
         ))}
       </div>

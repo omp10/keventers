@@ -15,6 +15,7 @@ export type MenuSelection = { categorySlug?: string; subSlug?: string };
 
 type ProductHandlers = {
   onAdd: (p: Product) => void;
+  onDecrement?: (p: Product) => void;
   onOpen: (p: Product) => void;
   onPrefetch?: (slug: string) => void;
   cartQuantities?: Record<string, number>;
@@ -36,6 +37,7 @@ export function MenuBoard({
   selection,
   onSelect,
   onAdd,
+  onDecrement,
   onOpen,
   onPrefetch,
   cartQuantities,
@@ -44,6 +46,7 @@ export function MenuBoard({
   selection?: MenuSelection;
   onSelect?: (next: MenuSelection) => void;
   onAdd: (p: Product) => void;
+  onDecrement?: (p: Product) => void;
   onOpen: (p: Product) => void;
   onPrefetch?: (slug: string) => void;
   cartQuantities?: Record<string, number>;
@@ -171,6 +174,7 @@ export function MenuBoard({
             registerRef={(el) => (sectionRefs.current[node.category.id] = el)}
             reduced={reduced}
             onAdd={onAdd}
+            onDecrement={onDecrement}
             onOpen={onOpen}
             onPrefetch={onPrefetch}
             cartQuantities={cartQuantities}
@@ -293,6 +297,7 @@ function ProductList({ products, ...handlers }: { products: Product[] } & Produc
           product={p}
           variant="list"
           onAdd={handlers.onAdd}
+          onDecrement={handlers.onDecrement}
           onOpen={handlers.onOpen}
           onPrefetch={handlers.onPrefetch}
           inCartQty={handlers.cartQuantities?.[p.id]}
