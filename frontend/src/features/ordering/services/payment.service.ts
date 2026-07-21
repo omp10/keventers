@@ -38,17 +38,24 @@ function toIntent(dto: IntentDTO): PaymentIntent {
  * backend; the frontend only reflects status. No provider SDK secrets, no amount
  * math on the client.
  */
+// Payment endpoints are session-scoped: the backend guards them with
+// `requireGuest`, so they must ride the GUEST table-session token, NOT the
+// account access token. Without `auth: 'guest'` the client defaults to the
+// account token and every call 401s with "Invalid or expired guest session
+// token" — even though the very same session just placed the order. This is
+// exactly what cart/order do; payment simply forgot it.
+const GUEST = { auth: 'guest' } as const;
+
 class PaymentService {
   async createIntent(orderId: string, provider: PaymentProvider, method?: PaymentMethod) {
-    const dto = await api.post<IntentDTO>('/payments/create-intent', { orderId, provider, method });
+    const dto = await api.post<IntentDTO>('/payments/create-intent', { orderId, provider, method }, GUEST);
     return toIntent(dto);
   }
 
   /** Confirm after the provider handshake (Razorpay success payload / return). */
   confirm(intentId: string, providerPayload: Record<string, unknown>) {
-    return api.post<{ status: PaymentStatus }>('/payments/confirm', { intentId, providerPayload });
+    return api.post<{ status: PaymentStatus }>('/payments/confirm', { intentId, providerPayload }, GUEST);
   }
-
 }
 
 export const paymentService = new PaymentService();
