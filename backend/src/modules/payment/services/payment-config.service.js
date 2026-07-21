@@ -1,6 +1,7 @@
 import { BaseService } from '#core/service/base.service.js';
 import { BadRequestError, NotFoundError } from '#core/errors/app-error.js';
 import { encryptionService } from '#core/security/encryption.service.js';
+import { config } from '#config';
 
 import { PAYMENT_ERRORS } from '../constants/payment.constants.js';
 import { toConfigDTO } from '../dto/payment.dto.js';
@@ -17,11 +18,14 @@ import { assertStaffAccess, resolveRestaurantScope } from '../utils/tenant.util.
  * secrets and never learns which gateway it is using.
  */
 export class PaymentConfigService extends BaseService {
-  constructor({ configs = configRepository, factory = providerFactory, encryption = encryptionService, eventBus } = {}) {
+  constructor({ configs = configRepository, factory = providerFactory, encryption = encryptionService, platformProviders = config.payment.platformProviders, eventBus } = {}) {
     super({ name: 'payment.config', eventBus });
     this.configs = configs;
     this.factory = factory;
     this.encryption = encryption;
+    // { razorpay: {merchantId, secretKey, ...} } from .env — the fallback when a
+    // restaurant hasn't onboarded its own gateway. `{}` when no keys are set.
+    this.platformProviders = platformProviders ?? {};
   }
 
   #enc(v) {
@@ -112,9 +116,28 @@ export class PaymentConfigService extends BaseService {
     const config = providerName
       ? await this.configs.findWithSecrets(scope, providerName)
       : await this.configs.findDefaultWithSecrets(scope);
-    if (!config || config.isActive === false) throw new BadRequestError(PAYMENT_ERRORS.CONFIG_NOT_FOUND);
-    const provider = this.factory.create(config.provider, this.#credentials(config));
-    return { provider, config };
+    if (config && config.isActive !== false) {
+      const provider = this.factory.create(config.provider, this.#credentials(config));
+      return { provider, config };
+    }
+    // No per-restaurant config → fall back to platform .env credentials. A
+    // named provider must match what the platform actually has keys for; an
+    // unspecified provider takes the one platform default (razorpay).
+    const platform = this.platformProviders[providerName ?? 'razorpay'];
+    if (platform) {
+      const provider = this.factory.create(platform.provider, platform);
+      // A config-shaped object so callers that read cfg.provider /
+      // cfg.enabledMethods keep working; no DB row exists for this path.
+      const cfg = {
+        provider: platform.provider,
+        environment: platform.environment,
+        enabledMethods: platform.enabledMethods ?? [],
+        isActive: true,
+        isPlatform: true,
+      };
+      return { provider, config: cfg };
+    }
+    throw new BadRequestError(PAYMENT_ERRORS.CONFIG_NOT_FOUND);
   }
 }
 

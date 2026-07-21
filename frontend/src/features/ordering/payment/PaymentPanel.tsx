@@ -14,7 +14,7 @@ type Phase = 'initiating' | 'awaiting' | 'processing' | 'failed' | 'cancelled' |
  * driven by the parent from the order's realtime payment status (webhook
  * reconciliation), so this only needs to run the handshake and offer retry.
  */
-export function PaymentPanel({ order, provider, onBack }: { order: Order; provider: PaymentProvider; onBack: () => void }) {
+export function PaymentPanel({ order, provider, method, onBack }: { order: Order; provider: PaymentProvider; method?: 'upi' | 'card'; onBack: () => void }) {
   const { createIntent, confirm } = usePayment();
   const [phase, setPhase] = useState<Phase>('initiating');
   const [intent, setIntent] = useState<PaymentIntent | null>(null);
@@ -25,30 +25,43 @@ export function PaymentPanel({ order, provider, onBack }: { order: Order; provid
     setPhase('initiating');
     setMessage(null);
     try {
-      const it = await createIntent(order.id, provider);
+      // Backend method is a strict enum with no bare 'card' (it splits
+      // credit_card/debit_card). Only 'upi' is safe to constrain the intent to;
+      // for card we leave it open and let Razorpay's sheet handle credit vs
+      // debit. `method` still drives the sheet's preselect below either way.
+      const apiMethod = method === 'upi' ? 'upi' : undefined;
+      const it = await createIntent(order.id, provider, apiMethod);
       setIntent(it);
       setPhase('awaiting');
-      launchPayment(it, {
-        onSuccess: async (payload) => {
-          setPhase('processing');
-          try {
-            await confirm(it.id, payload);
-          } catch {
-            /* server reconciles via webhook; parent reflects final status */
-          }
+      await launchPayment(
+        it,
+        {
+          onSuccess: async (payload) => {
+            setPhase('processing');
+            try {
+              await confirm(it.id, payload);
+            } catch {
+              /* server reconciles via webhook; parent reflects final status */
+            }
+          },
+          onCancel: () => setPhase('cancelled'),
+          onError: (m) => {
+            setMessage(m);
+            setPhase('failed');
+          },
+          onUnavailable: () => setPhase('unavailable'),
         },
-        onCancel: () => setPhase('cancelled'),
-        onError: (m) => {
-          setMessage(m);
-          setPhase('failed');
+        {
+          name: order.branch.restaurantName ?? order.branch.name,
+          description: `Order #${order.orderNumber}`,
+          method,
         },
-        onUnavailable: () => setPhase('unavailable'),
-      });
+      );
     } catch (e) {
       setMessage((e as Error).message);
       setPhase('failed');
     }
-  }, [order.id, provider, createIntent, confirm]);
+  }, [order.id, order.branch.name, order.branch.restaurantName, order.orderNumber, provider, method, createIntent, confirm]);
 
   useEffect(() => {
     if (started.current) return;

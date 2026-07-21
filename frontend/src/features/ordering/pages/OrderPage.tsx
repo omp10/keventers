@@ -25,6 +25,7 @@ export function OrderPage() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
   const provider = (params.get('provider') as PaymentProvider) || 'razorpay';
+  const method = (params.get('method') as 'upi' | 'card' | null) || undefined;
 
   const q = useOrder(orderId);
   const order = q.data;
@@ -77,7 +78,7 @@ export function OrderPage() {
           order's whole life, so customers never saw the tracker at all. */}
       <OrderTrackingHero order={order} />
       {showPayment && (
-        <PaymentPanel order={order} provider={provider} onBack={() => navigate('/checkout')} />
+        <PaymentPanel order={order} provider={provider} method={method} onBack={() => navigate('/checkout')} />
       )}
       <section>
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-foreground-subtle">Order status</h2>

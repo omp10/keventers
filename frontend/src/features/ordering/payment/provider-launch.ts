@@ -15,9 +15,47 @@ export type LaunchHandlers = {
   onUnavailable?: () => void;
 };
 
+/**
+ * Display-only options merged into the Razorpay checkout: the merchant name and
+ * order description shown in the sheet, the customer prefill, a preferred method
+ * (UPI vs card), and the brand colour. None of these are security-sensitive —
+ * key, order_id and amount come from the backend intent and are never set here.
+ */
+export type LaunchDisplay = {
+  name?: string;
+  description?: string;
+  prefill?: { name?: string; email?: string; contact?: string };
+  method?: 'upi' | 'card' | 'netbanking' | 'wallet';
+  themeColor?: string;
+};
+
 type RazorpayCtor = new (options: Record<string, unknown>) => { open: () => void };
 
-export function launchPayment(intent: PaymentIntent, handlers: LaunchHandlers): void {
+const RAZORPAY_SRC = 'https://checkout.razorpay.com/v1/checkout.js';
+
+/** Load Razorpay's checkout script once, on demand. Resolves to the constructor
+ * (or null if it can't load — offline, blocked, CSP). Idempotent. */
+function loadRazorpay(): Promise<RazorpayCtor | null> {
+  const existing = (globalThis as unknown as { Razorpay?: RazorpayCtor }).Razorpay;
+  if (existing) return Promise.resolve(existing);
+  return new Promise((resolve) => {
+    const done = () => resolve((globalThis as unknown as { Razorpay?: RazorpayCtor }).Razorpay ?? null);
+    let el = document.querySelector<HTMLScriptElement>(`script[src="${RAZORPAY_SRC}"]`);
+    if (el) {
+      el.addEventListener('load', done, { once: true });
+      el.addEventListener('error', () => resolve(null), { once: true });
+      return;
+    }
+    el = document.createElement('script');
+    el.src = RAZORPAY_SRC;
+    el.async = true;
+    el.addEventListener('load', done, { once: true });
+    el.addEventListener('error', () => resolve(null), { once: true });
+    document.head.appendChild(el);
+  });
+}
+
+export async function launchPayment(intent: PaymentIntent, handlers: LaunchHandlers, display: LaunchDisplay = {}): Promise<void> {
   // Hosted redirect (e.g. PhonePe) — the backend supplied the exact URL.
   if (intent.redirectUrl) {
     window.location.assign(intent.redirectUrl);
@@ -25,14 +63,20 @@ export function launchPayment(intent: PaymentIntent, handlers: LaunchHandlers): 
   }
 
   if (intent.provider === 'razorpay') {
-    const Razorpay = (globalThis as unknown as { Razorpay?: RazorpayCtor }).Razorpay;
+    const Razorpay = await loadRazorpay();
     if (!Razorpay) {
       handlers.onUnavailable?.();
       return;
     }
     try {
       const rzp = new Razorpay({
+        // key, order_id, amount, currency — from the backend intent.
         ...intent.providerPayload,
+        name: display.name ?? 'Keventers',
+        description: display.description,
+        prefill: display.prefill,
+        ...(display.method ? { prefill: { ...display.prefill, method: display.method } } : {}),
+        theme: display.themeColor ? { color: display.themeColor } : undefined,
         handler: (response: Record<string, unknown>) => handlers.onSuccess(response),
         modal: { ondismiss: () => handlers.onCancel() },
       });

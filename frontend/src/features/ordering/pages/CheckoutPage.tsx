@@ -10,7 +10,9 @@ export function CheckoutPage() {
     <div>
       <OrderingHeader title="Checkout" />
       <CheckoutView
-        onPlaced={(order, provider) => navigate(`/order/${order.id}?provider=${provider}`, { replace: true })}
+        onPlaced={(order, provider, method) =>
+          navigate(`/order/${order.id}?provider=${provider}${method ? `&method=${method}` : ''}`, { replace: true })
+        }
       />
     </div>
   );

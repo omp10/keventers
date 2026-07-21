@@ -112,6 +112,15 @@ export const envSchema = z.object({
   PAYMENT_WEBHOOK_REPLAY_WINDOW_SECONDS: z.coerce.number().int().positive().default(300), // 5 min
   PAYMENT_IDEMPOTENCY_TTL_SECONDS: z.coerce.number().int().positive().default(86400),
 
+  // --- Platform payment credentials (fallback when a restaurant has no own
+  // config). Per-restaurant encrypted configs still win; these let a fresh
+  // deployment take payments with one set of keys. All optional — absent keys
+  // simply mean "no platform Razorpay", and the per-restaurant path is used. ---
+  RAZORPAY_KEY_ID: z.string().optional(),
+  RAZORPAY_KEY_SECRET: z.string().optional(),
+  RAZORPAY_WEBHOOK_SECRET: z.string().optional(),
+  RAZORPAY_ENV: z.enum(['test', 'live']).default('test'),
+
   // --- Customer & Loyalty (Phase 4.9) ---
   LOYALTY_EARN_POINTS_PER_CURRENCY_UNIT: z.coerce.number().positive().default(1), // points per major currency unit spent
   LOYALTY_POINTS_EXPIRY_DAYS: z.coerce.number().int().positive().default(365),
