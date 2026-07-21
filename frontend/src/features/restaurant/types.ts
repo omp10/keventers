@@ -47,6 +47,29 @@ export type OrderSummary = {
 export type AuditEvent = { id: string; type: string; actor?: string; message: string; at: string };
 
 /** Full staff order detail (adds operational context to the customer Order). */
+/** One sitting's consolidated bill: every order the table placed, plus totals.
+ *  All money is MINOR units (paise). */
+export type SessionBill = {
+  sessionId: string | null;
+  table?: { id: string; number?: string | number | null; name?: string | null } | null;
+  orderCount: number;
+  billableCount: number;
+  currency: string;
+  openedAt?: string | null;
+  orders: StaffOrderDetail[];
+  totals: {
+    subtotal: number;
+    discount: number;
+    taxes: { label: string; amount: number }[];
+    taxTotal: number;
+    serviceCharge: number;
+    charges?: number;
+    total: number;
+    paid: number;
+    due: number;
+  };
+};
+
 export type StaffOrderDetail = Order & {
   customer?: { id?: string; name?: string; phone?: string } | null;
   guestSessionId?: string;

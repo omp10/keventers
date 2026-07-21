@@ -8,6 +8,16 @@ const restaurantIdOf = (req) => req.validatedQuery?.restaurantId ?? req.query?.r
 const branchIdOf = (req) => req.validatedQuery?.branchId ?? req.query?.branchId ?? undefined;
 
 export const RestaurantOrderController = {
+  /**
+   * GET /restaurant/orders/:id/bill — the whole TABLE SESSION's bill, not just
+   * this order. A sitting usually spans several orders; billing them separately
+   * hands the guest three receipts for one meal.
+   */
+  bill: asyncHandler(async (req, res) => {
+    const data = await orderService.getSessionBill(req.tenant, req.params.id);
+    ApiResponse.success(res, { data });
+  }),
+
   list: asyncHandler(async (req, res) => {
     const data = await orderService.listForStaff(req.tenant, restaurantIdOf(req), branchIdOf(req), req.validatedQuery ?? {});
     ApiResponse.success(res, { data });

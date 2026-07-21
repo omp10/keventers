@@ -1,5 +1,5 @@
 import { api, type Paginated } from '@/platform/api';
-import type { OrderAction, OrderChannel, OrderStatus, OrderSummary, PaymentStatus, StaffOrderDetail } from '../types';
+import type { OrderAction, OrderChannel, OrderStatus, OrderSummary, PaymentStatus, SessionBill, StaffOrderDetail } from '../types';
 
 /**
  * STAFF ORDER SERVICE — reads/advances orders via the backend Order Engine. The
@@ -38,6 +38,15 @@ class StaffOrderService {
 
   get(orderId: string) {
     return api.get<StaffOrderDetail>(`/restaurant/orders/${orderId}`);
+  }
+
+  /**
+   * The SESSION bill — every order this table placed in one sitting, totalled.
+   * A sitting usually spans several orders, so billing per order would hand the
+   * guest several receipts for one meal.
+   */
+  sessionBill(orderId: string) {
+    return api.get<SessionBill>(`/restaurant/orders/${orderId}/bill`);
   }
 
   /**

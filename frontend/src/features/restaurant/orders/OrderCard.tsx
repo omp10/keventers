@@ -17,11 +17,18 @@ const PAYMENT_TONE = { captured: 'bg-success', pending: 'bg-warning', failed: 'b
 export function OrderCard({
   order,
   onOpen,
+  onBill,
+  sessionSeq,
   compact,
   className,
 }: {
   order: OrderSummary;
   onOpen: (id: string) => void;
+  /** Open the session bill for this order's table. */
+  onBill?: (id: string) => void;
+  /** "2 of 3" — this order's position in its table session, when there's more
+   *  than one. Tells the kitchen a ticket is a FOLLOW-UP to food already sent. */
+  sessionSeq?: { index: number; total: number };
   compact?: boolean;
   className?: string;
 }) {
@@ -46,6 +53,13 @@ export function OrderCard({
         <div className="flex items-center gap-2">
           <span className={cn('h-2 w-2 shrink-0 rounded-full', PAYMENT_TONE[order.paymentStatus] ?? 'bg-border-strong')} title={`Payment: ${order.paymentStatus}`} />
           <span className="font-semibold text-foreground">#{order.orderNumber}</span>
+          {sessionSeq && sessionSeq.total > 1 && (
+            // The table is already eating — this ticket is a follow-up, not a new
+            // cover. Cooks plate it to catch up with what's already out.
+            <Badge tone="info" variant="soft" className="text-[0.625rem]" title={`Order ${sessionSeq.index} of ${sessionSeq.total} from this table`}>
+              Repeat {sessionSeq.index}/{sessionSeq.total}
+            </Badge>
+          )}
           {order.priority === 'vip' && <Badge tone="accent" variant="solid" className="text-[0.625rem]">VIP</Badge>}
           {isRush && <Badge tone="danger" variant="solid" className="text-[0.625rem]">Rush</Badge>}
         </div>
@@ -80,6 +94,16 @@ export function OrderCard({
           >
             {next.label}
           </Button>
+          {onBill && (
+            <Button
+              size="sm"
+              variant="secondary"
+              leftIcon="download"
+              onClick={(e) => { e.stopPropagation(); onBill(order.id); }}
+            >
+              Bill
+            </Button>
+          )}
         </div>
       )}
     </article>

@@ -55,6 +55,10 @@ const queueEntrySchema = new Schema(
     orderId: { type: Schema.Types.ObjectId, ref: 'Order', required: true },
     orderNumber: { type: String, required: true },
     tableId: { type: Schema.Types.ObjectId, ref: 'Table', default: null },
+    /** The guest session this order belongs to. A table session can place SEVERAL
+     *  orders, and the kitchen needs to see that a ticket is a follow-up to food
+     *  already sent rather than a fresh table. Indexed for the per-session count. */
+    sessionId: { type: String, default: null, index: true },
     orderType: { type: String, default: 'dine_in' },
 
     status: {

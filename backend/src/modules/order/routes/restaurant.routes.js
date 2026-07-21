@@ -28,6 +28,8 @@ router.use(...managementGuards);
  */
 router.get('/', validate({ query: listOrdersQuerySchema }), RestaurantOrderController.list);
 router.get('/:id', validate({ params: idParamSchema }), RestaurantOrderController.getById);
+// The session bill — every order this table placed in one sitting, totalled.
+router.get('/:id/bill', validate({ params: idParamSchema }), RestaurantOrderController.bill);
 
 /**
  * @openapi

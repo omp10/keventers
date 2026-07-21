@@ -474,6 +474,91 @@ export class OrderService extends BaseService {
   }
 
   /**
+   * THE SESSION BILL — every order this table placed in one sitting, totalled.
+   *
+   * A dine-in session routinely spans several orders (a round of drinks, then
+   * food, then dessert). Each is its own immutable order with its own pricing
+   * snapshot, so billing per order hands the guest three receipts for one meal.
+   * This gathers the session's orders and sums the FROZEN snapshots — it never
+   * re-prices, so the bill always equals what was actually charged.
+   *
+   * Cancelled orders are listed but excluded from the totals: the table should
+   * see that something was cancelled, and should not be asked to pay for it.
+   */
+  async getSessionBill(tenant, orderId) {
+    const anchorOrder = await loadForStaff(this.orders, tenant, orderId);
+    const sessionId = anchorOrder.sessionId ? String(anchorOrder.sessionId) : null;
+
+    // No session (a takeaway / walk-in order) still bills — just for itself.
+    const orders = sessionId
+      ? await this.orders.find({ sessionId }, { sort: 'createdAt', limit: 100 })
+      : [anchorOrder];
+
+    const currency = anchorOrder.currency ?? 'INR';
+    const billable = orders.filter((o) => o.status !== ORDER_STATUS.CANCELLED);
+    const sum = (pick) => billable.reduce((n, o) => n + Number(pick(o) ?? 0), 0);
+
+    // Read the STORED snapshot shape, not the reader-friendly one. A pricing
+    // snapshot is { subtotal, discounts:{total}, serviceCharge, tax:{lines[],
+    // total}, charges:{total}, total } — reading `pricing.taxes`/`taxTotal`
+    // (which is how the UI names them) silently produced a bill with no tax on
+    // it while the totals plainly included tax.
+    const money = (m) => Number(m?.amount ?? 0);
+
+    // Merge each order's tax lines by name so the bill shows "GST" once.
+    const taxes = new Map();
+    for (const o of billable) {
+      for (const line of o.pricing?.tax?.lines ?? []) {
+        const label = line.name ?? line.label ?? 'Tax';
+        taxes.set(label, (taxes.get(label) ?? 0) + money(line.amount));
+      }
+    }
+    const taxTotal = sum((o) => money(o.pricing?.tax?.total));
+    // A snapshot with a tax total but no itemised lines still has to show tax.
+    if (taxes.size === 0 && taxTotal > 0) taxes.set('Tax', taxTotal);
+
+    const total = sum((o) => money(o.pricing?.total));
+    // "Paid" counts only orders the Payment Engine actually captured, so the
+    // amount due on the bill is what the table still owes.
+    const paid = billable
+      .filter((o) => o.payment?.status === PAYMENT_STATUS.CAPTURED)
+      .reduce((n, o) => n + money(o.pricing?.total), 0);
+
+    const dtos = orders.map((o) => toOrderDTO(o, { forStaff: true }));
+    let table = null;
+    if (anchorOrder.tableId) {
+      try {
+        const { tableService } = await import('#modules/qr-ordering/index.js');
+        const t = await tableService.getPublicById(String(anchorOrder.tableId));
+        if (t) table = { id: String(t.id ?? anchorOrder.tableId), number: t.number ?? null, name: t.name ?? null };
+      } catch {
+        /* a label is a nicety — never fail the bill over it */
+      }
+    }
+
+    return {
+      sessionId,
+      table,
+      orderCount: orders.length,
+      billableCount: billable.length,
+      currency,
+      openedAt: orders[0]?.createdAt ?? anchorOrder.createdAt ?? null,
+      orders: dtos,
+      totals: {
+        subtotal: sum((o) => money(o.pricing?.subtotal)),
+        discount: sum((o) => money(o.pricing?.discounts?.total)),
+        taxes: [...taxes].map(([label, amount]) => ({ label, amount })),
+        taxTotal,
+        serviceCharge: sum((o) => money(o.pricing?.serviceCharge)),
+        charges: sum((o) => money(o.pricing?.charges?.total)),
+        total,
+        paid,
+        due: Math.max(0, total - paid),
+      },
+    };
+  }
+
+  /**
    * Trusted read by id WITHOUT a tenant check — for INTERNAL event-driven
    * consumers (e.g. the Kitchen module enqueuing on order.confirmed). The caller
    * is a system context reacting to an order the module itself published; the

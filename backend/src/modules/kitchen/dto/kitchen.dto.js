@@ -62,6 +62,7 @@ export function toKitchenEntryDTO(e, now = new Date()) {
     branchId: oid(e.branchId),
     orderId: oid(e.orderId),
     orderNumber: e.orderNumber,
+    sessionId: e.sessionId ?? null,
     tableId: oid(e.tableId),
     tableLabel: e.metadata?.tableLabel ?? (e.tableId ? `Table ${oid(e.tableId)}` : ''),
     orderType: e.orderType ?? 'dine_in',

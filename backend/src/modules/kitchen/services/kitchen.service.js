@@ -117,6 +117,7 @@ export class KitchenService extends BaseService {
         orderId,
         orderNumber: order.orderNumber,
         tableId: order.tableId ?? null,
+        sessionId: order.sessionId ? String(order.sessionId) : null,
         orderType: order.orderType ?? 'dine_in',
         status: KITCHEN_STATUS.PENDING,
         priority: PRIORITY.NORMAL,

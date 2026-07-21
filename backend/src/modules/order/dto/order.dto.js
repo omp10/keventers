@@ -121,6 +121,9 @@ export function toOrderSummaryDTO(order, { forStaff = false } = {}) {
     branchId: oid(order.branchId),
     restaurantId: oid(order.restaurantId),
     tableId: oid(order.tableId),
+    // STAFF ONLY: lets the board flag follow-up orders from a table that is
+    // already eating, and drives the one-bill-per-session view.
+    ...(forStaff ? { sessionId: order.sessionId ? String(order.sessionId) : null } : {}),
     // A cancelled order in the history list said only "cancelled" — the customer
     // could not see WHY, or whether it was them or the restaurant. The reason is
     // the whole point of showing the status at all.

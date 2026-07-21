@@ -6,3 +6,4 @@ export { OrderDetailDrawer } from './OrderDetailDrawer';
 export { StaffOrderTimeline } from './StaffOrderTimeline';
 export { groupByBucket, waitingLabel, nextAction } from './board-utils';
 export { savedViews, useSavedViews, type SavedView } from './saved-views';
+export { SessionBillDialog } from './SessionBillDialog';

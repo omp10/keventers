@@ -2,7 +2,7 @@ import { useState } from 'react';
 
 import { Button, Spinner, EmptyState, Icon } from '@/design-system';
 import { useLiveOrders, useOrderDrawer } from '../hooks';
-import { BoardViewToggle, OrderBoard, OrderFilters, type BoardView } from '../orders';
+import { BoardViewToggle, OrderBoard, OrderFilters, SessionBillDialog, type BoardView } from '../orders';
 import type { OrderFilters as Filters } from '../services';
 
 /**
@@ -15,6 +15,8 @@ export function LiveOrdersPage() {
   const [view, setView] = useState<BoardView>('list');
   const orders = useLiveOrders(filters);
   const drawer = useOrderDrawer();
+  // Which order's SESSION bill is open (the bill covers the whole sitting).
+  const [billFor, setBillFor] = useState<string | undefined>();
 
   const patch = (p: Partial<Filters>) => setFilters((f) => ({ ...f, ...p }));
 
@@ -33,7 +35,7 @@ export function LiveOrdersPage() {
         <EmptyState icon={<Icon name="order" className="mb-3 h-8 w-8 text-muted-foreground" />} title="No orders" description="New orders will appear here in realtime." size="sm" />
       ) : (
         <>
-          <OrderBoard orders={orders.items} view={view} onOpen={drawer.open} />
+          <OrderBoard orders={orders.items} view={view} onOpen={drawer.open} onBill={setBillFor} />
           {orders.hasNext && (
             <div className="flex justify-center pt-2">
               <Button variant="secondary" loading={orders.isFetching} onClick={orders.next}>Load more</Button>
@@ -41,6 +43,8 @@ export function LiveOrdersPage() {
           )}
         </>
       )}
+
+      <SessionBillDialog orderId={billFor} open={Boolean(billFor)} onClose={() => setBillFor(undefined)} />
     </div>
   );
 }
