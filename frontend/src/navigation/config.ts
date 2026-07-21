@@ -135,6 +135,7 @@ export const adminNav: NavConfig = {
         { key: 'admin-feedback', label: 'Feedback & NPS', icon: 'star', path: '/admin/feedback', access: { anyRole: ['super_admin'] } },
         { key: 'admin-subscriptions', label: 'Subscriptions', icon: 'gift', path: '/admin/subscriptions', access: { anyRole: ['super_admin'] } },
         { key: 'admin-coupons', label: 'Coupons', icon: 'gift', path: '/admin/coupons', access: { anyRole: ['super_admin'] } },
+        { key: 'admin-loyalty', label: 'Loyalty rule', icon: 'star', path: '/admin/loyalty', access: { anyRole: ['super_admin'] } },
         { key: 'admin-upsell', label: 'Upsell rules', icon: 'trend', path: '/admin/upsell', access: { anyRole: ['super_admin'] } },
       ],
     },

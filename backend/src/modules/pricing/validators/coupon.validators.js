@@ -30,6 +30,7 @@ export const createCouponSchema = z
     usageLimit: z.number().int().min(0).nullable().optional(),
     audience: z.nativeEnum(COUPON_AUDIENCE).optional(),
     perCustomerLimit: z.number().int().min(1).nullable().optional(),
+    isPublic: z.boolean().optional(),
   })
   .refine((v) => v.type !== COUPON_TYPE.PERCENTAGE || (v.value ?? 0) > 0, {
     message: 'Percentage coupons require a value (basis points)',
@@ -58,6 +59,7 @@ export const updateCouponSchema = z
     usageLimit: z.number().int().min(0).nullable().optional(),
     audience: z.nativeEnum(COUPON_AUDIENCE).optional(),
     perCustomerLimit: z.number().int().min(1).nullable().optional(),
+    isPublic: z.boolean().optional(),
   })
   .refine((v) => Object.keys(v).length > 0, { message: 'No updatable fields provided' });
 

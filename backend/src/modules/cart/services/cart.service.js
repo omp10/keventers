@@ -319,6 +319,12 @@ export class CartService extends BaseService {
     });
   }
 
+  /** Public coupons the customer can browse + tap-to-apply for this cart's
+   *  restaurant (the "see all coupons" sheet). Read-only; no cart mutation. */
+  async availableCoupons(scope) {
+    return this.coupons.listPublicForScope({ organizationId: scope.organizationId, restaurantId: scope.restaurantId });
+  }
+
   async removeCoupon(scope, opts = {}) {
     return this.#mutate(scope, { ...opts, requireContext: false }, async (cart) => {
       this.audit.success('cart.coupon.removed', { targetId: this.#cartId(cart) });

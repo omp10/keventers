@@ -19,6 +19,7 @@ const UpsellPage = lazyRoute(() => import('@/features/restaurant/pages/UpsellPag
 // Coupons reuse the manager dashboard's CouponsPage verbatim — it drives the
 // scoped API, so under the admin picker it manages any restaurant's coupons.
 const CouponsPage = lazyRoute(() => import('@/features/management/pages/OperationsPages').then((m) => ({ default: m.CouponsPage })));
+const LoyaltyRulePage = lazyRoute(() => import('@/features/restaurant/pages/LoyaltyRulePage').then((m) => ({ default: m.LoyaltyRulePage })));
 const scoped = (title: string, description: string, Page: ComponentType) => (
   <AdminRestaurantScoped title={title} description={description} Page={Page} />
 );
@@ -33,6 +34,7 @@ export const adminRoutes: AdminRoute[] = [
   { path: '/admin/feedback', element: scoped('Feedback & NPS', 'Customer ratings and NPS, per restaurant.', FeedbackPage) },
   { path: '/admin/upsell', element: scoped('Upsell rules', 'The recommendation engine and its rules, per restaurant.', UpsellPage) },
   { path: '/admin/coupons', element: scoped('Coupons', 'Create discount codes — target new or all customers, per restaurant.', CouponsPage) },
+  { path: '/admin/loyalty', element: scoped('Loyalty rule', 'Set how customers earn points — by order amount or per order, per restaurant.', LoyaltyRulePage) },
   { path: '/admin/orders', element: <AdminOrders /> },
   { path: '/admin/products', element: <AdminCatalog tab="products" /> },
   { path: '/admin/menu-categories', element: <AdminCatalog tab="categories" /> },

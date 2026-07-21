@@ -1,9 +1,13 @@
+import { useEffect, useRef, useState } from 'react';
+
 import { Button, Icon, Spinner, Textarea, EmptyState } from '@/design-system';
 import { formatMinutes, formatMoney } from '../format';
 import { useCart, useLoyalty } from '../hooks';
 import { useAuth } from '@/platform/auth';
 import { CartItemRow } from './CartItemRow';
+import { CouponCelebration } from './CouponCelebration';
 import { CouponInput } from './CouponInput';
+import { CouponsSheet } from './CouponsSheet';
 import { ImpulseStrip } from './ImpulseStrip';
 import { PriceBreakdown } from './PriceBreakdown';
 
@@ -25,6 +29,20 @@ export function CartView({
   const cart = useCart();
   const { isAuthenticated } = useAuth();
   const loyalty = useLoyalty();
+  const [sheetOpen, setSheetOpen] = useState(false);
+  // One celebration owner for BOTH the code field and the sheet: fire whenever a
+  // coupon goes from none → applied. A ref of the previous code detects it
+  // without re-firing on every render.
+  const [celebrate, setCelebrate] = useState<{ token: number; code: string } | null>(null);
+  const prevCoupon = useRef<string | null | undefined>(cart.coupon?.code ?? null);
+  useEffect(() => {
+    const now = cart.coupon?.code ?? null;
+    if (now && now !== prevCoupon.current) {
+      setCelebrate({ token: Date.now(), code: now });
+      setSheetOpen(false);
+    }
+    prevCoupon.current = now;
+  }, [cart.coupon?.code]);
 
   if (cart.isLoading) {
     return (
@@ -76,9 +94,27 @@ export function CartView({
         applied={cart.coupon}
         onApply={async (code) => { await cart.applyCoupon(code); }}
         onRemove={async () => { await cart.removeCoupon(); }}
+        onBrowse={cart.coupon ? undefined : () => setSheetOpen(true)}
         applying={cart.isMutating}
         error={cart.couponError ? cart.couponError.message : null}
-        savedLabel={cart.pricing?.savings && cart.pricing.savings.amount > 0 ? formatMoney(cart.pricing.savings) : null}
+      />
+
+      {celebrate && (
+        <CouponCelebration
+          token={celebrate.token}
+          code={celebrate.code}
+          savedLabel={cart.pricing?.savings && cart.pricing.savings.amount > 0 ? formatMoney(cart.pricing.savings) : null}
+        />
+      )}
+
+      <CouponsSheet
+        open={sheetOpen}
+        onClose={() => setSheetOpen(false)}
+        appliedCode={cart.coupon?.code ?? null}
+        applying={cart.isMutating}
+        onApply={async (code) => {
+          try { await cart.applyCoupon(code); } catch { /* error shown via couponError */ }
+        }}
       />
 
       {/* Notes */}

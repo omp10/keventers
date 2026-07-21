@@ -90,6 +90,18 @@ export class RestaurantService extends BaseService {
     return restaurant ? toRestaurantDTO(restaurant) : null;
   }
 
+  /**
+   * The restaurant's loyalty earning rule, with safe defaults when unset. Read by
+   * the loyalty engine on payment capture. Never throws — a missing restaurant or
+   * missing config yields the default per-amount rule so earning still works.
+   */
+  async getLoyaltyConfig(restaurantId) {
+    const defaults = { enabled: true, mode: 'per_amount', pointsPerCurrencyUnit: 1, pointsPerOrder: 10 };
+    const restaurant = await this.restaurants.findById(restaurantId).catch(() => null);
+    const l = restaurant?.settings?.loyalty;
+    return l ? { ...defaults, ...(l.toObject ? l.toObject() : l) } : defaults;
+  }
+
   /** Trusted BATCH read — one query per page of rows. Returns a Map by id. */
   async getPublicByIds(ids = []) {
     const unique = [...new Set(ids.map(String).filter(Boolean))];

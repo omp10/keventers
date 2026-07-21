@@ -147,6 +147,20 @@ export type PricingBreakdown = {
 
 export type AppliedCoupon = { code: string; label?: string; description?: string };
 
+/** A public coupon shown in the "see all coupons" sheet. Money fields are MINOR
+ *  units; `value` is basis points for percentage, minor units for fixed. */
+export type PublicCoupon = {
+  id: string;
+  code: string;
+  description?: string;
+  type: 'percentage' | 'fixed' | 'free_item' | 'buy_x_get_y';
+  value?: number;
+  minSubtotal?: number | null;
+  maxDiscount?: number | null;
+  audience?: 'all' | 'new_customers';
+  validUntil?: string | null;
+};
+
 export type Cart = {
   id: string;
   /** Optimistic-concurrency token (If-Match). */

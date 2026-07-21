@@ -1,6 +1,6 @@
 import { api } from '@/platform/api';
 import { mapCart } from './mappers';
-import type { Cart, CartItemSelection } from '../types';
+import type { Cart, CartItemSelection, PublicCoupon } from '../types';
 
 /**
  * CART SERVICE — the guest-owned, server-authoritative cart. The frontend sends
@@ -61,6 +61,11 @@ class CartService {
 
   async removeCoupon(version?: number): Promise<Cart> {
     return mapCart(await api.delete('/cart/remove-coupon', { headers: versioned(version), auth: 'guest' }));
+  }
+
+  /** Public coupons the customer can browse for this cart's restaurant. */
+  availableCoupons(): Promise<PublicCoupon[]> {
+    return api.get<PublicCoupon[]>('/cart/coupons', { auth: 'guest' });
   }
 
   async setNotes(notes: string, version?: number): Promise<Cart> {

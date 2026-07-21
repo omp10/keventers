@@ -1,11 +1,24 @@
 import { BaseService } from '#core/service/base.service.js';
 import { config } from '#config';
 import { orderService } from '#modules/order/index.js';
+import { restaurantService } from '#modules/organization/index.js';
 
 import { LOYALTY_SOURCE } from '../constants/customer.constants.js';
 import { customerRepository } from '../repositories/customer.repository.js';
 
 import { computeEarnPoints, loyaltyService } from './loyalty.service.js';
+
+/**
+ * Points for a captured spend under the restaurant's rule. `per_order` is a flat
+ * award per paid order; `per_amount` scales with spend at the configured rate.
+ * Falls back to the global env rate when no per-restaurant rule is set.
+ */
+export function pointsForRule(amountMinor, rule, fallbackRate) {
+  if (rule?.enabled === false) return 0;
+  if (rule?.mode === 'per_order') return Math.max(0, Math.trunc(rule.pointsPerOrder ?? 0));
+  const rate = rule?.pointsPerCurrencyUnit ?? fallbackRate;
+  return computeEarnPoints(amountMinor, rate);
+}
 
 /**
  * Customer analytics — EVENT-DRIVEN PROJECTIONS. Lifetime spend, order counts,
@@ -90,7 +103,10 @@ export class CustomerAnalyticsService extends BaseService {
     const updated = await this.customers.incStats(customerId, { lifetimeSpend: amount });
     await this.customers.incStats(customerId, {}, { avgOrderValue: this.#avg(updated.stats?.lifetimeSpend ?? 0, updated.stats?.completedOrders ?? 0) });
 
-    const points = computeEarnPoints(amount, this.earnRate);
+    // Per-restaurant rule (per_amount vs flat per_order); falls back to the
+    // global env rate. A read per capture is fine — capture is not a hot path.
+    const rule = await restaurantService.getLoyaltyConfig(scope.restaurantId).catch(() => null);
+    const points = pointsForRule(amount, rule, this.earnRate);
     if (points > 0) {
       await this.loyalty
         .earn({ scope, customerId, userId: order.customerUserId, points, source: { type: LOYALTY_SOURCE.PAYMENT, id: String(paymentId) }, orderId: order.id ?? order._id, reason: 'order_payment' })

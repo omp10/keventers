@@ -50,6 +50,7 @@ export class CouponService extends BaseService {
       usageLimit: data.usageLimit ?? null,
       audience: data.audience ?? 'all',
       perCustomerLimit: data.perCustomerLimit ?? null,
+      isPublic: data.isPublic ?? false,
     });
     await this.events.publish(
       new CouponCreatedEvent({ restaurantId: scope.restaurantId, couponId: coupon.id ?? String(coupon._id), code }),
@@ -83,7 +84,7 @@ export class CouponService extends BaseService {
     for (const key of [
       'description', 'type', 'value', 'currency', 'minSubtotal', 'maxDiscount',
       'targetProductId', 'buyQuantity', 'getQuantity', 'status', 'validFrom', 'validUntil', 'usageLimit',
-      'audience', 'perCustomerLimit',
+      'audience', 'perCustomerLimit', 'isPublic',
     ]) {
       if (data[key] !== undefined) patch[key] = data[key];
     }
@@ -144,6 +145,16 @@ export class CouponService extends BaseService {
     if (needsPerCustomer && stats.couponUses >= coupon.perCustomerLimit) {
       throw new BadRequestError(PRICING_ERRORS.PER_CUSTOMER_LIMIT);
     }
+  }
+
+  /**
+   * Public coupons a customer can browse for a restaurant scope (the Zomato-style
+   * "see all coupons" list). Trusted scope — no staff tenant needed; the cart is
+   * already bound to its restaurant.
+   */
+  async listPublicForScope(scope, now = new Date()) {
+    const rows = await this.coupons.findPublicActive(scope, now);
+    return rows.map(toCouponDTO);
   }
 
   /** Record a redemption (called when a coupon-bearing cart converts to order). */

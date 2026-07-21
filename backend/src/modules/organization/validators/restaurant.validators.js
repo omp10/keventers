@@ -81,6 +81,14 @@ export const updateRestaurantSettingsSchema = z
     payment: z
       .object({ gateway: z.string().max(40).nullable().optional(), codEnabled: z.boolean().optional() })
       .optional(),
+    loyalty: z
+      .object({
+        enabled: z.boolean().optional(),
+        mode: z.enum(['per_amount', 'per_order']).optional(),
+        pointsPerCurrencyUnit: z.number().min(0).max(1000).optional(),
+        pointsPerOrder: z.number().int().min(0).max(100000).optional(),
+      })
+      .optional(),
   })
   .refine((v) => Object.keys(v).length > 0, { message: 'No settings provided' });
 

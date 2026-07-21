@@ -8,6 +8,7 @@ import { useRealtimeQuery } from '@/platform/socket';
 import { PriceBreakdown } from '../cart';
 import { FeedbackCard, SubscriptionOffer } from '../components';
 import { OrderStatusTimeline, OrderTrackingHero } from '../order';
+import { LoyaltyEarnBurst } from '../order/LoyaltyEarnBurst';
 import { PaymentPanel } from '../payment';
 import { useOrder } from '../hooks';
 import { orderService } from '../services';
@@ -77,6 +78,8 @@ export function OrderPage() {
           panel until payment was captured — which for pay-at-counter is the
           order's whole life, so customers never saw the tracker at all. */}
       <OrderTrackingHero order={order} />
+      {/* Points pop once the payment captures and loyalty is awarded. */}
+      {order.status !== 'cancelled' && <LoyaltyEarnBurst active />}
       {showPayment && (
         <PaymentPanel order={order} provider={provider} method={method} onBack={() => navigate('/checkout')} />
       )}

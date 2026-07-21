@@ -56,6 +56,17 @@ const restaurantSettingsSchema = new Schema(
       delivery: { type: Boolean, default: false },
       minOrderAmount: { type: Number, default: 0 },
     },
+    /**
+     * Loyalty earning rule (admin-configurable per restaurant).
+     *  - per_amount: `pointsPerCurrencyUnit` points for every 1 major unit spent.
+     *  - per_order:  flat `pointsPerOrder` points per paid order, regardless of value.
+     */
+    loyalty: {
+      enabled: { type: Boolean, default: true },
+      mode: { type: String, enum: ['per_amount', 'per_order'], default: 'per_amount' },
+      pointsPerCurrencyUnit: { type: Number, default: 1, min: 0 },
+      pointsPerOrder: { type: Number, default: 10, min: 0 },
+    },
     qr: {
       enabled: { type: Boolean, default: true },
       requireTableSelection: { type: Boolean, default: true },

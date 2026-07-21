@@ -62,6 +62,7 @@ router
  * /api/v1/cart/checkout:
  *   post: { tags: [Cart], security: [{ bearerAuth: [] }], summary: Lock the cart for checkout (order-conversion boundary), responses: { 200: { description: Locked cart with final pricing }, 400: { description: Empty cart } } }
  */
+router.get('/coupons', CartController.availableCoupons);
 router.post('/apply-coupon', validate({ body: applyCouponSchema }), CartController.applyCoupon);
 router.delete('/remove-coupon', CartController.removeCoupon);
 router.post('/recalculate', CartController.recalculate);

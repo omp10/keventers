@@ -72,6 +72,7 @@ export function toCouponDTO(c) {
     usageCount: c.usageCount ?? 0,
     audience: c.audience ?? 'all',
     perCustomerLimit: c.perCustomerLimit ?? null,
+    isPublic: Boolean(c.isPublic),
     createdAt: c.createdAt ?? null,
   };
 }

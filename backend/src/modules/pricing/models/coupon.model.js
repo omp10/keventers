@@ -51,6 +51,8 @@ const couponSchema = new Schema(
     audience: { type: String, enum: Object.values(COUPON_AUDIENCE), default: COUPON_AUDIENCE.ALL },
     /** Max times ONE customer may redeem this code (null = unlimited). */
     perCustomerLimit: { type: Number, default: null, min: 1 },
+    /** Shown in the customer's "see all coupons" list when true (else code-only). */
+    isPublic: { type: Boolean, default: false, index: true },
 
     metadata: { type: Schema.Types.Mixed, default: () => ({}) },
     deletedAt: { type: Date, default: null },

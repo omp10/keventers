@@ -48,6 +48,27 @@ export class CouponRepository extends BaseRepository {
     );
   }
 
+  /**
+   * PUBLIC, currently-valid coupons for a restaurant — the "see all coupons"
+   * list a customer can browse and tap to apply. Active + flagged public + inside
+   * any validity window. Newest first, capped.
+   */
+  findPublicActive(scope, now = new Date(), limit = 30) {
+    return this.find(
+      {
+        organizationId: scope.organizationId,
+        restaurantId: scope.restaurantId,
+        status: 'active',
+        isPublic: true,
+        $and: [
+          { $or: [{ validFrom: null }, { validFrom: { $lte: now } }] },
+          { $or: [{ validUntil: null }, { validUntil: { $gte: now } }] },
+        ],
+      },
+      { sort: '-createdAt', limit },
+    );
+  }
+
   /** Atomically increment usage (called when a coupon-bearing cart converts). */
   incrementUsage(couponId, options = {}) {
     return this.model.updateOne(

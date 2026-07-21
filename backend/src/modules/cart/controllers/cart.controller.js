@@ -65,6 +65,11 @@ export const CartController = {
     ApiResponse.success(res, { data });
   }),
 
+  availableCoupons: asyncHandler(async (req, res) => {
+    const data = await cartService.availableCoupons(scopeOf(req));
+    ApiResponse.success(res, { data });
+  }),
+
   recalculate: asyncHandler(async (req, res) => {
     const data = await cartService.recalculate(scopeOf(req), opts(req));
     ApiResponse.success(res, { data });
