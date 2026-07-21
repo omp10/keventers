@@ -19,6 +19,7 @@ export const DEFAULT_TEMPLATES = Object.freeze({
   [TEMPLATE_KEY.PAYMENT_SUCCESS]: { category: CATEGORY.PAYMENTS, subject: 'Payment received', body: 'We received your payment of {{ amount }} for order {{ orderNumber }}. Thank you!' },
   [TEMPLATE_KEY.PAYMENT_FAILED]: { category: CATEGORY.PAYMENTS, subject: 'Payment failed', body: 'Your payment for order {{ orderNumber }} could not be processed. Please try again.' },
   [TEMPLATE_KEY.REFUND_COMPLETED]: { category: CATEGORY.PAYMENTS, subject: 'Refund processed', body: 'Your refund of {{ amount }} for order {{ orderNumber }} has been processed.' },
+  [TEMPLATE_KEY.ANNOUNCEMENT]: { category: CATEGORY.SYSTEM, subject: '{{ title }}', body: '{{ body }}' },
   [TEMPLATE_KEY.LOYALTY_EARNED]: { category: CATEGORY.LOYALTY, subject: 'You earned {{ points }} points', body: 'You earned {{ points }} points at {{ restaurantName }}. Balance: {{ balance }} points.' },
   [TEMPLATE_KEY.TIER_UPGRADED]: { category: CATEGORY.LOYALTY, subject: 'You reached {{ tier }} tier!', body: 'Congratulations {{ name }} — you are now a {{ tier }} member at {{ restaurantName }}.' },
   [TEMPLATE_KEY.RESTAURANT_APPROVED]: { category: CATEGORY.SYSTEM, subject: 'Your restaurant is approved', body: '{{ restaurantName }} has been approved and is now live on Keventers.' },

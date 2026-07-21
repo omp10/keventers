@@ -67,6 +67,8 @@ export const TEMPLATE_KEY = Object.freeze({
   STAFF_ORDER_ASSIGNED: 'staff_order_assigned',
   STAFF_ORDER_READY: 'staff_order_ready',
   STAFF_SLA_BREACHED: 'staff_sla_breached',
+  /** Free-form admin broadcast — subject/body come entirely from variables. */
+  ANNOUNCEMENT: 'announcement',
 });
 
 // ==================== STATUS MACHINES ====================

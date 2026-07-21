@@ -38,7 +38,19 @@ export function LiveOrdersPage() {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-xl font-bold text-foreground">Live orders</h1>
+        <h1 className="flex items-center gap-2.5 text-xl font-bold text-foreground">
+          {/* Pulsing live dot — the page is socket-fed, say so. */}
+          <span className="relative grid h-3 w-3 place-items-center" aria-hidden>
+            <span className="absolute h-3 w-3 animate-ping rounded-full bg-success/60 motion-reduce:animate-none" />
+            <span className="relative h-2 w-2 rounded-full bg-success" />
+          </span>
+          Live orders
+          {orders.items.length > 0 && (
+            <span className="rounded-full bg-primary-soft px-2 py-0.5 text-xs font-semibold tabular-nums text-primary">
+              {orders.items.length}
+            </span>
+          )}
+        </h1>
         <BoardViewToggle view={view} setView={setView} />
       </div>
 

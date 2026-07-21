@@ -148,3 +148,13 @@ export const testPushSchema = z.object({
   title: z.string().trim().min(1).max(120).optional(),
   body: z.string().trim().min(1).max(400).optional(),
 }).strict();
+
+/** Admin broadcast: one message to a restaurant's customers/staff/everyone. */
+export const broadcastSchema = z
+  .object({
+    restaurantId: z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid id format'),
+    audience: z.enum(['customers', 'staff', 'everyone']).default('customers'),
+    title: z.string().trim().min(2).max(120),
+    body: z.string().trim().min(2).max(500),
+  })
+  .strict();

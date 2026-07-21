@@ -78,7 +78,59 @@ export function PlatformPaymentsPage() { const q = usePaginatedResource<Platform
 
 export function PlatformAnalyticsPage() { return <ManagementPage title="Platform analytics" description="Backend projections for revenue, orders, growth, regions, and providers."><Card padding="lg" className="min-h-80"><h2 className="font-semibold">Revenue and growth</h2><p className="mt-2 text-sm text-foreground-muted">Use time filters to query platform analytics projections. No totals are calculated in the browser.</p></Card></ManagementPage>; }
 
-export function AdminNotificationsPage() { const q = usePaginatedResource<NotificationRecord>(qk('admin', 'notifications'), (p, l) => adminService.notifications({}, p, l)); const columns: Column<NotificationRecord>[] = [{ key: 'title', header: 'Notification', render: (x) => x.title ?? x.id }, { key: 'channel', header: 'Channel', render: (x) => x.channel ?? '—' }, { key: 'recipient', header: 'Recipient', render: (x) => x.recipient ?? '—' }, { key: 'status', header: 'Status', render: (x) => <StatusPill>{x.status}</StatusPill> }]; return <ManagementPage title="Notifications" description="Broadcasts, campaigns, templates, history, and delivery analytics." actions={<Button leftIcon="add">Broadcast notification</Button>}><ManagementTable rows={q.items} columns={columns} getId={(x) => x.id} loading={q.isLoading} /></ManagementPage>; }
+function BroadcastDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const restaurants = useQueryResource(qk('admin', 'scoped-restaurants'), () => adminService.kitchenRestaurants(), { enabled: open });
+  const [restaurantId, setRestaurantId] = useState('');
+  const [audience, setAudience] = useState<'customers' | 'staff' | 'everyone'>('customers');
+  const [title, setTitle] = useState('');
+  const [body, setBody] = useState('');
+  const [busy, setBusy] = useState(false);
+  if (!open) return null;
+  const send = async () => {
+    if (!restaurantId || !title.trim() || !body.trim() || busy) return;
+    setBusy(true);
+    try {
+      const r = await adminService.broadcast({ restaurantId, audience, title: title.trim(), body: body.trim() });
+      toast.success(`Broadcast queued to ${r.recipients} recipient${r.recipients === 1 ? '' : 's'}`);
+      void queryClient.invalidateQueries({ queryKey: qk('admin', 'notifications') });
+      onClose();
+    } catch (e) {
+      toast.error('Broadcast failed', { description: (e as Error).message });
+      setBusy(false);
+    }
+  };
+  const field = 'h-10 w-full rounded-lg border border-border bg-surface px-3 text-sm text-foreground outline-none focus:border-primary';
+  return (
+    <div className="fixed inset-0 z-[1100] flex justify-end bg-overlay/50" onClick={onClose}>
+      <div className="flex h-full w-full max-w-md flex-col gap-4 overflow-y-auto bg-surface p-5" onClick={(e) => e.stopPropagation()}>
+        <h2 className="text-lg font-bold text-foreground">Broadcast notification</h2>
+        <p className="text-sm text-foreground-muted">Delivered in-app to everyone in the audience, and as a push to devices that registered for it.</p>
+        <label className="block text-sm font-medium text-foreground">Restaurant
+          <select className={field + ' mt-1'} value={restaurantId} onChange={(e) => setRestaurantId(e.target.value)}>
+            <option value="">Choose a restaurant…</option>
+            {(restaurants.data ?? []).map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
+          </select>
+        </label>
+        <label className="block text-sm font-medium text-foreground">Audience
+          <select className={field + ' mt-1'} value={audience} onChange={(e) => setAudience(e.target.value as typeof audience)}>
+            <option value="customers">Customers</option>
+            <option value="staff">Staff</option>
+            <option value="everyone">Everyone</option>
+          </select>
+        </label>
+        <label className="block text-sm font-medium text-foreground">Title
+          <Input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={120} placeholder="Diwali special menu tonight" className="mt-1" />
+        </label>
+        <label className="block text-sm font-medium text-foreground">Message
+          <textarea value={body} onChange={(e) => setBody(e.target.value)} maxLength={500} rows={4} placeholder="Festive thalis from 7pm…" className={field + ' mt-1 h-auto py-2'} />
+        </label>
+        <Button className="mt-auto w-full" onClick={() => void send()} loading={busy} disabled={!restaurantId || !title.trim() || !body.trim()}>Send broadcast</Button>
+      </div>
+    </div>
+  );
+}
+
+export function AdminNotificationsPage() { const q = usePaginatedResource<NotificationRecord>(qk('admin', 'notifications'), (p, l) => adminService.notifications({}, p, l)); const [broadcasting, setBroadcasting] = useState(false); const columns: Column<NotificationRecord>[] = [{ key: 'title', header: 'Notification', render: (x) => x.title ?? x.id }, { key: 'channel', header: 'Channel', render: (x) => x.channel ?? '—' }, { key: 'recipient', header: 'Recipient', render: (x) => x.recipient ?? '—' }, { key: 'status', header: 'Status', render: (x) => <StatusPill>{x.status}</StatusPill> }]; return <ManagementPage title="Notifications" description="Broadcasts, campaigns, templates, history, and delivery analytics." actions={<Button leftIcon="add" onClick={() => setBroadcasting(true)}>Broadcast notification</Button>}><ManagementTable rows={q.items} columns={columns} getId={(x) => x.id} loading={q.isLoading} /><BroadcastDrawer open={broadcasting} onClose={() => setBroadcasting(false)} /></ManagementPage>; }
 
 export function MonitoringPage() { const services = ['API', 'MongoDB', 'Redis', 'Socket.IO', 'BullMQ', 'Workers']; return <ManagementPage title="Monitoring" description="Readiness, metrics, queues, workers, and infrastructure status."><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{services.map((name) => <Card key={name} padding="md"><div className="flex justify-between"><strong>{name}</strong><StatusPill tone="success">Operational</StatusPill></div><p className="mt-4 text-xs text-foreground-muted">Status supplied by platform monitoring.</p></Card>)}</div></ManagementPage>; }
 export function AuditLogsPage() { return <ManagementPage title="Audit logs" description="Global immutable activity timeline with actor and resource filters." actions={<ExportButton url="/admin/audit-logs/export" filename="audit-logs.csv" />}><InfoPanel text="Audit events are loaded from the backend audit stream." /></ManagementPage>; }

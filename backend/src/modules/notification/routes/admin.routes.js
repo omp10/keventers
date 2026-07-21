@@ -6,6 +6,7 @@ import { AdminNotificationController } from '../controllers/admin-notification.c
 import {
   campaignListQuerySchema,
   idParamSchema,
+  broadcastSchema,
   notificationListQuerySchema,
   outboxListQuerySchema,
 } from '../validators/notification.validators.js';
@@ -21,6 +22,7 @@ adminNotificationsRouter.use(...adminGuards);
  *   get: { tags: [Notifications - Admin], security: [{ bearerAuth: [] }], summary: Delivery history (platform), responses: { 200: { description: Notifications } } }
  */
 adminNotificationsRouter.get('/', validate({ query: notificationListQuerySchema }), AdminNotificationController.list);
+adminNotificationsRouter.post('/broadcast', validate({ body: broadcastSchema }), AdminNotificationController.broadcast);
 
 export const adminCampaignsRouter = Router();
 adminCampaignsRouter.use(...adminGuards);

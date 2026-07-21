@@ -1,3 +1,5 @@
+import { AnimatePresence } from 'framer-motion';
+
 import {
   Badge,
   Icon,
@@ -76,9 +78,11 @@ export function OrderBoard({ orders, view, onOpen, onBill, onAssign }: { orders:
               <Badge tone="neutral" variant="soft">{col.orders.length}</Badge>
             </div>
             <div className="flex flex-col gap-2 overflow-y-auto">
-              {col.orders.map((o) => (
-                <OrderCard key={o.id} order={o} onOpen={onOpen} onBill={onBill} onAssign={onAssign} sessionSeq={seq.get(o.id)} />
-              ))}
+              <AnimatePresence mode="popLayout" initial={false}>
+                {col.orders.map((o) => (
+                  <OrderCard key={o.id} order={o} onOpen={onOpen} onBill={onBill} onAssign={onAssign} sessionSeq={seq.get(o.id)} />
+                ))}
+              </AnimatePresence>
               {col.orders.length === 0 && <p className="px-1 py-6 text-center text-xs text-foreground-subtle">Empty</p>}
             </div>
           </div>
@@ -90,9 +94,11 @@ export function OrderBoard({ orders, view, onOpen, onBill, onAssign }: { orders:
   if (view === 'compact') {
     return (
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {orders.map((o) => (
-          <OrderCard key={o.id} order={o} onOpen={onOpen} onBill={onBill} onAssign={onAssign} sessionSeq={seq.get(o.id)} compact />
-        ))}
+        <AnimatePresence mode="popLayout" initial={false}>
+          {orders.map((o) => (
+            <OrderCard key={o.id} order={o} onOpen={onOpen} onBill={onBill} onAssign={onAssign} sessionSeq={seq.get(o.id)} compact />
+          ))}
+        </AnimatePresence>
       </div>
     );
   }
@@ -130,12 +136,15 @@ export function OrderBoard({ orders, view, onOpen, onBill, onAssign }: { orders:
     );
   }
 
-  // list (default)
+  // list (default). popLayout: a served/filtered-out card animates away and the
+  // grid reflows around it instead of snapping — the board reads as ALIVE.
   return (
     <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-      {orders.map((o) => (
-        <OrderCard key={o.id} order={o} onOpen={onOpen} onBill={onBill} onAssign={onAssign} sessionSeq={seq.get(o.id)} />
-      ))}
+      <AnimatePresence mode="popLayout" initial={false}>
+        {orders.map((o) => (
+          <OrderCard key={o.id} order={o} onOpen={onOpen} onBill={onBill} onAssign={onAssign} sessionSeq={seq.get(o.id)} />
+        ))}
+      </AnimatePresence>
     </div>
   );
 }

@@ -1,4 +1,7 @@
 import { useState } from 'react';
+import { motion, useReducedMotion } from 'framer-motion';
+
+import { transitions } from '@/animations';
 
 import { Button, Checkbox, Icon, Spinner, Textarea, toast, type IconName } from '@/design-system';
 import { cn } from '@/lib/cn';
@@ -46,6 +49,14 @@ export function CheckoutView({ onPlaced, onPaymentStep }: { onPlaced: (order: Or
   const [placedOrder, setPlacedOrder] = useState<Order | null>(null);
 
   const option = OPTIONS.find((o) => o.id === optionId) ?? OPTIONS[0];
+  const reduced = Boolean(useReducedMotion());
+  // Sections cascade in top-to-bottom — the "settle onto the table" entrance
+  // the delivery apps use, instead of everything blinking on at once.
+  const rise = (i: number) => ({
+    initial: reduced ? false : { opacity: 0, y: 18 },
+    animate: { opacity: 1, y: 0 },
+    transition: { ...transitions.gentle, delay: reduced ? 0 : i * 0.06 },
+  });
 
   if (cart.isLoading) {
     return (
@@ -107,7 +118,7 @@ export function CheckoutView({ onPlaced, onPaymentStep }: { onPlaced: (order: Or
   return (
     <div className="mx-auto max-w-2xl space-y-6 px-1 pb-28">
       {/* Order summary — now WITH images */}
-      <section>
+      <motion.section {...rise(0)}>
         <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-foreground-subtle">Order summary</h2>
         <div className="overflow-hidden rounded-2xl border border-border bg-surface">
           {cart.items.map((i, idx) => (
@@ -135,19 +146,21 @@ export function CheckoutView({ onPlaced, onPaymentStep }: { onPlaced: (order: Or
             </div>
           ))}
         </div>
-      </section>
+      </motion.section>
 
       {/* Payment method */}
-      <section>
+      <motion.section {...rise(1)}>
         <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-foreground-subtle">Payment method</h2>
         <div className="space-y-2.5">
           {OPTIONS.map((o) => {
             const selected = o.id === optionId;
             return (
-              <button
+              <motion.button
                 key={o.id}
                 type="button"
                 onClick={() => setOptionId(o.id)}
+                whileTap={reduced ? undefined : { scale: 0.98 }}
+                transition={transitions.snappy}
                 className={cn(
                   'flex w-full items-center gap-3 rounded-2xl border p-3.5 text-left transition',
                   selected
@@ -162,10 +175,19 @@ export function CheckoutView({ onPlaced, onPaymentStep }: { onPlaced: (order: Or
                   <span className="block text-sm font-semibold text-foreground">{o.label}</span>
                   <span className="block truncate text-xs text-foreground-muted">{o.hint}</span>
                 </span>
-                <span className={cn('grid h-5 w-5 shrink-0 place-items-center rounded-full border-2', selected ? 'border-primary bg-primary text-primary-foreground' : 'border-border')}>
-                  {selected && <Icon name="check" className="h-3 w-3" />}
+                <span className={cn('grid h-5 w-5 shrink-0 place-items-center rounded-full border-2 transition-colors', selected ? 'border-primary bg-primary text-primary-foreground' : 'border-border')}>
+                  {selected && (
+                    <motion.span
+                      initial={reduced ? false : { scale: 0, rotate: -90 }}
+                      animate={{ scale: 1, rotate: 0 }}
+                      transition={transitions.bouncy}
+                      className="grid place-items-center"
+                    >
+                      <Icon name="check" className="h-3 w-3" />
+                    </motion.span>
+                  )}
                 </span>
-              </button>
+              </motion.button>
             );
           })}
         </div>
@@ -175,16 +197,20 @@ export function CheckoutView({ onPlaced, onPaymentStep }: { onPlaced: (order: Or
             Secured by Razorpay · your card and UPI details never touch our servers.
           </p>
         )}
-      </section>
+      </motion.section>
 
       {/* Notes */}
-      <section>
+      <motion.section {...rise(2)}>
         <label className="mb-1.5 block text-sm font-medium text-foreground">Order notes</label>
         <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Any instructions for this order? (e.g. less spicy)" rows={2} maxLength={240} />
-      </section>
+      </motion.section>
 
       {/* Pricing */}
-      {cart.pricing && <PriceBreakdown pricing={cart.pricing} />}
+      {cart.pricing && (
+        <motion.div {...rise(3)}>
+          <PriceBreakdown pricing={cart.pricing} />
+        </motion.div>
+      )}
 
       {/* Terms */}
       <label className="flex items-start gap-2.5 px-1 text-sm text-foreground-muted">
@@ -193,17 +219,31 @@ export function CheckoutView({ onPlaced, onPaymentStep }: { onPlaced: (order: Or
       </label>
 
       {/* Sticky place-order bar — now shows the amount on the button itself */}
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-surface/95 p-3 backdrop-blur" style={{ paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom))' }}>
+      <motion.div
+        initial={reduced ? false : { y: 72, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={transitions.gentle}
+        className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-surface/95 p-3 backdrop-blur"
+        style={{ paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom))' }}
+      >
         <div className="mx-auto flex max-w-2xl items-center gap-3">
           <div className="shrink-0 pl-1">
             <p className="text-[0.6875rem] uppercase tracking-wide text-foreground-subtle">To pay</p>
-            <p className="text-lg font-bold leading-none tabular-nums text-foreground">{total ? formatMoney(total) : '—'}</p>
+            <motion.p
+              key={total ? formatMoney(total) : 'none'}
+              initial={reduced ? false : { scale: 0.85, opacity: 0.4 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={transitions.bouncy}
+              className="text-lg font-bold leading-none tabular-nums text-foreground"
+            >
+              {total ? formatMoney(total) : '—'}
+            </motion.p>
           </div>
           <Button size="lg" className="flex-1" loading={isPending} disabled={cart.isEmpty} onClick={place}>
             {isCash ? 'Place order' : 'Place order & pay'}
           </Button>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }

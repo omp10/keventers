@@ -1,4 +1,7 @@
+import { motion, useReducedMotion } from 'framer-motion';
+
 import { Badge, Button, Icon } from '@/design-system';
+import { transitions } from '@/animations';
 import { formatMoney } from '@/features/ordering';
 import { cn } from '@/lib/cn';
 import { useOrderActions } from '../hooks';
@@ -46,17 +49,40 @@ export function OrderCard({
   const actions = useOrderActions();
   const next = nextAction(order.status);
   const isRush = order.priority === 'rush' || order.slaBreached;
+  const reduced = Boolean(useReducedMotion());
+  // A just-arrived ticket breathes until someone accepts it — the board's way
+  // of saying "this one still needs a human", same trick the delivery apps use.
+  const needsAttention = order.status === 'placed';
 
   return (
-    <article
+    <motion.article
+      layout
+      initial={reduced ? false : { opacity: 0, y: 14, scale: 0.97 }}
+      animate={
+        reduced
+          ? { opacity: 1 }
+          : needsAttention
+            ? {
+                opacity: 1, y: 0, scale: 1,
+                boxShadow: [
+                  '0 0 0 0px color-mix(in oklab, var(--kv-color-primary) 35%, transparent)',
+                  '0 0 0 6px color-mix(in oklab, var(--kv-color-primary) 0%, transparent)',
+                ],
+                transition: { boxShadow: { duration: 1.6, repeat: Infinity, ease: 'easeOut' }, default: transitions.gentle },
+              }
+            : { opacity: 1, y: 0, scale: 1 }
+      }
+      exit={reduced ? undefined : { opacity: 0, scale: 0.96, transition: { duration: 0.15 } }}
+      whileHover={reduced ? undefined : { y: -3 }}
+      whileTap={reduced ? undefined : { scale: 0.985 }}
+      transition={transitions.gentle}
       onClick={() => onOpen(order.id)}
       role="button"
       tabIndex={0}
       onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onOpen(order.id)}
       className={cn(
-        'group cursor-pointer rounded-xl border bg-surface p-3 text-left transition hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-        'animate-[kv-pop-in_200ms_cubic-bezier(0.16,1,0.3,1)] motion-reduce:animate-none',
-        isRush ? 'border-danger/50' : 'border-border',
+        'group cursor-pointer rounded-xl border bg-surface p-3 text-left transition-shadow hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+        isRush ? 'border-danger/50' : needsAttention ? 'border-primary/40' : 'border-border',
         className,
       )}
     >
@@ -127,6 +153,6 @@ export function OrderCard({
           )}
         </div>
       )}
-    </article>
+    </motion.article>
   );
 }

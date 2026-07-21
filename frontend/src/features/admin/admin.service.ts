@@ -33,6 +33,9 @@ export const adminService = {
   order: (id: string) => api.get<Record<string, unknown>>(`/admin/orders/${id}`),
   /** Every order across the platform. Omit restaurantId to span all outlets. */
   orders: (filters: AdminFilters = {}, p = 1, limit = 25): Promise<Paginated<PlatformOrder>> => api.paginate('/admin/orders', { query: page(filters, p, limit) }),
+  /** One announcement to a restaurant's customers/staff via the outbox pipeline. */
+  broadcast: (body: { restaurantId: string; audience: 'customers' | 'staff' | 'everyone'; title: string; body: string }) =>
+    api.post<{ broadcastId: string; recipients: number }>('/admin/notifications/broadcast', body),
   notifications: (filters: AdminFilters, p = 1, limit = 25): Promise<Paginated<NotificationRecord>> => api.paginate('/admin/notifications', { query: page(filters, p, limit) }),
   campaigns: (p = 1, limit = 25) => api.paginate('/admin/notification-campaigns', { query: { page: p, limit } }),
 
