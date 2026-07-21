@@ -81,12 +81,17 @@ function NameStep({ onDone }: { onDone: () => void }) {
 }
 
 /**
- * CustomerLoginPage (/login) — passwordless sign-in for customers. Signing in is
- * OPTIONAL by design: guests can order end-to-end without an account, so this
- * page always offers "continue as guest". When a guest with a live table
- * session signs in, the session is linked to the account (best-effort) so their
- * order history follows them. First-time accounts are asked for a name before
- * they land.
+ * CustomerLoginPage (/login) — passwordless sign-in for customers, and the only
+ * customer route reachable signed-out. Sign-in is MANDATORY: every other path
+ * (including "/" and the QR scanner) is gated, so there is deliberately no
+ * "continue as guest" escape here — it could only bounce straight back.
+ *
+ * When someone with a live table session signs in, the session is linked to the
+ * account (best-effort) so their order history follows them. First-time accounts
+ * are asked for a name before they land.
+ *
+ * Rendered OUTSIDE the ordering shell so AuthLayout's full-bleed desktop split
+ * (brand panel + form column) isn't squeezed into the mobile container.
  */
 export function CustomerLoginPage() {
   const { isAuthenticated } = useAuth();
@@ -140,12 +145,9 @@ export function CustomerLoginPage() {
       ) : (
         <div className="space-y-4">
           <PhoneOtpForm submitLabel="Send code" onSignedIn={(r) => void afterSignIn(r)} />
-          <div className="relative text-center">
-            <span className="relative bg-transparent px-2 text-xs uppercase tracking-wider text-foreground-subtle">or</span>
-          </div>
-          <Button variant="ghost" fullWidth onClick={() => navigate(fromState ?? '/')}>
-            Continue as guest
-          </Button>
+          <p className="text-center text-xs text-foreground-subtle">
+            We’ll text you a one-time code. No password to remember.
+          </p>
         </div>
       )}
     </AuthLayout>

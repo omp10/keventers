@@ -51,12 +51,19 @@ export function App() {
           <Route key={r.path} path={r.path} element={gate(r.path, r.element)} />
         ))}
       </Route>
-      {/* Ordering flow (F3.2) — menu → cart → checkout → payment → tracking. */}
+      {/* Ordering flow (F3.2) — menu → cart → checkout → payment → tracking.
+          /login is lifted OUT of this shell: it renders AuthLayout's own
+          full-bleed split (brand panel + form), which the mobile shell's header,
+          bottom tabs and max-w container would otherwise squeeze on desktop.
+          Every other app's login (/admin, /kitchen, /staff) is standalone too. */}
       <Route element={<OrderingLayout />}>
-        {orderingRoutes.map((r) => (
+        {orderingRoutes.filter((r) => r.path !== '/login').map((r) => (
           <Route key={r.path} path={r.path} element={gate(r.path, r.element)} />
         ))}
       </Route>
+      {orderingRoutes.filter((r) => r.path === '/login').map((r) => (
+        <Route key={r.path} path={r.path} element={r.element} />
+      ))}
       {/* Restaurant Operations Dashboard (F4.1) — staff app under /dashboard, auth-gated. */}
       <Route path="/dashboard/login" element={<RestaurantLoginPage />} />
       <Route path="/kitchen/login" element={<KitchenLoginPage />} />
