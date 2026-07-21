@@ -51,33 +51,67 @@ export function OrderStatusTimeline({ order }: { order: Order }) {
   const currentIndex = rawIndex === -1 ? ORDER_PROGRESSION.length : rawIndex;
   const timeAt = (s: OrderStatus) => order.timeline.find((t) => t.status === s)?.at;
 
+  // HORIZONTAL stepper. The old layout was a left-rail vertical timeline, which
+  // pinned the connector to the far edge and left the card lopsided. Running the
+  // track through the middle reads as progress at a glance — the pattern every
+  // delivery app uses — and fits five steps on a phone.
+  const steps = ORDER_PROGRESSION;
+  const last = Math.max(1, steps.length - 1);
+  // Icon centres sit at half a column in from each end, so the track spans
+  // between the FIRST and LAST icon rather than the full width.
+  const half = 100 / (2 * steps.length);
+  const span = 100 - 2 * half;
+  const filled = (Math.min(currentIndex, last) / last) * span;
+
+  const activeStep = steps[Math.min(currentIndex, last)];
+  const activeNote =
+    currentIndex >= steps.length ? null
+    : activeStep === 'preparing' ? 'The kitchen is preparing your order.'
+    : activeStep === 'ready' ? 'Your order is ready — it’s on its way over.'
+    : activeStep === 'confirmed' ? 'The restaurant has confirmed your order.'
+    : activeStep === 'placed' ? 'Waiting for the restaurant to confirm.'
+    : null;
+
   return (
-    <ol className="relative ml-2 space-y-6 border-l-2 border-border pl-6">
-      {ORDER_PROGRESSION.map((step, i) => {
-        const done = i < currentIndex;
-        const active = i === currentIndex;
-        const pres = ORDER_STATUS_PRESENTATION[step];
-        const at = timeAt(step);
-        return (
-          <li key={step} className="relative">
-            <span
-              className={cn(
-                'absolute -left-[2.15rem] grid h-8 w-8 place-items-center rounded-full border-2 bg-background transition',
-                done && 'border-success bg-success text-success-foreground',
-                active && 'border-primary bg-primary text-primary-foreground animate-[kv-pulse_1.6s_ease-in-out_infinite] motion-reduce:animate-none',
-                !done && !active && 'border-border text-foreground-subtle',
+    <div className="rounded-2xl border border-border bg-surface p-4">
+      <ol className="relative flex items-start">
+        {/* connector track + progress, vertically centred on the icon row (h-8 → top-4) */}
+        <span aria-hidden className="absolute top-4 h-0.5 -translate-y-1/2 rounded-full bg-border" style={{ left: `${half}%`, right: `${half}%` }} />
+        <span
+          aria-hidden
+          className="absolute top-4 h-0.5 -translate-y-1/2 rounded-full bg-success transition-[width] duration-500"
+          style={{ left: `${half}%`, width: `${filled}%` }}
+        />
+        {steps.map((step, i) => {
+          const done = i < currentIndex;
+          const active = i === currentIndex;
+          const pres = ORDER_STATUS_PRESENTATION[step];
+          const at = timeAt(step);
+          return (
+            <li key={step} className="relative z-10 flex flex-1 flex-col items-center gap-1.5 text-center">
+              <span
+                className={cn(
+                  'grid h-8 w-8 shrink-0 place-items-center rounded-full border-2 bg-background transition',
+                  done && 'border-success bg-success text-success-foreground',
+                  active && 'border-primary bg-primary text-primary-foreground animate-[kv-pulse_1.6s_ease-in-out_infinite] motion-reduce:animate-none',
+                  !done && !active && 'border-border text-foreground-subtle',
+                )}
+              >
+                <Icon name={STEP_ICON[step]} className="h-4 w-4" />
+              </span>
+              <span className={cn('px-0.5 text-[0.6875rem] font-semibold leading-tight', active || done ? 'text-foreground' : 'text-foreground-subtle')}>
+                {pres.label}
+              </span>
+              {at && (
+                <span className="text-[0.625rem] leading-none text-foreground-muted">
+                  {new Date(at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </span>
               )}
-            >
-              <Icon name={STEP_ICON[step]} className="h-4 w-4" />
-            </span>
-            <div className="min-h-8">
-              <p className={cn('text-sm font-semibold', active ? 'text-foreground' : done ? 'text-foreground' : 'text-foreground-subtle')}>{pres.label}</p>
-              {at && <p className="text-xs text-foreground-muted">{new Date(at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>}
-              {active && step === 'preparing' && <p className="text-xs text-foreground-muted">The kitchen is preparing your order.</p>}
-            </div>
-          </li>
-        );
-      })}
-    </ol>
+            </li>
+          );
+        })}
+      </ol>
+      {activeNote && <p className="mt-3 border-t border-border pt-3 text-center text-xs text-foreground-muted">{activeNote}</p>}
+    </div>
   );
 }

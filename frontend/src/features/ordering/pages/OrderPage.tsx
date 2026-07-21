@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
 import { JOURNEY, useJourney } from '@/platform/analytics';
-import { Button, Spinner, ErrorState, Badge } from '@/design-system';
+import { Button, Spinner, ErrorState, Badge, Icon } from '@/design-system';
 import { qk, useQueryResource } from '@/platform/query';
 import { useRealtimeQuery } from '@/platform/socket';
 import { PriceBreakdown } from '../cart';
@@ -12,7 +12,7 @@ import { LoyaltyEarnBurst } from '../order/LoyaltyEarnBurst';
 import { PaymentPanel } from '../payment';
 import { useOrder } from '../hooks';
 import { orderService } from '../services';
-import { PAYMENT_STATUS_PRESENTATION, ORDER_STATUS_PRESENTATION } from '../format';
+import { formatMoney, PAYMENT_STATUS_PRESENTATION, ORDER_STATUS_PRESENTATION } from '../format';
 import type { PaymentProvider } from '../types';
 
 /**
@@ -88,13 +88,31 @@ export function OrderPage() {
         <OrderStatusTimeline order={order} />
       </section>
 
-      {/* Items + totals */}
+      {/* Items + totals. Each line shows the dish photo from the order's own
+          product snapshot (frozen at checkout), its options and its line total —
+          a text-only "1 × Butter Chicken" told the customer almost nothing. */}
       <section>
         <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-foreground-subtle">Summary</h2>
-        <div className="mb-3 rounded-xl border border-border bg-surface p-3 text-sm">
+        <div className="mb-3 divide-y divide-border rounded-xl border border-border bg-surface px-3">
           {order.items.map((i) => (
-            <div key={i.id} className="flex justify-between py-1 text-foreground-muted">
-              <span>{i.quantity} × {i.name}</span>
+            <div key={i.id} className="flex items-center gap-3 py-2.5">
+              {i.imageUrl ? (
+                <img src={i.imageUrl} alt="" loading="lazy" className="h-12 w-12 shrink-0 rounded-lg object-cover" />
+              ) : (
+                <span className="grid h-12 w-12 shrink-0 place-items-center rounded-lg bg-muted">
+                  <Icon name="utensils" className="h-5 w-5 text-foreground-subtle" />
+                </span>
+              )}
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium text-foreground">{i.name}</p>
+                {(i.variantName || i.modifiers.length > 0 || i.addons.length > 0) && (
+                  <p className="truncate text-xs text-foreground-muted">
+                    {[i.variantName, ...i.modifiers.map((m) => m.name), ...i.addons.map((a) => a.name)].filter(Boolean).join(' · ')}
+                  </p>
+                )}
+                <p className="text-xs text-foreground-subtle">Qty {i.quantity}</p>
+              </div>
+              <span className="shrink-0 text-sm font-semibold text-foreground">{formatMoney(i.lineTotal)}</span>
             </div>
           ))}
         </div>
