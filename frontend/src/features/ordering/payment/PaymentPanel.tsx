@@ -6,15 +6,19 @@ import { usePayment } from '../hooks';
 import type { Order, PaymentIntent, PaymentProvider } from '../types';
 import { launchPayment } from './provider-launch';
 
-type Phase = 'initiating' | 'awaiting' | 'processing' | 'failed' | 'cancelled' | 'unavailable';
+type Phase = 'initiating' | 'awaiting' | 'processing' | 'success' | 'failed' | 'cancelled' | 'unavailable';
 
 /**
  * PaymentPanel — orchestrates a single payment attempt over the Payment Platform:
- * create intent → hand off to the provider → reflect status. Final success is
- * driven by the parent from the order's realtime payment status (webhook
- * reconciliation), so this only needs to run the handshake and offer retry.
+ * create intent → hand off to the provider → confirm → reflect status.
+ *
+ * `onCaptured` lets a caller (checkout) GATE the next screen on a completed
+ * payment: it fires only once the confirm call reports the money captured (or
+ * authorized). Callers that don't pass it — the order page, where the panel is
+ * just a pay-now widget — keep relying on the realtime payment status to hide
+ * the panel, so the extra success beat is harmless there.
  */
-export function PaymentPanel({ order, provider, method, onBack }: { order: Order; provider: PaymentProvider; method?: 'upi' | 'card'; onBack: () => void }) {
+export function PaymentPanel({ order, provider, method, onBack, onCaptured }: { order: Order; provider: PaymentProvider; method?: 'upi' | 'card'; onBack: () => void; onCaptured?: () => void }) {
   const { createIntent, confirm } = usePayment();
   const [phase, setPhase] = useState<Phase>('initiating');
   const [intent, setIntent] = useState<PaymentIntent | null>(null);
@@ -39,7 +43,15 @@ export function PaymentPanel({ order, provider, method, onBack }: { order: Order
           onSuccess: async (payload) => {
             setPhase('processing');
             try {
-              await confirm(it.id, payload);
+              const res = await confirm(it.id, payload);
+              // Synchronous capture is the normal path (our confirm verifies the
+              // signature AND captures). Show success and let the gate fire. If
+              // it somehow returns not-yet-captured, stay in 'processing' and let
+              // the realtime status finish.
+              if (res.status === 'captured' || res.status === 'authorized') {
+                setPhase('success');
+                onCaptured?.();
+              }
             } catch {
               /* server reconciles via webhook; parent reflects final status */
             }
@@ -61,7 +73,7 @@ export function PaymentPanel({ order, provider, method, onBack }: { order: Order
       setMessage((e as Error).message);
       setPhase('failed');
     }
-  }, [order.id, order.branch.name, order.branch.restaurantName, order.orderNumber, provider, method, createIntent, confirm]);
+  }, [order.id, order.branch.name, order.branch.restaurantName, order.orderNumber, provider, method, createIntent, confirm, onCaptured]);
 
   useEffect(() => {
     if (started.current) return;
@@ -78,6 +90,16 @@ export function PaymentPanel({ order, provider, method, onBack }: { order: Order
 
   return (
     <div className="rounded-2xl border border-border bg-surface p-5 text-center">
+      {phase === 'success' && (
+        <div className="flex flex-col items-center gap-3 py-4">
+          <span className="grid h-14 w-14 place-items-center rounded-full bg-success/15 text-success">
+            <Icon name="checkCircle" className="h-8 w-8" />
+          </span>
+          <p className="text-base font-semibold text-foreground">Payment successful</p>
+          <p className="text-sm text-foreground-muted">Taking you to your order…</p>
+        </div>
+      )}
+
       {(phase === 'initiating' || phase === 'processing') && (
         <div className="flex flex-col items-center gap-3 py-4">
           <Spinner />

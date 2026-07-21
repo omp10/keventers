@@ -4,6 +4,7 @@ import { Button, Checkbox, Icon, Spinner, Textarea, toast, type IconName } from 
 import { cn } from '@/lib/cn';
 import { useCart, useCheckout } from '../hooks';
 import { PriceBreakdown } from '../cart/PriceBreakdown';
+import { PaymentPanel } from '../payment';
 import { formatMoney } from '../format';
 import type { Order, PaymentMethod, PaymentProvider } from '../types';
 
@@ -40,6 +41,11 @@ export function CheckoutView({ onPlaced }: { onPlaced: (order: Order, provider: 
   const [optionId, setOptionId] = useState<string>('upi');
   const [notes, setNotes] = useState('');
   const [accepted, setAccepted] = useState(true);
+  // Set once an ONLINE order is placed: we then stay on this screen and run the
+  // payment inline, only advancing to tracking once the money is captured.
+  const [placedOrder, setPlacedOrder] = useState<Order | null>(null);
+
+  const option = OPTIONS.find((o) => o.id === optionId) ?? OPTIONS[0];
 
   if (cart.isLoading) {
     return (
@@ -49,8 +55,6 @@ export function CheckoutView({ onPlaced }: { onPlaced: (order: Order, provider: 
     );
   }
 
-  const option = OPTIONS.find((o) => o.id === optionId) ?? OPTIONS[0];
-
   const place = async () => {
     if (!accepted) {
       toast.error('Please accept the terms to continue');
@@ -58,11 +62,41 @@ export function CheckoutView({ onPlaced }: { onPlaced: (order: Order, provider: 
     }
     try {
       const order = await checkout({ notes: notes.trim() || undefined, acceptedTerms: accepted });
-      onPlaced(order, option.provider, option.method);
+      // Cash: nothing to collect now — go straight to tracking. Online: hold on
+      // this screen and pay first; only success moves us forward.
+      if (option.provider === 'cash') {
+        onPlaced(order, 'cash');
+        return;
+      }
+      setPlacedOrder(order);
     } catch (e) {
       toast.error('Could not place your order', { description: (e as Error).message });
     }
   };
+
+  // ── Inline payment step: shown after an online order is placed. The order
+  // already exists (the cart is locked), so we don't return to the form; the
+  // only ways out are a captured payment (→ tracking) or the user choosing to
+  // finish paying later on the order screen. ──
+  if (placedOrder) {
+    return (
+      <div className="mx-auto max-w-lg space-y-5 px-1 py-4">
+        <div className="text-center">
+          <h2 className="text-lg font-bold text-foreground">Complete your payment</h2>
+          <p className="mt-1 text-sm text-foreground-muted">Order #{placedOrder.orderNumber} is placed — pay now to send it to the kitchen.</p>
+        </div>
+        <PaymentPanel
+          order={placedOrder}
+          provider={option.provider}
+          method={option.method === 'card' || option.method === 'upi' ? option.method : undefined}
+          onCaptured={() => onPlaced(placedOrder, option.provider, option.method)}
+          // The cart is already consumed, so "back" can't return to the form.
+          // Send them to the live order, where they can retry payment or track.
+          onBack={() => onPlaced(placedOrder, option.provider, option.method)}
+        />
+      </div>
+    );
+  }
 
   const total = cart.pricing?.total;
   const isCash = option.provider === 'cash';
