@@ -20,9 +20,20 @@ export function LoyaltyEarnBurst({ active = true }: { active?: boolean }) {
   );
 
   const baseline = useRef<number | null>(null);
-  const tries = useRef(0);
   const [earned, setEarned] = useState<number | null>(null);
   const [count, setCount] = useState(0);
+
+  /**
+   * Stop polling on a WALL CLOCK, not a counter incremented inside the balance
+   * effect. That effect only re-runs when the balance CHANGES — and when no
+   * points are earned it never does, so the give-up counter never advanced and
+   * the account endpoint was polled every 2.5s forever.
+   */
+  useEffect(() => {
+    if (!active) return;
+    const id = setTimeout(() => setPolling(false), 20_000);
+    return () => clearTimeout(id);
+  }, [active]);
 
   // Watch the balance: set a baseline on first read, then wait for it to rise.
   useEffect(() => {
@@ -32,10 +43,8 @@ export function LoyaltyEarnBurst({ active = true }: { active?: boolean }) {
       baseline.current = bal;
     } else if (earned == null && bal > baseline.current) {
       setEarned(bal - baseline.current);
-      setPolling(false);
+      setPolling(false); // got what we came for
     }
-    tries.current += 1;
-    if (tries.current > 8) setPolling(false); // give up after ~20s
   }, [q.data?.balance, earned]);
 
   // Count the earned points up over ~1.2s once we know the delta.

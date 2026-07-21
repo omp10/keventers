@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
 import { JOURNEY, useJourney } from '@/platform/analytics';
@@ -14,6 +14,11 @@ import { useOrder } from '../hooks';
 import { orderService } from '../services';
 import { formatMoney, PAYMENT_STATUS_PRESENTATION, ORDER_STATUS_PRESENTATION } from '../format';
 import type { PaymentProvider } from '../types';
+
+/** One quiet heading style for every block on this page. */
+function SectionTitle({ children }: { children: ReactNode }) {
+  return <h2 className="px-0.5 text-xs font-semibold uppercase tracking-wider text-foreground-subtle">{children}</h2>;
+}
 
 /**
  * OrderPage (/order/:orderId) — the LIVE order hub: confirmation, payment (when
@@ -78,22 +83,26 @@ export function OrderPage() {
           panel until payment was captured — which for pay-at-counter is the
           order's whole life, so customers never saw the tracker at all. */}
       <OrderTrackingHero order={order} />
-      {/* Points pop once the payment captures and loyalty is awarded. */}
-      {order.status !== 'cancelled' && <LoyaltyEarnBurst active />}
+      {/* Points pop once the payment captures and loyalty is awarded. Only worth
+          watching for a FRESH order — opening an old one from history would
+          otherwise re-poll the balance for nothing. */}
+      {order.status !== 'cancelled' && (
+        <LoyaltyEarnBurst active={Date.now() - new Date(order.createdAt).getTime() < 10 * 60 * 1000} />
+      )}
       {showPayment && (
         <PaymentPanel order={order} provider={provider} method={method} onBack={() => navigate('/checkout')} />
       )}
-      <section>
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-foreground-subtle">Order status</h2>
+      <section className="space-y-2">
+        <SectionTitle>Order status</SectionTitle>
         <OrderStatusTimeline order={order} />
       </section>
 
-      {/* Items + totals. Each line shows the dish photo from the order's own
-          product snapshot (frozen at checkout), its options and its line total —
-          a text-only "1 × Butter Chicken" told the customer almost nothing. */}
-      <section>
-        <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-foreground-subtle">Summary</h2>
-        <div className="mb-3 divide-y divide-border rounded-xl border border-border bg-surface px-3">
+      {/* Items + totals in ONE card. They were two stacked bordered boxes, which
+          read as two unrelated things when they are one bill. */}
+      <section className="space-y-2">
+        <SectionTitle>Summary</SectionTitle>
+        <div className="overflow-hidden rounded-2xl border border-border bg-surface">
+          <div className="divide-y divide-border px-3">
           {order.items.map((i) => (
             <div key={i.id} className="flex items-center gap-3 py-2.5">
               {i.imageUrl ? (
@@ -115,16 +124,16 @@ export function OrderPage() {
               <span className="shrink-0 text-sm font-semibold text-foreground">{formatMoney(i.lineTotal)}</span>
             </div>
           ))}
+          </div>
+          {/* Same card, no second border — the bill continues from the items. */}
+          <PriceBreakdown pricing={order.pricing} className="rounded-none border-0 border-t border-border" />
         </div>
-        <PriceBreakdown pricing={order.pricing} />
       </section>
 
       {/* Other Orders placed in this visit */}
       {otherOrders.length > 0 && (
         <section className="space-y-3">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-foreground-subtle">
-            Other Orders from this Visit
-          </h2>
+          <SectionTitle>Other orders this visit</SectionTitle>
           <div className="space-y-3">
             {otherOrders.map((other) => {
               const payPres = PAYMENT_STATUS_PRESENTATION[other.payment.status];
@@ -174,9 +183,9 @@ export function OrderPage() {
       <FeedbackCard order={order} />
       <SubscriptionOffer />
 
-      <div className="flex gap-2">
-        <Button variant="secondary" fullWidth onClick={() => navigate(branchMenu)}>Add more items</Button>
-        <Button variant="ghost" fullWidth onClick={() => navigate('/discover')}>Continue browsing</Button>
+      <div className="flex gap-2 pt-1">
+        <Button fullWidth onClick={() => navigate(branchMenu)}>Add more items</Button>
+        <Button variant="ghost" fullWidth onClick={() => navigate('/discover')}>Browse restaurants</Button>
       </div>
     </div>
   );
