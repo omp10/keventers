@@ -6,11 +6,19 @@ import { useChefs, useKitchenActions, useStations } from '../hooks';
 import type { KitchenEntry } from '../types';
 
 /**
+ * Everything this sheet actually needs. Widened from KitchenEntry so the ORDERS
+ * page can assign too — it holds order summaries, not kitchen queue entries, and
+ * assignment is keyed on the order id either way.
+ */
+export type AssignTarget = Pick<KitchenEntry, 'orderId' | 'orderNumber'> &
+  Partial<Pick<KitchenEntry, 'station' | 'chef'>>;
+
+/**
  * ChefAssignSheet — assign/reassign an order to a station + chef, or Auto-assign
  * (the backend decides via its assignment strategy). Shows chef workload + queue
  * position from the backend; the frontend only picks and posts.
  */
-export function ChefAssignSheet({ entry, onClose }: { entry: KitchenEntry | null; onClose: () => void }) {
+export function ChefAssignSheet({ entry, onClose }: { entry: AssignTarget | null; onClose: () => void }) {
   const stations = useStations();
   const chefs = useChefs();
   const actions = useKitchenActions();
@@ -23,7 +31,7 @@ export function ChefAssignSheet({ entry, onClose }: { entry: KitchenEntry | null
       setStationId(entry.station?.id);
       setChefId(entry.chef?.id);
     }
-  }, [entry?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [entry?.orderId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const stationChefs = useMemo(
     () => (chefs.data ?? []).filter((c) => !stationId || c.stationId === stationId),

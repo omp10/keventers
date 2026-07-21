@@ -48,7 +48,7 @@ export function BoardViewToggle({ view, setView, className }: { view: BoardView;
  * OrderBoard — renders the SAME orders in the selected view. Switching views only
  * changes rendering; the data + business logic (actions, realtime) are identical.
  */
-export function OrderBoard({ orders, view, onOpen, onBill }: { orders: OrderSummary[]; view: BoardView; onOpen: (id: string) => void; onBill?: (id: string) => void }) {
+export function OrderBoard({ orders, view, onOpen, onBill, onAssign }: { orders: OrderSummary[]; view: BoardView; onOpen: (id: string) => void; onBill?: (id: string) => void; onAssign?: (o: OrderSummary) => void }) {
   // Position of each order within its TABLE SESSION, computed from the loaded
   // page — no extra request. A table that has ordered before gets a "Repeat"
   // flag so the kitchen knows it's a follow-up to food already sent.
@@ -77,7 +77,7 @@ export function OrderBoard({ orders, view, onOpen, onBill }: { orders: OrderSumm
             </div>
             <div className="flex flex-col gap-2 overflow-y-auto">
               {col.orders.map((o) => (
-                <OrderCard key={o.id} order={o} onOpen={onOpen} onBill={onBill} sessionSeq={seq.get(o.id)} />
+                <OrderCard key={o.id} order={o} onOpen={onOpen} onBill={onBill} onAssign={onAssign} sessionSeq={seq.get(o.id)} />
               ))}
               {col.orders.length === 0 && <p className="px-1 py-6 text-center text-xs text-foreground-subtle">Empty</p>}
             </div>
@@ -91,7 +91,7 @@ export function OrderBoard({ orders, view, onOpen, onBill }: { orders: OrderSumm
     return (
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {orders.map((o) => (
-          <OrderCard key={o.id} order={o} onOpen={onOpen} onBill={onBill} sessionSeq={seq.get(o.id)} compact />
+          <OrderCard key={o.id} order={o} onOpen={onOpen} onBill={onBill} onAssign={onAssign} sessionSeq={seq.get(o.id)} compact />
         ))}
       </div>
     );
@@ -134,7 +134,7 @@ export function OrderBoard({ orders, view, onOpen, onBill }: { orders: OrderSumm
   return (
     <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
       {orders.map((o) => (
-        <OrderCard key={o.id} order={o} onOpen={onOpen} onBill={onBill} sessionSeq={seq.get(o.id)} />
+        <OrderCard key={o.id} order={o} onOpen={onOpen} onBill={onBill} onAssign={onAssign} sessionSeq={seq.get(o.id)} />
       ))}
     </div>
   );

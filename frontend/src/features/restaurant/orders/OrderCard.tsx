@@ -14,10 +14,18 @@ const PAYMENT_TONE = { captured: 'bg-success', pending: 'bg-warning', failed: 'b
  * Animates in on mount for new-order arrivals. Business logic is identical across
  * views; only layout differs.
  */
+/**
+ * Assignment only exists once the KITCHEN has a ticket, which it gets when the
+ * order is accepted. Offering it on a still-"placed" order would post to a
+ * queue entry that doesn't exist yet and fail.
+ */
+const ASSIGNABLE = new Set(['confirmed', 'preparing', 'ready']);
+
 export function OrderCard({
   order,
   onOpen,
   onBill,
+  onAssign,
   sessionSeq,
   compact,
   className,
@@ -26,6 +34,9 @@ export function OrderCard({
   onOpen: (id: string) => void;
   /** Open the session bill for this order's table. */
   onBill?: (id: string) => void;
+  /** Assign this order to a chef/station. Only meaningful once the kitchen has
+   *  a ticket for it, i.e. after the order is accepted. */
+  onAssign?: (order: OrderSummary) => void;
   /** "2 of 3" — this order's position in its table session, when there's more
    *  than one. Tells the kitchen a ticket is a FOLLOW-UP to food already sent. */
   sessionSeq?: { index: number; total: number };
@@ -94,6 +105,16 @@ export function OrderCard({
           >
             {next.label}
           </Button>
+          {onAssign && ASSIGNABLE.has(order.status) && (
+            <Button
+              size="sm"
+              variant="secondary"
+              leftIcon="user"
+              onClick={(e) => { e.stopPropagation(); onAssign(order); }}
+            >
+              Assign
+            </Button>
+          )}
           {onBill && (
             <Button
               size="sm"

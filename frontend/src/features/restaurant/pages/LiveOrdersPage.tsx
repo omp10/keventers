@@ -1,9 +1,20 @@
-import { useState } from 'react';
+import { Suspense, lazy, useState } from 'react';
 
 import { Button, Spinner, EmptyState, Icon } from '@/design-system';
+import { qk, queryClient } from '@/platform/query';
 import { useLiveOrders, useOrderDrawer } from '../hooks';
 import { BoardViewToggle, OrderBoard, OrderFilters, SessionBillDialog, type BoardView } from '../orders';
 import type { OrderFilters as Filters } from '../services';
+import type { OrderSummary } from '../types';
+
+/**
+ * Assignment lives in the KITCHEN module, and the kitchen already imports from
+ * this one — a static import here would close that loop. Lazy keeps the
+ * dependency at runtime and off this page's critical chunk.
+ */
+const ChefAssignSheet = lazy(() =>
+  import('@/features/kitchen/panels').then((m) => ({ default: m.ChefAssignSheet })),
+);
 
 /**
  * LiveOrdersPage — the primary operational screen. Realtime (Socket-driven, no
@@ -17,6 +28,10 @@ export function LiveOrdersPage() {
   const drawer = useOrderDrawer();
   // Which order's SESSION bill is open (the bill covers the whole sitting).
   const [billFor, setBillFor] = useState<string | undefined>();
+  // The order being assigned to a chef/station. The orders page used to have no
+  // way to assign at all — that action existed only on the kitchen board, so a
+  // manager working the list had to switch screens to give a ticket to someone.
+  const [assignFor, setAssignFor] = useState<OrderSummary | null>(null);
 
   const patch = (p: Partial<Filters>) => setFilters((f) => ({ ...f, ...p }));
 
@@ -35,7 +50,7 @@ export function LiveOrdersPage() {
         <EmptyState icon={<Icon name="order" className="mb-3 h-8 w-8 text-muted-foreground" />} title="No orders" description="New orders will appear here in realtime." size="sm" />
       ) : (
         <>
-          <OrderBoard orders={orders.items} view={view} onOpen={drawer.open} onBill={setBillFor} />
+          <OrderBoard orders={orders.items} view={view} onOpen={drawer.open} onBill={setBillFor} onAssign={setAssignFor} />
           {orders.hasNext && (
             <div className="flex justify-center pt-2">
               <Button variant="secondary" loading={orders.isFetching} onClick={orders.next}>Load more</Button>
@@ -45,6 +60,21 @@ export function LiveOrdersPage() {
       )}
 
       <SessionBillDialog orderId={billFor} open={Boolean(billFor)} onClose={() => setBillFor(undefined)} />
+
+      {assignFor && (
+        <Suspense fallback={null}>
+          <ChefAssignSheet
+            entry={{ orderId: assignFor.id, orderNumber: assignFor.orderNumber }}
+            onClose={() => {
+              setAssignFor(null);
+              // Assigning changes the KITCHEN ticket, not the order row, but the
+              // two are kept in sync — pull the list so the board this manager
+              // is looking at reflects it rather than going quietly stale.
+              void queryClient.invalidateQueries({ queryKey: qk('staff', 'orders') });
+            }}
+          />
+        </Suspense>
+      )}
     </div>
   );
 }
