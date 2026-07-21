@@ -35,7 +35,7 @@ const OPTIONS: Option[] = [
  * locks the cart and creates an immutable order; then the page proceeds to
  * payment. All amounts are read-only from the Pricing Engine.
  */
-export function CheckoutView({ onPlaced }: { onPlaced: (order: Order, provider: PaymentProvider, method?: PaymentMethod) => void }) {
+export function CheckoutView({ onPlaced, onPaymentStep }: { onPlaced: (order: Order, provider: PaymentProvider, method?: PaymentMethod) => void; onPaymentStep?: (order: Order | null) => void }) {
   const cart = useCart();
   const { checkout, isPending } = useCheckout();
   const [optionId, setOptionId] = useState<string>('upi');
@@ -69,6 +69,9 @@ export function CheckoutView({ onPlaced }: { onPlaced: (order: Order, provider: 
         return;
       }
       setPlacedOrder(order);
+      // Tell the page we're on the payment step so its back button targets the
+      // placed order, not the now-empty cart.
+      onPaymentStep?.(order);
     } catch (e) {
       toast.error('Could not place your order', { description: (e as Error).message });
     }
