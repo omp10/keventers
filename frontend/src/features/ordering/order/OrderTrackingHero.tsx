@@ -47,10 +47,21 @@ function Steam({ delay = 0, x, reduced }: { delay?: number; x: number; reduced: 
  *
  * Under reduced motion it renders the first frame and never plays, matching the
  * other scenes.
+ *
+ * The tile is deliberately literal WHITE (not a surface token): this artwork is
+ * drawn for a light backdrop and carries its own near-white bed, which read as a
+ * dirty rectangle floating on the themed card — worst in dark mode. Pinning the
+ * tile to white makes that bed disappear into an intentional framed illustration
+ * in both schemes. The hairline border gives it an edge in LIGHT mode, where a
+ * white tile on a near-white card would otherwise have none.
  */
 function ChefScene({ reduced }: { reduced: boolean }) {
   return (
-    <div className="h-40 w-44" role="img" aria-label="Chef preparing your order">
+    <div
+      role="img"
+      aria-label="Chef preparing your order"
+      className="grid h-40 w-44 place-items-center overflow-hidden rounded-2xl border border-black/10 bg-white dark:border-white/15"
+    >
       <DotLottieReact
         src="/animations/chef.lottie"
         loop={!reduced}
