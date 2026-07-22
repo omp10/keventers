@@ -1,4 +1,5 @@
-import { NavLink } from 'react-router-dom';
+import { useState } from 'react';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 
 import { Icon, type IconName } from '@/design-system';
 import { cn } from '@/lib/cn';
@@ -21,6 +22,17 @@ export const KITCHEN_TABS: KitchenTab[] = [
 ];
 
 /**
+ * PHONE split. Eight tabs at 375px is ~47px each — under the 44px target only
+ * once you subtract padding, and the labels collide (which is exactly how the
+ * bar shipped). The four a cook touches constantly stay on the bar; the rest
+ * move behind More, which is the overflow this file always said they needed.
+ */
+export const PRIMARY_TABS: KitchenTab[] = KITCHEN_TABS.filter((t) =>
+  ['/kitchen', '/kitchen/orders', '/kitchen/dashboard', '/kitchen/menu'].includes(t.to),
+);
+export const OVERFLOW_TABS: KitchenTab[] = KITCHEN_TABS.filter((t) => !PRIMARY_TABS.includes(t));
+
+/**
  * KitchenTabBar — the phone bottom navigation.
  *
  * Deliberately PINNED (no hide-on-scroll, unlike the customer PWA): kitchen
@@ -33,7 +45,44 @@ export const KITCHEN_TABS: KitchenTab[] = [
  * overflow rather than squeezed in.
  */
 export function KitchenTabBar({ className }: { className?: string }) {
+  const [moreOpen, setMoreOpen] = useState(false);
+  const { pathname } = useLocation();
+  const navigate = useNavigate();
+  const overflowActive = OVERFLOW_TABS.some((t) => pathname.startsWith(t.to));
+
   return (
+    <>
+    {moreOpen && (
+      <>
+        <button
+          type="button"
+          aria-label="Close menu"
+          onClick={() => setMoreOpen(false)}
+          className="fixed inset-0 z-50 bg-overlay/50"
+        />
+        <div
+          className="fixed inset-x-0 z-50 rounded-t-2xl border-t border-border bg-surface p-3 shadow-2xl"
+          style={{ bottom: 'calc(3.5rem + env(safe-area-inset-bottom))' }}
+        >
+          <div className="grid grid-cols-4 gap-2">
+            {OVERFLOW_TABS.map((t) => (
+              <button
+                key={t.to}
+                type="button"
+                onClick={() => { setMoreOpen(false); navigate(t.to); }}
+                className={cn(
+                  'flex flex-col items-center gap-1.5 rounded-xl p-3 text-[0.6875rem] font-semibold transition-colors',
+                  pathname.startsWith(t.to) ? 'bg-primary-soft text-primary' : 'text-foreground-muted hover:bg-muted',
+                )}
+              >
+                <Icon name={t.icon} className="h-5 w-5" />
+                {t.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </>
+    )}
     <nav
       aria-label="Kitchen sections"
       className={cn(
@@ -42,7 +91,7 @@ export function KitchenTabBar({ className }: { className?: string }) {
       )}
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
     >
-      {KITCHEN_TABS.map((t) => (
+      {PRIMARY_TABS.map((t) => (
         <NavLink
           key={t.to}
           to={t.to}
@@ -70,6 +119,25 @@ export function KitchenTabBar({ className }: { className?: string }) {
           )}
         </NavLink>
       ))}
+
+      {/* More — the overflow. Highlighted when one of ITS pages is open, so the
+          bar never looks like nothing is selected. */}
+      <button
+        type="button"
+        onClick={() => setMoreOpen((o) => !o)}
+        aria-expanded={moreOpen}
+        className={cn(
+          'flex flex-1 flex-col items-center justify-center gap-0.5 py-2 text-[0.625rem] font-semibold transition-colors',
+          'min-h-14 outline-none focus-visible:bg-muted',
+          moreOpen || overflowActive ? 'text-primary' : 'text-foreground-subtle hover:text-foreground',
+        )}
+      >
+        <span className={cn('grid h-7 w-9 place-items-center rounded-lg transition-colors', (moreOpen || overflowActive) && 'bg-primary-soft')}>
+          <Icon name="more" className="h-[1.125rem] w-[1.125rem]" />
+        </span>
+        More
+      </button>
     </nav>
+    </>
   );
 }

@@ -64,7 +64,11 @@ export function toKitchenEntryDTO(e, now = new Date()) {
     orderNumber: e.orderNumber,
     sessionId: e.sessionId ?? null,
     tableId: oid(e.tableId),
-    tableLabel: e.metadata?.tableLabel ?? (e.tableId ? `Table ${oid(e.tableId)}` : ''),
+    // NEVER fall back to the raw id: "Table 6a5a1b4ea0664543719926e0" is what
+    // the kitchen and staff apps actually displayed, which locates nothing in a
+    // room. The service resolves real numbers into metadata.tableLabel; absent
+    // that we say nothing rather than print a database key at a cook.
+    tableLabel: e.metadata?.tableLabel ?? '',
     orderType: e.orderType ?? 'dine_in',
     channel: e.orderType ?? 'dine_in',
     status: e.status,

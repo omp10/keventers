@@ -91,7 +91,7 @@ export function StaffHomePage() {
   const nextUp = (day.queue.data?.items ?? []).filter((o) => NEXT_ACTION[o.status]).slice(0, 2);
 
   return (
-    <div className="space-y-6">
+    <div className="mx-auto max-w-3xl space-y-6">
       <header>
         <p className="text-sm text-foreground-muted">On shift</p>
         <h1 className="font-display text-2xl font-extrabold text-foreground">
@@ -99,7 +99,9 @@ export function StaffHomePage() {
         </h1>
       </header>
 
-      <div className="grid grid-cols-2 gap-3">
+      {/* 2-up on a phone, 4-up once there is room — grid-cols-2 at every
+          width made these read as four huge slabs on a laptop. */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {stats.map(([label, value, href]) => (
           <button
             key={label}

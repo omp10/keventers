@@ -96,6 +96,18 @@ export class TableService extends BaseService {
     return table ? toTableDTO(table) : null;
   }
 
+  /**
+   * Batched public read — a Map of id → table DTO. Used by surfaces that render
+   * MANY rows at once (the kitchen board, the staff queue), which must never do
+   * one lookup per row.
+   */
+  async getPublicByIds(ids = []) {
+    const unique = [...new Set(ids.map(String).filter(Boolean))];
+    if (!unique.length) return new Map();
+    const rows = await this.tables.find({ _id: { $in: unique } }, { limit: unique.length }).catch(() => []);
+    return new Map(rows.map((t) => [String(t.id ?? t._id), toTableDTO(t)]));
+  }
+
   async updateTable(tenant, id, data, actorId = null) {
     const table = await loadOwned(this.tables, tenant, id, QR_ERRORS.TABLE_NOT_FOUND);
     const scope = {

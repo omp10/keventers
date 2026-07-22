@@ -414,6 +414,12 @@ export class KitchenService extends BaseService {
 
   // ==================== reads ====================
 
+  /** Paginate + resolve table labels in one place, for every list surface. */
+  async #paginatedWithTables(page) {
+    const dtos = (page.items ?? []).map((e) => toKitchenEntryDTO(e));
+    return { items: await this.#withTableLabels(dtos), pagination: page.meta };
+  }
+
   async getBoard(tenant, restaurantId, branchId, query = {}) {
     const scope = await this.resolveScope(tenant, restaurantId, branchId);
     const filter = query.status ? { status: query.status } : {};
@@ -429,7 +435,31 @@ export class KitchenService extends BaseService {
       sort: query.sort ?? '-priorityWeight timers.queuedAt',
       pagination: { page: query.page, limit: query.limit },
     });
-    return this.paginated(page, (e) => toKitchenEntryDTO(e));
+    return this.#paginatedWithTables(page);
+  }
+
+  /**
+   * Zip real TABLE NUMBERS onto a page of entries — one batched query for the
+   * whole page, never one per row. A kitchen entry stores only `tableId`, and
+   * printing that raw id ("Table 6a5a1b4e…") told a cook nothing about which
+   * table in the room the food belongs to.
+   */
+  async #withTableLabels(entries) {
+    const ids = entries.map((e) => e.tableId).filter(Boolean);
+    if (!ids.length) return entries;
+    try {
+      const { tableService } = await import('#modules/qr-ordering/index.js');
+      const byId = await tableService.getPublicByIds(ids);
+      for (const e of entries) {
+        if (!e.tableId) continue;
+        const t = byId.get(String(e.tableId));
+        const label = t?.number != null ? `Table ${t.number}` : t?.name ?? null;
+        if (label) e.tableLabel = label;
+      }
+    } catch {
+      /* a label is a nicety — never fail the board over it */
+    }
+    return entries;
   }
 
   async getEntry(tenant, orderId) {
@@ -473,7 +503,7 @@ export class KitchenService extends BaseService {
       sort: '-priorityWeight timers.queuedAt',
       pagination: { page: query.page, limit: query.limit },
     });
-    return this.paginated(page, (e) => toKitchenEntryDTO(e));
+    return this.#paginatedWithTables(page);
   }
 
   /** This user's finished work (served/cancelled), newest first. */
@@ -486,7 +516,7 @@ export class KitchenService extends BaseService {
       sort: '-timers.servedAt -updatedAt',
       pagination: { page: query.page, limit: query.limit },
     });
-    return this.paginated(page, (e) => toKitchenEntryDTO(e));
+    return this.#paginatedWithTables(page);
   }
 
   /**
@@ -495,7 +525,16 @@ export class KitchenService extends BaseService {
    */
   async transitionAsChef(tenant, orderId, action, actorId) {
     const entry = await this.#loadByOrder(tenant, orderId);
-    if (String(entry.assignment?.currentChefId ?? '') !== String(actorId)) {
+    const assignee = String(entry.assignment?.currentChefId ?? '');
+
+    // UNCLAIMED work is claimed by whoever acts on it. The queue deliberately
+    // shows mine-or-unclaimed tickets, so refusing here made every unclaimed
+    // card's button a guaranteed failure ("This order is not assigned to you")
+    // — the staff app offered work it then refused to let you do. Picking up
+    // the next ticket IS how a floor works; taking someone ELSE'S still isn't.
+    if (!assignee) {
+      await this.assign(tenant, orderId, { chefId: actorId }, actorId).catch(() => null);
+    } else if (assignee !== String(actorId)) {
       throw new ForbiddenError(KITCHEN_ERRORS.NOT_ASSIGNED_TO_YOU);
     }
     switch (action) {
@@ -533,10 +572,24 @@ export class KitchenService extends BaseService {
     ]);
 
     const by = (s) => active.filter((e) => e.status === s).length;
+
+    // Breach is derived LIVE from elapsed-vs-target, exactly as the entry DTO
+    // (and therefore the board's badge) derives it. Counting only the stored
+    // `sla.breached` flag — which nothing sets until a sweep runs — is why the
+    // dashboard reported "0 breached" while every card on the board was red.
+    const isBreached = (e) => {
+      if (e.sla?.breached) return true;
+      const target = e.sla?.targetSeconds;
+      if (!target) return false;
+      const startedAt = e.timers?.preparingAt ?? e.timers?.queuedAt;
+      if (!startedAt) return false;
+      const end = e.timers?.readyAt ? new Date(e.timers.readyAt) : now;
+      return (end - new Date(startedAt)) / 1000 >= target;
+    };
     // An entry is "approaching" once it has burned 80% of its target and has not
     // breached. Without a target configured there is nothing to approach.
     const approaching = active.filter((e) => {
-      if (e.sla?.breached || !e.sla?.targetSeconds) return false;
+      if (!e.sla?.targetSeconds || isBreached(e)) return false;
       const startedAt = e.timers?.preparingAt ?? e.timers?.queuedAt;
       if (!startedAt) return false;
       return (now - new Date(startedAt)) / 1000 >= e.sla.targetSeconds * 0.8;
@@ -545,8 +598,8 @@ export class KitchenService extends BaseService {
     const preps = servedToday
       .map((e) => (e.timers?.preparingAt && e.timers?.readyAt ? (new Date(e.timers.readyAt) - new Date(e.timers.preparingAt)) / 1000 : null))
       .filter((n) => n != null && n >= 0);
-    const breachedToday = servedToday.filter((e) => e.sla?.breached).length;
-    const breachedActive = active.filter((e) => e.sla?.breached).length;
+    const breachedToday = servedToday.filter(isBreached).length;
+    const breachedActive = active.filter(isBreached).length;
 
     // On-time rate is scored over COMPLETED work — an order still cooking has
     // not passed or failed yet, and counting it as on-time flatters the number.
