@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { DotLottieReact } from '@lottiefiles/dotlottie-react';
-import { useReducedMotion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 
 import { Button, Icon, Spinner, Textarea, EmptyState } from '@/design-system';
 import { formatMinutes, formatMoney } from '../format';
@@ -75,9 +75,29 @@ export function CartView({
 
   return (
     <div className="space-y-4 pb-28">
-      {/* Items */}
+      {/* Illustrated header — the cart is a page you LOOK at before paying, so
+          it gets a face rather than starting cold on a list of rows. */}
+      <div className="flex items-center gap-3 rounded-2xl border border-border bg-surface p-3">
+        <div className="h-16 w-16 shrink-0">
+          <DotLottieReact src="/animations/cart-bag.lottie" loop={!reduced} autoplay={!reduced} className="h-full w-full" />
+        </div>
+        <div className="min-w-0">
+          <p className="text-base font-bold text-foreground">
+            {cart.itemCount} item{cart.itemCount === 1 ? '' : 's'} ready
+          </p>
+          <p className="text-xs text-foreground-muted">Review your order, then head to checkout.</p>
+        </div>
+      </div>
+
+      {/* Items — cascade in so the list assembles instead of appearing. */}
       <div>
-        {cart.items.map((item) => (
+        {cart.items.map((item, idx) => (
+          <motion.div
+            key={item.id}
+            initial={reduced ? false : { opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.25, delay: reduced ? 0 : Math.min(idx, 6) * 0.05, ease: [0.16, 1, 0.3, 1] }}
+          >
           <CartItemRow
             key={item.id}
             item={item}
@@ -86,6 +106,7 @@ export function CartView({
             onRemove={() => cart.removeItem(item.id)}
             onEdit={onEditItem ? () => onEditItem(item.productId) : undefined}
           />
+          </motion.div>
         ))}
       </div>
 

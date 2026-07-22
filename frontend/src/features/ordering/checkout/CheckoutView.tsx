@@ -124,8 +124,20 @@ export function CheckoutView({ onPlaced, onPaymentStep }: { onPlaced: (order: Or
 
   return (
     <div className="mx-auto max-w-2xl space-y-6 px-1 pb-28">
+      {/* Illustrated header — this is the last screen before money moves; it
+          should feel like an occasion, not a form. */}
+      <motion.div {...rise(0)} className="flex items-center gap-3 rounded-2xl border border-border bg-surface p-3">
+        <div className="h-16 w-16 shrink-0">
+          <DotLottieReact src="/animations/checkout.lottie" loop={!reduced} autoplay={!reduced} className="h-full w-full" />
+        </div>
+        <div className="min-w-0">
+          <p className="text-base font-bold text-foreground">Almost there</p>
+          <p className="text-xs text-foreground-muted">Check your order and pick how you'd like to pay.</p>
+        </div>
+      </motion.div>
+
       {/* Order summary — now WITH images */}
-      <motion.section {...rise(0)}>
+      <motion.section {...rise(1)}>
         <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-foreground-subtle">Order summary</h2>
         <div className="overflow-hidden rounded-2xl border border-border bg-surface">
           {cart.items.map((i, idx) => (
@@ -156,7 +168,7 @@ export function CheckoutView({ onPlaced, onPaymentStep }: { onPlaced: (order: Or
       </motion.section>
 
       {/* Payment method */}
-      <motion.section {...rise(1)}>
+      <motion.section {...rise(2)}>
         <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-foreground-subtle">Payment method</h2>
         <div className="space-y-2.5">
           {OPTIONS.map((o) => {
@@ -207,14 +219,14 @@ export function CheckoutView({ onPlaced, onPaymentStep }: { onPlaced: (order: Or
       </motion.section>
 
       {/* Notes */}
-      <motion.section {...rise(2)}>
+      <motion.section {...rise(3)}>
         <label className="mb-1.5 block text-sm font-medium text-foreground">Order notes</label>
         <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Any instructions for this order? (e.g. less spicy)" rows={2} maxLength={240} />
       </motion.section>
 
       {/* Pricing */}
       {cart.pricing && (
-        <motion.div {...rise(3)}>
+        <motion.div {...rise(4)}>
           <PriceBreakdown pricing={cart.pricing} />
         </motion.div>
       )}

@@ -19,6 +19,7 @@ import { useBranchDetail } from '@/features/discovery';
 import { JOURNEY, useJourney } from '@/platform/analytics';
 import { ProductDetailDrawer } from '../components';
 import { MenuBoard, MenuHero, MenuSearch, ProductRail } from '../menu';
+import { AddedToCartBurst } from '../components';
 import { FloatingCart } from '../cart';
 import { useActiveLiveOrder } from '../components/LiveOrderTracker';
 import { useCart, useMenu, useProduct, usePrefetchProduct } from '../hooks';
@@ -54,6 +55,8 @@ export function MenuScreen() {
   }, [categorySlug, subSlug]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [openSlug, setOpenSlug] = useState<string | undefined>();
+  // Bumped on every successful add — drives the illustrated confirmation.
+  const [added, setAdded] = useState<{ token: number; label: string } | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [tableNumber, setTableNumber] = useState('');
   const [pendingSelection, setPendingSelection] = useState<CartItemSelection | null>(null);
@@ -84,7 +87,7 @@ export function MenuScreen() {
       return;
     }
     try {
-      if (await addSelection({ productId: p.id, quantity: 1 })) toast.success(`${p.name} added`);
+      if (await addSelection({ productId: p.id, quantity: 1 })) setAdded({ token: Date.now(), label: p.name });
     } catch (e) {
       toast.error('Could not add item', { description: (e as Error).message });
     }
@@ -114,7 +117,7 @@ export function MenuScreen() {
   };
 
   const addFromDetail = async (selection: CartItemSelection) => {
-    if (await addSelection(selection)) toast.success('Added to cart');
+    if (await addSelection(selection)) setAdded({ token: Date.now(), label: productQ.data?.name ?? '' });
   };
 
   const openTableSession = async () => {
@@ -186,6 +189,10 @@ export function MenuScreen() {
         onPrefetch={prefetch}
         cartQuantities={cartQuantities}
       />
+
+      {/* Confirmation is independent of the cart bar — it must fire even when
+          the dock owns the cart slot. */}
+      <AddedToCartBurst token={added?.token ?? null} label={added?.label} />
 
       {!dockOwnsCart && (
       <FloatingCart
