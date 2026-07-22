@@ -1,13 +1,22 @@
 import type { SlaState, KitchenStatus } from '../types';
 
-/** mm:ss (or h:mm:ss) from seconds — the large kitchen timer format. */
+/**
+ * mm:ss for the times a kitchen actually works in; a compact form beyond that.
+ *
+ * A ticket left overnight rendered as "45:09:48" — nine characters of
+ * false precision that blew the card's layout apart on a phone and told the
+ * line nothing ("45h" is the entire message). Seconds stop mattering the moment
+ * you are hours late.
+ */
 export function formatDuration(seconds: number): string {
   const s = Math.max(0, Math.floor(seconds));
   const m = Math.floor(s / 60);
   const sec = s % 60;
   if (m < 60) return `${m}:${String(sec).padStart(2, '0')}`;
   const h = Math.floor(m / 60);
-  return `${h}:${String(m % 60).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
+  if (h < 10) return `${h}:${String(m % 60).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
+  const d = Math.floor(h / 24);
+  return d >= 1 ? `${d}d ${h % 24}h` : `${h}h ${m % 60}m`;
 }
 
 /** Seconds elapsed since an ISO timestamp, relative to a `now` epoch (ms). */

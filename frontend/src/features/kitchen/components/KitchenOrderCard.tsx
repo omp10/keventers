@@ -51,7 +51,16 @@ export function KitchenOrderCard({
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-lg font-extrabold tracking-tight text-foreground md:text-2xl">#{entry.orderNumber}</span>
+            {/* Every ticket in an outlet shares the RADDI-DIN-<date>- prefix, so
+                it carries no information while eating three lines on a phone.
+                The tail is what a cook calls out; the full number stays in the
+                title for search and for anyone who needs it. */}
+            <span
+              className="text-lg font-extrabold tracking-tight text-foreground md:text-2xl"
+              title={entry.orderNumber}
+            >
+              #{entry.orderNumber.split('-').pop() || entry.orderNumber}
+            </span>
             {entry.priority === 'rush' && <Badge tone="danger" variant="solid">RUSH</Badge>}
             {entry.priority === 'vip' && <Badge tone="accent" variant="solid">VIP</Badge>}
             {(entry.recallCount ?? 0) > 0 && <Badge tone="warning" variant="soft">Recalled ×{entry.recallCount}</Badge>}

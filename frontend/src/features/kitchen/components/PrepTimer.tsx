@@ -25,7 +25,17 @@ export function PrepTimer({ entry, size = 'md', className }: { entry: KitchenEnt
 
   return (
     <div className={cn('text-center leading-none', className)}>
-      <div className={cn('font-mono font-bold tabular-nums', size === 'lg' ? 'text-5xl' : 'text-3xl', pres.text)}>
+      {/* A long string (an hours-old ticket) steps DOWN a size rather than
+          pushing the order number and table into a three-line wrap. */}
+      <div
+        className={cn(
+          'font-mono font-bold tabular-nums',
+          formatDuration(elapsed).length > 5
+            ? size === 'lg' ? 'text-3xl' : 'text-xl'
+            : size === 'lg' ? 'text-5xl' : 'text-3xl',
+          pres.text,
+        )}
+      >
         {formatDuration(elapsed)}
       </div>
       {remaining != null && (
