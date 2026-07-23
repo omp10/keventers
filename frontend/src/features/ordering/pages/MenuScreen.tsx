@@ -23,6 +23,7 @@ import { AddedToCartBurst } from '../components';
 import { FloatingCart } from '../cart';
 import { useActiveLiveOrder } from '../components/LiveOrderTracker';
 import { useCart, useMenu, useProduct, usePrefetchProduct } from '../hooks';
+import { getActiveBranchSlug } from '@/features/discovery';
 import { sessionService } from '../services';
 import type { CartItemSelection, Product } from '../types';
 
@@ -60,6 +61,9 @@ export function MenuScreen() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [tableNumber, setTableNumber] = useState('');
   const [pendingSelection, setPendingSelection] = useState<CartItemSelection | null>(null);
+  // True when the prompt appeared because the open session belongs to ANOTHER
+  // branch — the copy then explains the switch instead of just asking a table.
+  const [switchingBranch, setSwitchingBranch] = useState(false);
   const [openingSession, setOpeningSession] = useState(false);
   const productQ = useProduct(branchSlug, openSlug);
 
@@ -72,7 +76,18 @@ export function MenuScreen() {
   const needsConfig = (p: Product) => p.customizable || (p.variants?.length ?? 0) > 0 || (p.modifierGroups?.length ?? 0) > 0;
 
   const addSelection = async (selection: CartItemSelection) => {
-    if (!cart.hasSession) {
+    // A session belongs to ONE branch, and every restaurant has its own copy of
+    // a dish (nine "Butter Chicken" rows exist across the platform). Browsing
+    // branch B while holding a session for branch A sent B's product id into
+    // A's cart, where the catalog lookup is scoped to A and found nothing —
+    // surfacing as "This product is not available" on items that are plainly
+    // in stock. Treat a foreign session as no session: ask which table they're
+    // at HERE, which opens a session for this branch.
+    const sessionBranch = getActiveBranchSlug();
+    const sessionIsElsewhere = Boolean(sessionBranch && branchSlug && sessionBranch !== branchSlug);
+
+    if (!cart.hasSession || sessionIsElsewhere) {
+      setSwitchingBranch(sessionIsElsewhere);
       setPendingSelection(selection);
       return false;
     }
@@ -219,8 +234,12 @@ export function MenuScreen() {
       <Dialog open={Boolean(pendingSelection)} onOpenChange={(open) => !open && !openingSession && setPendingSelection(null)}>
         <DialogContent size="sm">
           <DialogHeader>
-            <DialogTitle>Which table are you at?</DialogTitle>
-            <DialogDescription>Enter the table number shown at your seat so the kitchen can route your order correctly.</DialogDescription>
+            <DialogTitle>{switchingBranch ? `Start ordering at ${branch.data?.name ?? 'this outlet'}?` : 'Which table are you at?'}</DialogTitle>
+            <DialogDescription>
+              {switchingBranch
+                ? 'Your open order belongs to a different outlet. Enter your table number here to start a new one — the other order is untouched.'
+                : 'Enter the table number shown at your seat so the kitchen can route your order correctly.'}
+            </DialogDescription>
           </DialogHeader>
           <DialogBody>
             <form

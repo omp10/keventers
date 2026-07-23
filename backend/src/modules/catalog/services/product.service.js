@@ -206,7 +206,17 @@ export class ProductService extends BaseService {
   async getForOrdering(scope, productId, { now = new Date() } = {}) {
     const s = { organizationId: scope.organizationId, restaurantId: scope.restaurantId };
     const product = await this.products.findByIdScoped(s, productId);
-    if (!product) return null;
+    // NOT FOUND IN THIS RESTAURANT. Every restaurant owns its own copy of a
+    // dish, so a product id from another outlet's menu simply does not exist
+    // here — which surfaced as "This product is not available" on items that
+    // were plainly in stock. Say what actually happened.
+    if (!product) {
+      return {
+        unavailable: true,
+        code: 'wrong_restaurant',
+        reason: 'This item belongs to a different outlet than your current order',
+      };
+    }
 
     // WHY a product was refused, not just that it was. The cart could only say
     // "This product is not available" for every cause — a draft nobody
