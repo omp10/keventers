@@ -41,6 +41,31 @@ export class CartValidationService extends BaseService {
     this.sessions = sessions;
   }
 
+  /**
+   * Next opening time for a branch — "Opens at 09:00". Mirrors the discovery
+   * service's forward scan so the customer sees the same time the branch card
+   * shows, rather than two systems quoting different hours.
+   */
+  #nextOpening(businessHours = [], timezone, now = new Date()) {
+    const DAYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    if (!Array.isArray(businessHours) || !businessHours.length) return null;
+    const local = new Date(now.toLocaleString('en-US', { timeZone: timezone }));
+    const byDay = new Map(businessHours.map((h) => [h.day, h]));
+    const todayKey = DAYS[local.getDay()];
+    const mins = local.getHours() * 60 + local.getMinutes();
+    const toMins = (t) => {
+      const [h, m] = String(t ?? '').split(':').map((n) => Number.parseInt(n, 10));
+      return Number.isNaN(h) || Number.isNaN(m) ? null : h * 60 + m;
+    };
+    const today = byDay.get(todayKey);
+    if (today && today.isOpen !== false && toMins(today.open) != null && mins < toMins(today.open)) return today.open;
+    for (let i = 1; i <= 7; i += 1) {
+      const entry = byDay.get(DAYS[(local.getDay() + i) % 7]);
+      if (entry && entry.isOpen !== false && entry.open) return entry.open;
+    }
+    return null;
+  }
+
   /** Validate restaurant status, branch status, business hours and the session. */
   async validateOrderingContext(scope, now = new Date()) {
     const restaurant = await this.restaurants.getPublicProfile(scope.restaurantId);
@@ -53,7 +78,15 @@ export class CartValidationService extends BaseService {
     }
     const timezone = branch.settings?.timezone || restaurant.settings?.timezone || 'Asia/Kolkata';
     if (!isBranchOpen(branch.businessHours, timezone, now).open) {
-      throw new ForbiddenError(CART_ERRORS.BRANCH_CLOSED);
+      // NAME the outlet. This check runs against the SESSION's branch, not the
+      // menu on screen, so a session left open at another (closed) outlet
+      // blocked ordering while the menu's own banner correctly read "Open now"
+      // — indistinguishable from a bug in the hours themselves. Saying which
+      // outlet is closed makes the mismatch obvious at a glance.
+      const opensAt = this.#nextOpening(branch.businessHours, timezone, now);
+      throw new ForbiddenError(
+        `${branch.name ?? 'This outlet'} is closed right now${opensAt ? `. Opens at ${opensAt}` : ''}`,
+      );
     }
     await this.#assertSessionLive(scope.sessionId);
     return { restaurant, branch };
