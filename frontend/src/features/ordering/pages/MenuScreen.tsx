@@ -83,8 +83,19 @@ export function MenuScreen() {
     // surfacing as "This product is not available" on items that are plainly
     // in stock. Treat a foreign session as no session: ask which table they're
     // at HERE, which opens a session for this branch.
+    // Prefer the SERVER's branch id on the cart over the remembered slug: the
+    // slug is a localStorage recollection that can be stale or missing (a
+    // session opened on another device, or storage cleared), and getting this
+    // wrong is what produced both "This product is not available" and
+    // "<other outlet> is closed right now" on a menu that was plainly open.
+    const viewedBranchId = branch.data?.id;
+    const cartBranchId = cart.cart?.branchId;
     const sessionBranch = getActiveBranchSlug();
-    const sessionIsElsewhere = Boolean(sessionBranch && branchSlug && sessionBranch !== branchSlug);
+    const sessionIsElsewhere = Boolean(
+      cartBranchId && viewedBranchId
+        ? cartBranchId !== viewedBranchId
+        : sessionBranch && branchSlug && sessionBranch !== branchSlug,
+    );
 
     if (!cart.hasSession || sessionIsElsewhere) {
       setSwitchingBranch(sessionIsElsewhere);
