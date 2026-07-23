@@ -166,6 +166,9 @@ export type Cart = {
   /** Optimistic-concurrency token (If-Match). */
   version: number;
   branchSlug: string;
+  /** Server-authoritative outlet this cart belongs to. `branchSlug` above is a
+   *  localStorage recollection that can be stale; this is the real one. */
+  branchId?: string | null;
   items: CartItem[];
   itemCount: number;
   coupon?: AppliedCoupon | null;

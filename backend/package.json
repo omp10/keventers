@@ -1,7 +1,7 @@
 {
   "name": "keventers-smart-ordering-backend",
   "version": "1.0.0",
-  "description": "Keventers Smart Ordering Platform — enterprise modular-monolith backend (infrastructure foundation).",
+  "description": "Keventers Smart Ordering Platform \u2014 enterprise modular-monolith backend (infrastructure foundation).",
   "type": "module",
   "engines": {
     "node": ">=18.18.0"
@@ -21,9 +21,9 @@
     "#shared/*": "./src/shared/*"
   },
   "scripts": {
-    "start": "node src/server.js",
+    "start": "node api.js && node src/server.js",
     "start:worker": "node src/worker.js",
-    "dev": "nodemon src/server.js",
+    "dev": "node api.js && nodemon src/server.js",
     "seed": "node src/database/seeds/index.js",
     "test": "vitest run",
     "test:watch": "vitest",
