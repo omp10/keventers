@@ -48,6 +48,7 @@ type WirePricing = {
 type WireCart = {
   id: string;
   version?: number;
+  branchId?: string | null;
   items?: WireCartItem[];
   itemCount?: number;
   coupon?: { code?: string } | null;
@@ -167,6 +168,11 @@ export function mapCart(raw: WireCart): Cart {
     id: raw.id,
     version: raw.version ?? 0,
     branchSlug: recallBranch().slug,
+    // The SERVER's branch for this cart. `branchSlug` above is a localStorage
+    // recollection that can be stale or absent; this is authoritative and is
+    // what tells us a cart belongs to a different outlet than the menu on
+    // screen.
+    branchId: raw.branchId ?? null,
     items,
     itemCount: raw.itemCount ?? items.reduce((n, i) => n + i.quantity, 0),
     coupon,
