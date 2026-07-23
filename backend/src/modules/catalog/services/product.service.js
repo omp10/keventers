@@ -9,6 +9,7 @@ import {
   STORAGE_FOLDERS,
 } from '../constants/catalog.constants.js';
 import { toProductDTO, toProductDetailDTO } from '../dto/catalog.dto.js';
+import { availabilityService, describeWindows } from './availability.service.js';
 import {
   ProductCreatedEvent,
   ProductDeletedEvent,
@@ -202,10 +203,34 @@ export class ProductService extends BaseService {
    * Catalog stays the single authority on product data + component prices; the
    * Pricing Engine composes the totals.
    */
-  async getForOrdering(scope, productId) {
+  async getForOrdering(scope, productId, { now = new Date() } = {}) {
     const s = { organizationId: scope.organizationId, restaurantId: scope.restaurantId };
     const product = await this.products.findByIdScoped(s, productId);
-    if (!product || product.status !== PRODUCT_STATUS.ACTIVE) return null;
+    if (!product) return null;
+
+    // WHY a product was refused, not just that it was. The cart could only say
+    // "This product is not available" for every cause — a draft nobody
+    // published, a sold-out dish, and a breakfast item ordered at 3pm all read
+    // identically, so neither the guest nor the operator knew what to do.
+    if (product.status !== PRODUCT_STATUS.ACTIVE) {
+      return { unavailable: true, code: 'not_published', reason: 'This item is not on the menu yet' };
+    }
+    // Availability (stock + schedule) was never enforced here at all: an item
+    // marked out-of-stock, or outside its serving window, could still be added.
+    const verdict = availabilityService.resolveAvailability(product, { now });
+    if (!verdict.available) {
+      const windows = product.availability?.windows ?? [];
+      const when = describeWindows(windows);
+      const scheduled = Boolean(product.availability?.scheduled) && windows.length > 0;
+      return {
+        unavailable: true,
+        code: scheduled ? 'outside_hours' : 'unavailable',
+        // The window is the actionable part — say it.
+        reason: scheduled && when
+          ? `${product.name} is available only ${when}`
+          : verdict.reason || 'This product is not available',
+      };
+    }
 
     const [variants, addons] = await Promise.all([
       this.variants.findByProduct(s, entityId(product)),

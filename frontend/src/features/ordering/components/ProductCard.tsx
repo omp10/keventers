@@ -101,10 +101,21 @@ export function ProductCard({ product, variant = 'list', onAdd, onDecrement, onO
 
   const body = (
     <div className="flex min-w-0 flex-1 flex-col gap-1">
-      <div className="flex items-center gap-2">
+      {/* WRAPS. A no-wrap row pushed "Recommended" past the card edge in the
+          narrow grid/carousel tiles — the badges are supplementary, so they
+          should stack rather than overflow. `min-w-0` lets the row shrink
+          inside the flex parent at all. */}
+      <div className="flex min-w-0 flex-wrap items-center gap-1.5">
         <VegMark veg={product.veg} />
-        {product.popular && <Badge tone="warning" variant="soft" className="text-[0.625rem]">Popular</Badge>}
-        {product.recommended && <Badge tone="success" variant="soft" className="text-[0.625rem]">Recommended</Badge>}
+        {product.popular && <Badge tone="warning" variant="soft" className="max-w-full shrink-0 text-[0.625rem]">Popular</Badge>}
+        {product.recommended && (
+          <Badge tone="success" variant="soft" className="max-w-full shrink-0 text-[0.625rem]">
+            {/* The word alone is wider than a 176px carousel tile once a Veg
+                mark and Popular sit beside it; the short form still reads. */}
+            <span className="hidden sm:inline">Recommended</span>
+            <span className="sm:hidden">Top pick</span>
+          </Badge>
+        )}
       </div>
       <h3 className="font-semibold leading-tight text-foreground">{product.name}</h3>
       <div className="flex items-center gap-2 text-xs text-foreground-muted">

@@ -82,6 +82,10 @@ export class CartValidationService extends BaseService {
   async resolveItem(scope, input, currency) {
     const detail = await this.products.getForOrdering(scope, input.productId);
     if (!detail) throw new BadRequestError(CART_ERRORS.PRODUCT_UNAVAILABLE);
+    // Catalog explains WHY it refused (unpublished / sold out / outside its
+    // serving window). Pass that through verbatim — "available only 08:00–11:00"
+    // tells the guest what to do; "not available" tells them nothing.
+    if (detail.unavailable) throw new BadRequestError(detail.reason || CART_ERRORS.PRODUCT_UNAVAILABLE);
 
     const variant = this.#resolveVariant(detail, input.variantId);
     const modifiers = this.#resolveModifiers(detail, input.modifierIds ?? []);

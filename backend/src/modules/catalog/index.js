@@ -14,7 +14,7 @@ export { variantService } from './services/variant.service.js';
 export { modifierService } from './services/modifier.service.js';
 export { addonService } from './services/addon.service.js';
 export { pricingService } from './services/pricing.service.js';
-export { availabilityService } from './services/availability.service.js';
+export { availabilityService, describeWindows } from './services/availability.service.js';
 export { catalogService } from './services/catalog.service.js';
 export { importExportService } from './services/import-export.service.js';
 

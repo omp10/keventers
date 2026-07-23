@@ -71,6 +71,8 @@ export const CART_ERRORS = Object.freeze({
   VERSION_CONFLICT: 'The cart was modified by another device — reload and retry',
   MAX_ITEMS: 'Cart item limit reached',
   PRODUCT_UNAVAILABLE: 'This product is not available',
+  PRODUCT_NOT_PUBLISHED: 'This item is not on the menu yet',
+  PRODUCT_OUT_OF_STOCK: 'This item is sold out',
   VARIANT_INVALID: 'Selected variant is invalid or unavailable',
   VARIANT_REQUIRED: 'This product requires a variant selection',
   MODIFIER_INVALID: 'Invalid modifier selection',

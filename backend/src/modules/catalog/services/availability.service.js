@@ -161,5 +161,25 @@ export class AvailabilityService extends BaseService {
   }
 }
 
+/**
+ * "Available 08:00–11:00" — the human half of an availability verdict.
+ *
+ * A breakfast item refused at 3pm used to say only "This product is not
+ * available", which reads as broken rather than as scheduled. Telling the guest
+ * the window turns a dead end into an instruction.
+ */
+export function describeWindows(windows = []) {
+  const parts = (windows ?? [])
+    .map((w) => {
+      const time = `${w.startTime ?? '00:00'}–${w.endTime ?? '23:59'}`;
+      const days = Array.isArray(w.days) && w.days.length && w.days.length < 7
+        ? ` (${w.days.map((d) => d.slice(0, 3)).join(', ')})`
+        : '';
+      return `${time}${days}`;
+    })
+    .filter(Boolean);
+  return parts.length ? parts.join(' and ') : '';
+}
+
 export const availabilityService = new AvailabilityService();
 export default availabilityService;

@@ -22,6 +22,10 @@ function build(coupon = null) {
   const events = createFakeEventBus();
   const coupons = {
     resolveForApply: async () => coupon,
+    // The customer-targeting gate (new-customers-only / per-customer cap). The
+    // double must offer it or applying ANY coupon throws — these cases cover
+    // the pricing maths, not eligibility, so it simply passes.
+    assertCustomerEligible: async () => undefined,
     recordRedemption: async () => {},
   };
   const sessions = { markCheckoutPending: async () => {}, getPublicSession: async () => ({ status: 'active' }) };
